@@ -5408,7 +5408,9 @@ tbody tr:hover td { background: #fef9e7; }
           <span class="badge ${scopeBadgeClass}">${sectionLabel}</span>
           <span class="badge">الدور: ${u.role}</span>
           ${latestAnn ? `<span class="badge badge-gold">تعميم: ${latestAnn.title}</span>` : ''}
-                // Update Hijri date badge
+        </div>
+      `;
+                      // Update Hijri date badge
       const _hb = document.getElementById('hijriDateBadge');
       if (_hb) {
         const _today = new Date();
@@ -5417,8 +5419,7 @@ tbody tr:hover td { background: #fef9e7; }
           _hb.textContent = '📅 ' + _hijri;
         } catch(e) { _hb.textContent = '📅 ' + _today.toLocaleDateString('ar-SA'); }
       }
-        </div>
-      `;
+
     }
 
     function renderOpsSidebar() {
