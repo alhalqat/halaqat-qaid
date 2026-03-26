@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&amp;family=Cairo:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f5f2e8;
+      --bg: #faf7ef;
       --card: #ffffff;
       --line: #e3d8bf;
       --text: #1f2937;
@@ -1025,7 +1025,63 @@
     .mobile-only { display: none; }
     .desktop-only { display: block; }
 
-    /* Modern visual refresh */
+    /* Islamic Quran Theme - تصميم إسلامي قرآني */
+:root { --bg: #faf7ef; --card: #fffdf5; --line: #d4b896; --text: #2c1810; --muted: #6b4c35; --green: #1a5c2e; --green-2: #1d6b34; --gold: #8b6914; --gold-soft: #a07c1e; --rose: #8b1a2e; --ok: #166534; --warn: #7f1d1d; --focus: #1a5c2e; }
+body { font-family: 'Amiri', 'Cairo', 'Tajawal', serif; background: radial-gradient(circle at 15% 10%, rgba(139,105,20,0.18) 0, transparent 35%), radial-gradient(circle at 85% 5%, rgba(26,92,46,0.16) 0, transparent 32%), repeating-linear-gradient(45deg, rgba(212,184,150,0.12) 0 1px, transparent 1px 22px), linear-gradient(180deg, #faf7ef, #f5f0e4 60%, #efe8d6); }
+.card { background: linear-gradient(160deg, #fffdf7, #fdf9ee); border: 1px solid #d4b896; border-radius: 18px; box-shadow: 0 6px 24px rgba(44,24,16,0.10), inset 0 1px 0 rgba(255,255,255,0.9); }
+.card::after { background: linear-gradient(90deg, transparent, rgba(139,105,20,0.5), rgba(26,92,46,0.4), rgba(139,105,20,0.5), transparent); height: 2px; }
+.hero { background: radial-gradient(circle at 8% 20%, rgba(212,175,55,0.25), transparent 40%), radial-gradient(circle at 92% 10%, rgba(26,92,46,0.22), transparent 38%), linear-gradient(145deg, #1a4a1f, #1a5c2e 45%, #14532d 70%, #0f3d22); color: #fdf6e3; border: 1px solid rgba(212,175,55,0.4); }
+.hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 5 L55 20 L55 40 L30 55 L5 40 L5 20 Z' fill='none' stroke='rgba(212,175,55,0.08)' stroke-width='1'/%3E%3C/svg%3E") repeat; pointer-events: none; opacity: 0.6; }
+.btn-gold { background: linear-gradient(135deg, #b8860b, #d4af37 50%, #b8860b); color: #1a1000; border: 1px solid #8b6914; box-shadow: 0 4px 14px rgba(139,105,20,0.35); font-weight: 800; }
+.btn-primary { background: linear-gradient(135deg, #1a5c2e, #22703a 50%, #1a5c2e); border: 1px solid #14532d; box-shadow: 0 4px 14px rgba(26,92,46,0.35); }
+.btn { border-radius: 14px; min-height: 44px; font-weight: 800; font-family: 'Amiri', 'Cairo', serif; letter-spacing: 0.3px; transition: all 0.2s ease; }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(44,24,16,0.2); }
+#appView > header.card { background: radial-gradient(circle at 5% 0, rgba(212,175,55,0.18), transparent 30%), radial-gradient(circle at 95% 0, rgba(26,92,46,0.16), transparent 28%), linear-gradient(175deg, #fffdf7, #fdfbf0); border-color: #c8a96e; box-shadow: 0 16px 40px rgba(44,24,16,0.12); }
+#appView > header h1 { font-family: 'Amiri', serif; font-size: 38px; color: #1a5c2e; text-shadow: 0 2px 8px rgba(26,92,46,0.12); letter-spacing: 0.5px; }
+.ops-sidebar { background: radial-gradient(circle at 92% 5%, rgba(212,175,55,0.14), transparent 30%), linear-gradient(175deg, #fffdf5, #f9f5e8); border-color: #c8a96e; box-shadow: 0 8px 24px rgba(44,24,16,0.10); }
+#mainTabs.side-nav .tab-btn { background: linear-gradient(170deg, #fffdf7, #f9f5e8); border: 1px solid #d4b896; color: #2c1810; font-weight: 700; }
+#mainTabs.side-nav .tab-btn.active { background: linear-gradient(130deg, #f0fdf4, #fefce8); border-color: #86efac; color: #1a5c2e; box-shadow: 0 6px 18px rgba(26,92,46,0.16); }
+.tabs { background: linear-gradient(180deg, #f9f5e8, #faf7ef); border: 1px solid #d4b896; }
+.tab-btn { color: #1a5c2e; font-weight: 700; }
+.tab-btn.active { background: #fffdf5; box-shadow: 0 4px 14px rgba(44,24,16,0.12); }
+input, select, textarea { border: 1px solid #c8a96e; border-radius: 12px; background: linear-gradient(175deg, #fffdf7, #fdf9ee); min-height: 44px; font-family: 'Amiri', 'Cairo', serif; color: #2c1810; }
+input:focus, select:focus, textarea:focus { outline: 2px solid rgba(212,175,55,0.5); border-color: #8b6914; background: #fffdf5; }
+table { border: 1px solid #d4b896; border-radius: 16px; overflow: hidden; }
+thead th { background: linear-gradient(180deg, #fdf6e3, #f9f0d4); color: #2c1810; border-bottom: 2px solid #d4b896; }
+tbody tr:nth-child(even) td { background: #fdf9f0; }
+tbody tr:hover td { background: #fef9e7; }
+.badge-green { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #14532d; border: 1px solid #86efac; }
+.badge-gold { background: linear-gradient(135deg, #fef9c3, #fde68a); color: #7c4a03; border: 1px solid #fcd34d; }
+.badge-warn { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #7f1d1d; border: 1px solid #fca5a5; }
+.kpi { color: #1a5c2e; font-size: 30px; font-weight: 800; }
+.teacher-halaqa-card { background: linear-gradient(150deg, #fffdf7, #f9f5e8); border: 1px solid #d4b896; border-radius: 18px; box-shadow: 0 8px 20px rgba(44,24,16,0.09); }
+.teacher-halaqa-card.active { border-color: #d4af37; background: linear-gradient(140deg, #fefce8, #f0fdf4); box-shadow: 0 10px 28px rgba(139,105,20,0.18); }
+.teacher-student-btn { background: linear-gradient(160deg, #fffdf7, #f9f5e8); border: 1px solid #d4b896; border-radius: 16px; }
+.teacher-student-btn.active { border-color: #d4af37; background: linear-gradient(140deg, #fefce8, #f0fdf4); }
+.context-banner { background: radial-gradient(circle at 3% 20%, rgba(212,175,55,0.15), transparent 25%), radial-gradient(circle at 97% 20%, rgba(26,92,46,0.15), transparent 28%), linear-gradient(120deg, #fffdf7, #fdf9ee); border-color: #c8a96e; }
+.ops-card, .ops-task { border: 1px solid #d4b896; background: linear-gradient(170deg, #fffdf7, #faf7ef); border-radius: 12px; }
+.ops-task.warn { border-color: #fca5a5; background: linear-gradient(170deg, #fff5f5, #fef2f2); }
+.ops-task.info { border-color: #93c5fd; background: linear-gradient(170deg, #f0f9ff, #eff6ff); }
+.ops-task.ok { border-color: #86efac; background: linear-gradient(170deg, #f0fdf4, #dcfce7); }
+.certificate-showcase { background: radial-gradient(circle at 12% 14%, rgba(255,215,0,0.25), transparent 38%), radial-gradient(circle at 88% 14%, rgba(26,92,46,0.18), transparent 32%), linear-gradient(170deg, #fffef0, #fffdf5, #fdf9ee); border: 2px solid #d4af37; }
+.knights-hero { background: radial-gradient(circle at 8% 15%, rgba(212,175,55,0.25), transparent 30%), radial-gradient(circle at 92% 18%, rgba(26,92,46,0.22), transparent 32%), linear-gradient(140deg, #1a4a1f, #1a5c2e 55%, #0f3d22); color: #fdf6e3; border-color: rgba(212,175,55,0.5); }
+.knight-rank { background: linear-gradient(135deg, #8b6914, #d4af37); }
+.board-hero { background: radial-gradient(circle at 0% 30%, rgba(212,175,55,0.18), transparent 28%), radial-gradient(circle at 100% 20%, rgba(26,92,46,0.20), transparent 30%), linear-gradient(130deg, #fffdf5, #fdf9ee); border-color: #c8a96e; }
+.filter-chip { border: 1px solid #d4b896; background: linear-gradient(170deg, #fffdf7, #faf7ef); }
+.filter-chip.active { border-color: #1a5c2e; background: linear-gradient(140deg, #dcfce7, #f0fdf4); color: #1a5c2e; }
+.quran-frame::before { border-color: rgba(212,175,55,0.4); }
+.display-switch { background: linear-gradient(170deg, #fdf9ee, #faf7ef); border-color: #d4b896; }
+.display-switch button.active { background: linear-gradient(135deg, #fffdf7, #fdf9ee); box-shadow: 0 4px 14px rgba(44,24,16,0.12); }
+.toolbox { border-color: #d4b896; background: linear-gradient(170deg, #fffdf7, #faf7ef); }
+.toolbox > summary { color: #1a5c2e; }
+.smart-list { border-color: #d4b896; background: #fffdf7; box-shadow: 0 8px 20px rgba(44,24,16,0.14); }
+.smart-item:hover { background: #fef9e7; }
+.parent-hero { background: radial-gradient(circle at 5% 20%, rgba(212,175,55,0.22), transparent 35%), linear-gradient(145deg, #1a4a1f, #1a5c2e 55%, #0f3d22); color: #fdf6e3; }
+.parent-student-btn.active { background: linear-gradient(120deg, #fefce8, #f0fdf4); border-color: #d4af37; color: #1a5c2e; }
+.parent-progress-fill { background: linear-gradient(90deg, #1a5c2e, #d4af37); }
+#toast.ok { background: linear-gradient(135deg, #14532d, #1a5c2e); }
+#toast.err { background: linear-gradient(135deg, #7f1d1d, #b91c1c); }
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap');
     body {
       font-family: "Cairo", "Tajawal", "Amiri", "Tahoma", "Arial", sans-serif;
       font-size: 15px;
