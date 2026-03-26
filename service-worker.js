@@ -1,4 +1,4 @@
-const CACHE_NAME = 'halaqat-v1';
+const CACHE_NAME = 'v2';
 const ASSETS = [
   './',
   './index.html',
