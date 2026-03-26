@@ -3470,7 +3470,7 @@ tbody tr:hover td { background: #fef9e7; }
       renderAll();
     }
 
-    function todayEntriesSummary(studentId) {
+    function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId) {
       const today = todayISO();
       const rows = logsForStudent(studentId).filter((l) => l.date === today);
       if (!rows.length) return 'لا يوجد تسجيل اليوم';
@@ -4290,7 +4290,7 @@ tbody tr:hover td { background: #fef9e7; }
               ${(manage || certAllowed) ? `
                 <div class="row">
                   ${manage ? `<button class="btn btn-light" onclick="updateStudentBasic('${s.id}')">تحديث</button><button class="btn btn-light" onclick="transferStudent('${s.id}')">نقل</button>` : ''}
-                  ${certAllowed ? `<button class="btn btn-gold" onclick="issueStudentCertificate('${s.id}')">شهادة شكر</button>` : ''}
+                  ${certAllowed ? `<button class="btn btn-gold" onclick="issueStudentCertificate('${s.id}')">شهادة شكر</button>` : ''} ${manage ? `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">🗑️ حذف</button>` : ''}
                 </div>
               ` : '-'}
             </td>
@@ -5644,7 +5644,7 @@ tbody tr:hover td { background: #fef9e7; }
     window.quickAuditReport = quickAuditReport;
     window.pickSmartOption = pickSmartOption;
     window.approveExamResult = approveExamResult;
-    window.removeStaff = removeStaff;
+    window.removeStaff = removeStaff; window.deleteStudent = deleteStudent;
     window.selectParentStudent = selectParentStudent;
     window.exportParentCertificate = exportParentCertificate;
     window.exportKnightCard = exportKnightCard;
