@@ -2435,6 +2435,109 @@ tbody tr:hover td { background: #fef9e7; }
       toast('تم نسخ الإعدادات لكل الطلاب، عدّل فردياً عند الحاجة');
     }
 
+// ===== NEW IMPROVEMENTS =====
+
+// التحسين 1: حفظ الحفظ والمراجعة معاً
+function saveBothEntries(studentId) {
+  const hasHifdh = $('hifdhSurahIdx') && Number($('hifdhToAya')?.value || 0) > 0;
+  const hasRevision = $('revisionSurahIdx') && Number($('revisionToAya')?.value || 0) > 0;
+  
+  if (!hasHifdh && !hasRevision) {
+    return toast('أدخل الحفظ أو المراجعة على الأقل', 'err');
+  }
+  
+  if (hasHifdh) saveDailyEntry(studentId, 'hifdh');
+  if (hasRevision) saveDailyEntry(studentId, 'revision');
+  
+  toast('تم حفظ الحفظ والمراجعة معاً');
+}
+
+// التحسين 4: خلاصة يومية عند إغلاق الحلقة
+function closeHalaqaWithSummary() {
+  const h = state.indexes?.halaqaById?.[state.currentHalaqaId] || null;
+  if (!h) return closeHalaqa();
+  
+  const students = state.indexes?.studentsByHalaqa?.[h.id] || [];
+  const today = todayISO();
+  const logs = state.db.logs.filter(l => l.halaqaId === h.id && l.date === today);
+  const logged = new Set(logs.map(l => l.studentId)).size;
+  const absent = (state.db.rollcall || []).filter(r => r.halaqaId === h.id && r.date === today && r.status === 'absent').length;
+  const totalAya = logs.reduce((s, l) => s + Number(l.ayaCount || 0), 0);
+  
+  if (logs.length > 0) {
+    toast(`✅ سجّلت اليوم ${logged} طالب، ${absent} غائب، ${totalAya} آية. أحسنت!`);
+  }
+  
+  setTimeout(() => closeHalaqa(), 2500);
+}
+
+// التحسين 6: نسخ التقرير الأسبوعي للواتساب
+function copyWeeklyReportToWhatsapp() {
+  const wr = weekRange();
+  const b = reportBundle();
+  
+  const text = `📊 *تقرير أسبوعي - جمعية القاعد*\n` +
+    `🗓 ${wr.startISO} → ${wr.endISO}\n\n` +
+    `📝 إجمالي السجلات: *${b.totals.entries}*\n` +
+    `📖 إجمالي الآيات: *${b.totals.ayaTotal}*\n` +
+    `📄 إجمالي الأوجه: *${b.totals.faces}*\n` +
+    `✅ حفظ: *${b.totals.hifdh}* | مراجعة: *${b.totals.revision}*\n\n` +
+    `🏆 *أفضل 3 حلقات:*\n` +
+    b.rows.slice(0,3).map((r,i) => `${i+1}. ${r.halaqaName} - ${r.faces} وجه`).join('\n');
+  
+  navigator.clipboard.writeText(text).then(() => {
+    toast('تم نسخ التقرير، الصقه في واتساب مباشرة');
+  }).catch(() => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    toast('تم نسخ التقرير للواتساب');
+  });
+}
+
+// التحسين 3: إظهار تاريخ آخر تسجيل + مقارنة الأسبوع
+function getStudentLastEntryDate(studentId) {
+  const logs = logsForStudent(studentId);
+  if (!logs.length) return 'لم يسجل بعد';
+  const latest = logs[0];
+  return latest?.date || 'غير محدد';
+}
+
+function compareStudentWeeklyProgress(studentId) {
+  const logs = logsForStudent(studentId);
+  const now = new Date();
+  const thisWeekStart = new Date(now);
+  thisWeekStart.setDate(now.getDate() - now.getDay());
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+  
+  const thisWeek = logs.filter(l => new Date(l.date) >= thisWeekStart).reduce((s, l) => s + Number(l.ayaCount || 0), 0);
+  const lastWeek = logs.filter(l => {
+    const d = new Date(l.date);
+    return d >= lastWeekStart && d < thisWeekStart;
+  }).reduce((s, l) => s + Number(l.ayaCount || 0), 0);
+  
+  const diff = thisWeek - lastWeek;
+  if (diff > 0) return `<span style="color:#15803d;">↑ تحسّن +${diff} آية</span>`;
+  if (diff < 0) return `<span style="color:#b91c1c;">↓ انخفض ${diff} آية</span>`;
+  return '<span style="color:#64748b;">— مستقر</span>';
+}
+
+// التحسين 8: تنبيه غياب متتالي
+function getConsecutiveAbsences(studentId, halaqaId) {
+  const all = (state.db.rollcall || []).filter(r => r.studentId === studentId && r.halaqaId === halaqaId).sort((a,b) => String(b.date).localeCompare(String(a.date)));
+  let count = 0;
+  for (const r of all) {
+    if (r.status === 'absent') count++;
+    else break;
+  }
+  return count;
+}
+
+	  
     function rebuildIndexes() {
       const idx = {
         halaqaById: {},
@@ -5648,7 +5751,7 @@ tbody tr:hover td { background: #fef9e7; }
     window.exportKnightCard = exportKnightCard;
     window.syncPendingLogs = syncPendingLogs;
     window.copySurahToAll = copySurahToAll;
-    window.filterSurahOptions = filterSurahOptions;
+    window.filterSurahOptions = filterSurahOptions; window.saveBothEntries = saveBothEntries; window.copyWeeklyReportToWhatsapp = copyWeeklyReportToWhatsapp; window.closeHalaqaWithSummary = closeHalaqaWithSummary;
 
     const safe = (id, fn) => { const el = $(id); if (el) fn(el); };
 
