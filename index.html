@@ -3951,9 +3951,9 @@ tbody tr:hover td { background: #fef9e7; }
               </select>
             </div>
           </div>
-          <div class="teacher-student-grid no-print ${state.teacherStudentView === 'cards' ? '' : 'hidden'}">
+          <div class="teacher-student-grid no-print ${state.teacherStudentView === 'cards' || state.teacherStudentView === 'compact' ? '' : 'hidden'} ${state.teacherStudentView === 'compact' ? 'compact-grid' : ''}">
             ${students.map(student => `
-              <button type="button" class="teacher-student-btn ${selected && selected.id === student.id ? 'active' : ''}" data-student-id="${student.id}">
+              <button type="button" class="teacher-student-btn ${selected && selected.id === student.id ? 'active' : ''} ${state.teacherStudentView === 'compact' ? 'compact' : ''}" data-student-id="${student.id}">
                 <span class="name">${student.name}</span>
                 <span class="meta">${(ATTENDANCE.find((a) => a.key === (getRollcall(student.id, h.id, today)?.status || ''))?.label || 'غير محضر')} • ${todayEntriesSummary(student.id)}</span>
               </button>
