@@ -3168,6 +3168,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       state.currentHalaqaId = null;
       state.currentStudentId = null;
       renderHalaqaDetail();
+		    // Call closeHalaqaWithSummary before rendering
+		    closeHalaqaWithSummary();
     }
 
     function pickStudentFromMobile() {
@@ -4083,13 +4085,12 @@ function getConsecutiveAbsences(studentId, halaqaId) {
               <div class="card" style="padding:10px; border-color:${selected && selected.id===s.id ? palette.selectedBorder : palette.cardBorder}; background:${selected && selected.id===s.id ? palette.selectedBg : '#fff'};">
                 <div class="row between">
                   <b>${s.name}</b>
-                  ${Number(s.absentCount || 0) >= 4 ? '<span class="badge badge-warn">متابعة</span>' : '<span class="badge">مستقر</span>'}
-                </div>
-                <p class="muted" style="font-size:12px; margin-top:5px">هوية: ${s.nationalId}</p>
-                <p class="muted" style="font-size:12px">آخر حفظ: ${s.lastHifdhSurah || '---'} ${s.lastHifdhAya ? `(${s.lastHifdhAya})` : ''}</p>
-                <p class="muted" style="font-size:12px">النقاط: <b>${Number(s.points || 0)}</b></p>
-                <p style="font-size:12px">${(getStudentBadges(s).slice(0,2).map(b => `<span class="badge badge-gold">${b}</span>`).join(' ')) || '<span class="muted">لا شارات بعد</span>'}</p>
-                <button class="btn btn-ok no-print" style="margin-top:8px" onclick="openEntry('${s.id}')">تسجيل اليوم</button>
+                ${getStudentAlertHTML(s)} 
+                <p class="muted" style="font-size:12px; margin-top:5px">مدينة: ${getStudentLocation(s)}</p>
+                <p class="muted" style="font-size:12px">آخر حفظ: ${getStudentLastHifdh(s)}</p>
+                <p class="muted" style="font-size:12px">نقاط: <b>${getStudentPoints(s)}</b></p>
+                <p style="font-size:12px">${getStudentBadgesHTML(s, 2)}</p>
+				                <button class="btn btn-ok no-print" style="margin-top:8px" onclick="openEntryForm('${s.id}')">فتح ملف الطالب</button><button class="btn btn-ok no-print" style="margin-top:8px" onclick="openEntry('${s.id}')">تسجيل اليوم</button>
               </div>
             `).join('') || '<div class="card">لا يوجد طلاب.</div>'}
           </div>
