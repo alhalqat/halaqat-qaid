@@ -2427,7 +2427,7 @@ tbody tr:hover td { background: #fef9e7; }
       const fromAya = Number($(`${type}FromAya`)?.value || 1);
       const toAya = Number($(`${type}ToAya`)?.value || 1);
       const grade = ($(`${type}Grade`)?.value || '1');
-      const attendance = ($(`${type}Attendance`)?.value || 'present');
+      const attendance = $('teacherAttendance')?.value || ($(`${type}Attendance`)?.value || 'present');
       students.forEach((s) => {
         state.prefillByStudent[s.id] = state.prefillByStudent[s.id] || {};
         state.prefillByStudent[s.id][type] = { surahIdx, fromAya, toAya, grade, attendance };
@@ -3157,7 +3157,7 @@ tbody tr:hover td { background: #fef9e7; }
         : '';
       const prefix = forcedType === 'hifdh' ? 'hifdh' : forcedType === 'revision' ? 'revision' : 'entry';
       const type = forcedType || document.querySelector('input[name="entryType"]:checked')?.value || 'hifdh';
-      const attendance = $(`${prefix}Attendance`)?.value || $('entryAttendance')?.value || (h.deliveryMode === 'remote' ? 'remote' : 'present');
+      const attendance = $('teacherAttendance')?.value || $(`${prefix}Attendance`)?.value || $('entryAttendance')?.value || (h.deliveryMode === 'remote' ? 'remote' : 'present');
       const grade = $(`${prefix}Grade`)?.value || $('entryGrade')?.value || '1';
       const surahIdx = Number($(`${prefix}SurahIdx`)?.value || $('entrySurahIdx')?.value || 0);
       const fromAya = Number($(`${prefix}FromAya`)?.value || $('entryFromAya')?.value || 1);
@@ -3945,7 +3945,7 @@ tbody tr:hover td { background: #fef9e7; }
                   <option value="dropdown" ${state.teacherStudentView === 'dropdown' ? 'selected' : ''}>عرض الطلاب كقائمة</option>
                 </select>
               </div>
-              <select id="teacherStudentDropdown" class="picker-select" style="min-width:260px;" onchange="openEntry(this.value)">
+              <select id="teacherStudentDropdown" class="picker-select" style="display:none">
                 <option value="">اختر الطالب</option>
                 ${students.map((student) => `<option value="${student.id}" ${selected && selected.id === student.id ? 'selected' : ''}>${student.name}</option>`).join('')}
               </select>
@@ -4085,7 +4085,7 @@ tbody tr:hover td { background: #fef9e7; }
               <div class="grid grid-4">
                 <div class="field-block">
                   <div class="field-label">الحضور</div>
-                  <select id="hifdhAttendance">${attH}</select>
+                  <select id="teacherAttendance">${attH}</select>
                 </div>
                 <div class="field-block">
                   <div class="field-label">السورة</div>
@@ -4125,7 +4125,7 @@ tbody tr:hover td { background: #fef9e7; }
               <div class="grid grid-4">
                 <div class="field-block">
                   <div class="field-label">الحضور</div>
-                  <select id="revisionAttendance">${attR}</select>
+                  <select id="revisionAttendance" style="display:none">${attR}</select>
                 </div>
                 <div class="field-block">
                   <div class="field-label">السورة</div>
