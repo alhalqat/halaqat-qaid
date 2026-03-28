@@ -4011,10 +4011,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
         ${teacherMode ? `
           <div class="card" style="margin-bottom:10px; border-color:#d7e2d3; background:#f8fbff;">
-            <div class="row between">
-              <div class="row" style="gap:8px;">
+آية هذا الأسبوع</span>              <div class="row" style="gap:8px;">
                 <span class="badge badge-green">حاضر اليوم: ${dailyRollcalls.length}/${students.length}</span>
-                <span class="badge">سجلات اليوم: ${state.db.logs.filter(l => l.halaqaId === h.id && l.date === today).length}</span>
+              مزامنة السجلات  <span class="badge">سجلات اليوم: ${state.db.logs.filter(l => l.halaqaId === h.id && l.date === today).length}</span>
                 ${pending ? `<span class="badge badge-warn">معلّقة: ${pending}</span>` : ''}
                 <span class="badge">${wp.totalAya} آية هذا الأسبوع</span>
               </div>
@@ -5842,6 +5841,69 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       console.error('Global error', msg, src, line, col, err);
       alert('حدث خطأ غير متوقع: ' + msg);
     };
+  
+// === PATCH v37: تحسينات واجهة المعلم ===
+// 1. تحسين بطاقات الطلاب في واجهة المعلم لإظهار معلومات إضافية
+// 2. إضافة زر تقرير واتساب في شريط المعلم
+// 3. تحسين عرض الطالب المختار
+
+// تعريف دالة getStudentWeeklyAya لحساب آيات الطالب هذا الأسبوع
+function getStudentWeeklyAya(studentId) {
+  const wr = weekRange();
+  return logsForStudent(studentId)
+    .filter(l => l.date >= wr.startISO && l.date <= wr.endISO)
+    .reduce((s, l) => s + Number(l.ayaCount || 0), 0);
+}
+window.getStudentWeeklyAya = getStudentWeeklyAya;
+
+// تحسين عرض بطاقة الطالب مع إضافة معلومات أسبوعية
+const _orig_renderHalaqaDetail = renderHalaqaDetail;
+function renderHalaqaDetail_enhanced() {
+  _orig_renderHalaqaDetail();
+  // إضافة زر واتساب إذا كان المعلم مسجل دخول والحلقة مفتوحة
+  const u = currentUser();
+  if (!u || u.role !== 'teacher' || !state.currentHalaqaId) return;
+  // إضافة معلومات آيات الأسبوع على بطاقات الطلاب
+  document.querySelectorAll('.teacher-student-btn').forEach(btn => {
+    const sId = btn.dataset.studentId;
+    if (!sId) return;
+    const aya = getStudentWeeklyAya(sId);
+    const s = state.db.students.find(x => x.id === sId);
+    const metaEl = btn.querySelector('.meta');
+    if (metaEl && aya > 0) {
+      if (!metaEl.querySelector('.aya-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'aya-badge';
+        badge.style.cssText = 'display:inline-block;background:#dcfce7;color:#166534;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-right:4px;';
+        badge.textContent = aya + ' آية';
+        metaEl.insertBefore(badge, metaEl.firstChild);
+      }
+    }
+  });
+}
+window.renderHalaqaDetail = renderHalaqaDetail_enhanced;
+
+// إضافة زر الواتساب في شريط المعلم عند فتح الحلقة
+const _origOpenHalaqa = openHalaqa;
+function openHalaqa_enhanced(id) {
+  _origOpenHalaqa(id);
+  setTimeout(() => {
+    const u = currentUser();
+    if (!u || u.role !== 'teacher') return;
+    const existing = document.getElementById('wa-report-btn');
+    if (existing) return;
+    const closeBtnArea = document.querySelector('#halaqaDetail .row.between');
+    if (!closeBtnArea) return;
+    const waBtn = document.createElement('button');
+    waBtn.id = 'wa-report-btn';
+    waBtn.className = 'btn btn-ok no-print';
+    waBtn.style.cssText = 'background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-size:13px;';
+    waBtn.textContent = '📊 تقرير واتساب';
+    waBtn.onclick = copyWeeklyReportToWhatsapp;
+    closeBtnArea.insertBefore(waBtn, closeBtnArea.querySelector('.btn-light'));
+  }, 100);
+}
+window.openHalaqa = openHalaqa_enhanced;
   </script>
 </body>
 </html>
