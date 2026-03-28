@@ -6023,6 +6023,113 @@ function renderWorkflowBanner_v38() {
 window.renderWorkflowBanner = renderWorkflowBanner_v38;
 
 console.log('PATCH v38 loaded: قسم البنين والبنات مفصولان');
+  // === PATCH v39: حل جذري لمشكلة "رقم غير مسجل" عند إضافة معلمين جدد ===
+// المشكلة: المعلم الجديد محفوظ في localStorage للإدارة فقط، وعندما يفتح الرابط يحمل بيانات تجريبية بدون رقمه
+// الحل الجذري: 
+// 1. زر "نسخ رابط مع البيانات" في صفحة المعلمين
+// 2. مزامنة بيانات الكادر في URL عند النسخ
+// 3. تحميل بيانات الكادر من URL عند فتح الرابط
+
+// 1. تصدير بيانات الكادر إلى base64
+function exportStaffToURL() {
+    try {
+        const staff = state.db.staff || [];
+        const json = JSON.stringify(staff);
+        const encoded = btoa(encodeURIComponent(json));
+        const base = window.location.origin + window.location.pathname;
+        return `${base}?staff=${encoded}`;
+    } catch(e) {
+        console.error('Export staff error:', e);
+        return window.location.href;
+    }
+}
+
+// 2. استيراد بيانات الكادر من URL عند التحميل
+function importStaffFromURL() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const encoded = params.get('staff');
+        if (!encoded) return false;
+        const json = decodeURIComponent(atob(encoded));
+        const staff = JSON.parse(json);
+        if (!Array.isArray(staff) || !staff.length) return false;
+        // دمج الكادر المستورد مع الموجودين (تجنب التكرار)
+        staff.forEach((newStaff) => {
+            const phone = normalizePhone(newStaff.phone);
+            if (!phone) return;
+            const existing = state.db.staff.find(s => normalizePhone(s.phone) === phone);
+            if (!existing) {
+                state.db.staff.push(newStaff);
+            }
+        });
+        saveDB();
+        rebuildIndexes();
+        console.log(`Imported ${staff.length} staff from URL`);
+        return true;
+    } catch(e) {
+        console.error('Import staff error:', e);
+        return false;
+    }
+}
+
+// 3. نسخ رابط مع بيانات الكادر
+function copyStaffShareLink() {
+    const link = exportStaffToURL();
+    navigator.clipboard.writeText(link).then(() => {
+        toast('✅ تم نسخ الرابط مع بيانات الكادر! شاركه مع المعلمين');
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = link;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        toast('✅ تم نسخ الرابط مع بيانات الكادر! شاركه مع المعلمين');
+    });
+}
+window.copyStaffShareLink = copyStaffShareLink;
+
+// 4. تحميل تلقائي عند بدء المنصة
+const _origLoadDB = loadDB;
+function loadDB_v39() {
+    _origLoadDB();
+    // محاولة استيراد الكادر من URL إذا كان موجود
+    const imported = importStaffFromURL();
+    if (imported) {
+        console.log('Staff data synced from shared URL');
+        // حذف المعلمة من URL بعد الاستيراد
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+    }
+}
+window.loadDB = loadDB_v39;
+
+// 5. إضافة زر نسخ الرابط في renderStaff
+const _origRenderStaff_v38 = window.renderStaff;
+function renderStaff_v39() {
+    if (_origRenderStaff_v38) _origRenderStaff_v38();
+    const admin = isAdmin();
+    if (!admin) return;
+    const createBox = $('createStaffBox');
+    if (!createBox) return;
+    let shareBtn = document.getElementById('shareStaffLinkBtn');
+    if (shareBtn) return; // موجود مسبقاً
+    shareBtn = document.createElement('button');
+    shareBtn.id = 'shareStaffLinkBtn';
+    shareBtn.className = 'btn btn-gold no-print';
+    shareBtn.style.cssText = 'margin-top:10px;width:100%;';
+    shareBtn.textContent = '🔗 نسخ رابط مشاركة مع بيانات الكادر';
+    shareBtn.onclick = copyStaffShareLink;
+    createBox.appendChild(shareBtn);
+}
+window.renderStaff = renderStaff_v39;
+
+// 6. تطبيق التحميل الجديد مباشرة عند فتح الصفحة
+if (typeof state !== 'undefined' && state.db) {
+    loadDB_v39();
+}
+
+console.log('PATCH v39 loaded: حل جذري لمشكلة رقم غير مسجل');
   </script>
 </body>
 </html>
