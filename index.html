@@ -5904,6 +5904,125 @@ function openHalaqa_enhanced(id) {
   }, 100);
 }
 window.openHalaqa = openHalaqa_enhanced;
+  // === PATCH v38: فصل قسم البنين عن البنات في واجهة الإدارة ===
+// المشكلة: الإدارة ترى كل الطلاب (بنين + بنات) معاً في جميع الصفحات
+// الحل: تطبيق فلترة state.section على الإدارة أيضاً مع إبقاء أزرار التبديل
+
+// 1. إظهار أزرار البنين/البنات للإدارة دائماً
+const _origRenderAll = renderAll;
+function renderAll_v38() {
+    _origRenderAll();
+    const u = currentUser();
+    if (!u) return;
+    // للإدارة: إظهار أزرار القسم دائماً
+    if (u.role === 'admin') {
+        $('sectionTabs').style.display = 'inline-flex';
+    }
+}
+window.renderAll = renderAll_v38;
+
+// 2. تصحيح renderStudents: الإدارة تفلتر حسب القسم المحدد
+const _origRenderStudents = renderStudents;
+function renderStudents_v38() {
+    const u = currentUser();
+    const admin = u && u.role === 'admin';
+    // حفظ الدالة الأصلية وتجاوزها مؤقتاً لتطبيق فلترة القسم
+    const _origIsAdmin = window.isAdmin;
+    if (admin) {
+        // نجعل الإدارة تفلتر حسب القسم المحدد فقط
+        // بتغيير visibleStudents مؤقتاً
+        const _origVisibleStudents = window.visibleStudents;
+        window.visibleStudents = function() {
+            return state.db.students.filter(s => s.section === state.section);
+        };
+        // نجعل isAdmin يعيد false مؤقتاً لإجبار renderStudents على استخدام visibleStudents
+        window.isAdmin = function() { return false; };
+        _origRenderStudents();
+        window.isAdmin = _origIsAdmin;
+        window.visibleStudents = _origVisibleStudents;
+        // لكن نُظهر أزرار الإدارة مجدداً
+        $('createStudentBox').classList.remove('hidden');
+        $('bulkStudentsBox').classList.remove('hidden');
+    } else {
+        _origRenderStudents();
+    }
+}
+window.renderStudents = renderStudents_v38;
+
+// 3. تصحيح renderHalaqas: الإدارة ترى فقط حلقات القسم المحدد
+const _origRenderHalaqas = renderHalaqas;
+function renderHalaqas_v38() {
+    const u = currentUser();
+    if (u && u.role === 'admin') {
+        // تعديل مؤقت لـ visibleHalaqas لتصفية حسب القسم
+        const _origVH = window.visibleHalaqas;
+        window.visibleHalaqas = function() {
+            return state.db.halaqas.filter(h => h.section === state.section);
+        };
+        _origRenderHalaqas();
+        window.visibleHalaqas = _origVH;
+        // إعادة إظهار أزرار الإدارة للحلقات
+        $('createHalaqaBox').classList.remove('hidden');
+    } else {
+        _origRenderHalaqas();
+    }
+}
+window.renderHalaqas = renderHalaqas_v38;
+
+// 4. تصحيح renderStaff: الإدارة ترى فقط كادر القسم المحدد + الإدارة العامة
+const _origRenderStaff = renderStaff;
+function renderStaff_v38() {
+    const u = currentUser();
+    if (u && u.role === 'admin') {
+        const _origIsAdmin = window.isAdmin;
+        // عرض الكادر مع فلترة القسم
+        const unfilteredStaff = state.db.staff;
+        state.db.staff = state.db.staff.filter(s =>
+            s.role === 'admin' || s.role === 'board' ||
+            s.section === state.section
+        );
+        _origRenderStaff();
+        state.db.staff = unfilteredStaff;
+    } else {
+        _origRenderStaff();
+    }
+}
+window.renderStaff = renderStaff_v38;
+
+// 5. تصحيح reportBundle وvisibleStudents في التقارير للإدارة
+const _origRenderReports = renderReports;
+function renderReports_v38() {
+    const u = currentUser();
+    if (u && u.role === 'admin') {
+        const _origVH = window.visibleHalaqas;
+        window.visibleHalaqas = function() {
+            return state.db.halaqas.filter(h => h.section === state.section);
+        };
+        const _origVS = window.visibleStudents;
+        window.visibleStudents = function() {
+            return state.db.students.filter(s => s.section === state.section);
+        };
+        _origRenderReports();
+        window.visibleHalaqas = _origVH;
+        window.visibleStudents = _origVS;
+    } else {
+        _origRenderReports();
+    }
+}
+window.renderReports = renderReports_v38;
+
+// 6. تحديث شريط العنوان ليعكس القسم المحدد
+const _origRenderWorkflowBanner = renderWorkflowBanner;
+function renderWorkflowBanner_v38() {
+    _origRenderWorkflowBanner();
+    const u = currentUser();
+    if (u && u.role === 'admin') {
+        $('sectionTabs').style.display = 'inline-flex';
+    }
+}
+window.renderWorkflowBanner = renderWorkflowBanner_v38;
+
+console.log('PATCH v38 loaded: قسم البنين والبنات مفصولان');
   </script>
 </body>
 </html>
