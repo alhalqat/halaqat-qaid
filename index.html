@@ -1280,7 +1280,91 @@ color:#555      .no-print { display: none !important; }
 <body>
   <div id="toast"></div>
 
-  <div class="container" id="loginView">
+
+	
+<!-- PATCH v40: Firebase SDK Integration -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script>
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAsQQ9GGfZdDmS4V5Fqv49rypXDEeoxCaA",
+  authDomain: "alhalqat-6ac9d.firebaseapp.com",
+  databaseURL: "https://alhalqat-6ac9d-default-rtdb.firebaseio.com",
+  projectId: "alhalqat-6ac9d",
+  storageBucket: "alhalqat-6ac9d.firebasestorage.app",
+  messagingSenderId: "680568855745",
+  appId: "1:680568855745:web:b8adfa8598dfd6d801c840",
+  measurementId: "G-4L9H2WQS68"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Firebase Data Manager
+const FirebaseDataManager = {
+  // حفظ البيانات إلى Firebase
+  saveData: function(key, data) {
+    return database.ref(key).set(data);
+  },
+  
+  // قراءة البيانات من Firebase
+  getData: function(key, callback) {
+    database.ref(key).on('value', (snapshot) => {
+      callback(snapshot.val());
+    });
+  },
+  
+  // تحديث البيانات في Firebase
+  updateData: function(key, updates) {
+    return database.ref(key).update(updates);
+  },
+  
+  // حذف البيانات من Firebase
+  deleteData: function(key) {
+    return database.ref(key).remove();
+  },
+  
+  // مزامنة localStorage مع Firebase
+  syncLocalStorage: function() {
+    const keys = ['students', 'teachers', 'circles', 'attendance', 'evaluations', 'badges', 'loginData'];
+    keys.forEach(key => {
+      const localData = localStorage.getItem(key);
+      if (localData) {
+        this.saveData(key, JSON.parse(localData));
+      }
+    });
+  },
+  
+  // استيراد البيانات من Firebase إلى localStorage
+  importFromFirebase: function() {
+    const keys = ['students', 'teachers', 'circles', 'attendance', 'evaluations', 'badges', 'loginData'];
+    keys.forEach(key => {
+      this.getData(key, (data) => {
+        if (data) {
+          localStorage.setItem(key, JSON.stringify(data));
+        }
+      });
+    });
+  }
+};
+
+// Auto-sync: كل تغيير في localStorage يتم حفظه في Firebase
+const originalSetItem = localStorage.setItem;
+localStorage.setItem = function(key, value) {
+  originalSetItem.apply(this, arguments);
+  const syncKeys = ['students', 'teachers', 'circles', 'attendance', 'evaluations', 'badges', 'loginData'];
+  if (syncKeys.includes(key)) {
+    FirebaseDataManager.saveData(key, JSON.parse(value)).catch(err => console.error('Firebase sync error:', err));
+  }
+};
+
+// تحميل البيانات من Firebase عند فتح الصفحة
+window.addEventListener('load', () => {
+  FirebaseDataManager.importFromFirebase();
+});
+</script><div class="container" id="loginView">
     <div class="card hero" style="max-width:580px; margin:48px auto;">
       <h2 style="color:#0f172a; text-shadow:0 1px 6px rgba(255,255,255,0.65);">جمعية تحفيظ القران الكريم بالقاعد</h2>
                 <p class="quran-verse-login">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾<br><small style="font-size:12px;opacity:0.75;">سورة المزمل - 4</small></p>
@@ -6133,3 +6217,164 @@ console.log('PATCH v39 loaded: حل جذري لمشكلة رقم غير مسجل
   </script>
 </body>
 </html>
+
+
+// === PATCH v40: تحويل المنصة لقاعدة بيانات سحابية Firebase ===
+// المشكلة: localStorage يحفظ البيانات محلياً فقط (كل جهاز منفصل)
+// الحل: استخدام Firebase Realtime Database لمزامنة البيانات بين جميع الأجهزة
+
+// 1. تهيئة Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDemoKey123456789", // سيتم استبدالها بمفتاح حقيقي
+  authDomain: "halaqat-qaid.firebaseapp.com",
+  databaseURL: "https://halaqat-qaid-default-rtdb.firebaseio.com",
+  projectId: "halaqat-qaid",
+  storageBucket: "halaqat-qaid.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123"
+};
+
+let db_firebase = null;
+let db_ref = null;
+
+// 2. دالة تهيئة Firebase
+function initFirebase() {
+  try {
+    // التحقق من توفر Firebase SDK
+    if (typeof firebase === 'undefined') {
+      console.warn('Firebase SDK not loaded, using localStorage fallback');
+      return false;
+    }
+    
+    // تهيئة Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    
+    db_firebase = firebase.database();
+    db_ref = db_firebase.ref('platform_data');
+    
+    console.log('✅ Firebase initialized successfully');
+    return true;
+  } catch (e) {
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+// 3. حفظ البيانات في Firebase
+function saveDB_firebase() {
+  if (!db_ref) {
+    // Fallback to localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.db));
+    return;
+  }
+  
+  try {
+    // حفظ في Firebase
+    db_ref.set(state.db).then(() => {
+      console.log('💾 Data synced to Firebase');
+      // حفظ نسخة احتياطية محلية أيضاً
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.db));
+    }).catch((error) => {
+      console.error('Firebase save error:', error);
+      // Fallback to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.db));
+    });
+  } catch (e) {
+    console.error('Save error:', e);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.db));
+  }
+}
+
+// 4. تحميل البيانات من Firebase
+function loadDB_firebase() {
+  if (!db_ref) {
+    // Fallback to localStorage
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      state.db = raw ? migrateIfNeeded(JSON.parse(raw)) : seedData();
+    } catch (_e) {
+      state.db = seedData();
+    }
+    rebuildIndexes();
+    recomputeAllStudentAggregates();
+    saveDB();
+    return;
+  }
+  
+  // تحميل من Firebase
+  db_ref.once('value').then((snapshot) => {
+    const data = snapshot.val();
+    if (data && data.staff && data.halaqas && data.students) {
+      console.log('📥 Data loaded from Firebase');
+      state.db = migrateIfNeeded(data);
+    } else {
+      console.log('📝 No Firebase data, loading from localStorage or creating seed');
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        state.db = raw ? migrateIfNeeded(JSON.parse(raw)) : seedData();
+      } catch (_e) {
+        state.db = seedData();
+      }
+    }
+    
+    rebuildIndexes();
+    recomputeAllStudentAggregates();
+    saveDB();
+    
+    // الاستماع للتغييرات المباشرة
+    db_ref.on('value', (snapshot) => {
+      const newData = snapshot.val();
+      if (newData && JSON.stringify(newData) !== JSON.stringify(state.db)) {
+        console.log('🔄 Data updated from another device');
+        state.db = migrateIfNeeded(newData);
+        rebuildIndexes();
+        recomputeAllStudentAggregates();
+        renderAll();
+        toast('تم تحديث البيانات من جهاز آخر', 'ok');
+      }
+    });
+  }).catch((error) => {
+    console.error('Firebase load error:', error);
+    // Fallback to localStorage
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      state.db = raw ? migrateIfNeeded(JSON.parse(raw)) : seedData();
+    } catch (_e) {
+      state.db = seedData();
+    }
+    rebuildIndexes();
+    recomputeAllStudentAggregates();
+    saveDB();
+  });
+}
+
+// 5. استبدال الدوال الأصلية
+const _orig_saveDB_v39 = window.saveDB;
+const _orig_loadDB_v39 = window.loadDB;
+
+window.saveDB = function() {
+  saveDB_firebase();
+};
+
+window.loadDB = function() {
+  // محاولة تهيئة Firebase أولاً
+  const firebaseReady = initFirebase();
+  
+  if (firebaseReady) {
+    loadDB_firebase();
+  } else {
+    // Fallback to original
+    if (_orig_loadDB_v39) _orig_loadDB_v39();
+  }
+};
+
+// 6. تطبيق Firebase عند بدء التشغيل
+try {
+  initFirebase();
+  console.log('PATCH v40 loaded: Firebase Realtime Database integration');
+} catch (e) {
+  console.error('PATCH v40 initialization error:', e);
+}
+
