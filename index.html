@@ -3962,7 +3962,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       `;
     }
 
-function renderHalaqaDetail() {
+function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.students); if (!issues.length) return ''; return `<span class="badge badge-warn" style="font-size:10px;">${issues[0]}</span>`; } function getStudentLocation(s) { return s.grade || '-'; } function getStudentLastHifdh(s) { return s.lastHifdhSurah ? `${s.lastHifdhSurah} (${s.lastHifdhAya || ''})` : 'لم يبدأ'; } function getStudentPoints(s) { return Number(s.points || 0); } function getStudentBadgesHTML(s, limit) { const badges = getStudentBadges(s).slice(0, limit || 2); if (!badges.length) return '<span class="muted" style="font-size:11px;">لا يوجد</span>'; return badges.map(b => `<span class="badge badge-gold" style="font-size:10px;">${b}</span>`).join(' '); } function openEntryForm(studentId) { openEntry(studentId); } function renderHalaqaDetail() {
       const detail = $('halaqaDetail');
       if (!state.currentHalaqaId) {
         detail.classList.add('hidden');
