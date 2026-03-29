@@ -1,0 +1,33 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "quran_platform_shared_v3": {
+      ".read": "auth != null && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).exists()",
+
+      "staffUidIndex": {
+        "$uid": {
+          ".read": "auth != null && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).exists()",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+
+    "quran_platform_mens_v3": {
+      ".read": "auth != null && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).exists() && (root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('role').val() === 'admin' || root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('role').val() === 'board' || root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('section').val() === 'mens')",
+      ".write": "auth != null && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).exists() && (root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('role').val() === 'admin' || (root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('section').val() === 'mens' && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('role').val() !== 'board'))"
+    },
+
+    "quran_platform_womens_v3": {
+      ".read": "auth != null && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).exists() && (root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('role').val() === 'admin' || root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('role').val() === 'board' || root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('section').val() === 'womens')",
+      ".write": "auth != null && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).exists() && (root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('role').val() === 'admin' || (root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('section').val() === 'womens' && root.child('quran_platform_shared_v3').child('staffUidIndex').child(auth.uid).child('role').val() !== 'board'))"
+    },
+
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

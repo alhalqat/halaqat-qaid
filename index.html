@@ -1498,6 +1498,7 @@ tbody tr:hover td { background: #fef9e7; }
 <!-- PATCH v40: Firebase SDK Integration -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script>
 // Firebase Configuration
 const firebaseConfig = {
@@ -1513,14 +1514,21 @@ const firebaseConfig = {
 
 // Initialize Firebase
 let database = null;
+let auth = null;
 const hasFirebaseSDK = typeof window !== 'undefined' && window.firebase && typeof window.firebase.initializeApp === 'function';
 if (hasFirebaseSDK) {
   try {
     firebase.initializeApp(firebaseConfig);
     database = firebase.database();
+    if (typeof firebase.auth === 'function') auth = firebase.auth();
   } catch (err) {
     console.error('Firebase init error:', err);
   }
+}
+if (auth && firebase?.auth?.Auth?.Persistence?.LOCAL) {
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+    console.error('Firebase auth persistence error:', err);
+  });
 }
 const FIREBASE_SYNC_KEYS = [
   'quran_platform_shared_v3',
@@ -1834,9 +1842,10 @@ localStorage.setItem = function(key, value) {
                 <option value="womens">البنات</option>
               </select>
               <input id="staffUsername" placeholder="اسم المستخدم (اختياري)" dir="ltr" />
-              <input id="staffPassword" type="password" placeholder="كلمة المرور (مطلوبة)" dir="ltr" />
+              <input id="staffPassword" type="password" placeholder="كلمة المرور (6+)" dir="ltr" />
               <button class="btn btn-primary" id="createStaffBtn">إضافة</button>
             </div>
+            <p class="muted" style="font-size:12px;">عند الإضافة يتم إنشاء حساب دخول سحابي رسمي (Firebase Authentication) تلقائيًا.</p>
           </div>
         </details>
 
@@ -2116,6 +2125,7 @@ localStorage.setItem = function(key, value) {
           </div>
           <p class="muted" style="margin-top:6px;">يمكنك الآن حفظ واستعادة كل قسم بشكل مستقل بدون التأثير على القسم الآخر.</p>
           <p class="muted" style="margin-top:6px;">الحفظ السحابي مفعل تلقائياً عند توفر الإنترنت، ومع ذلك يوصى بأخذ نسخة احتياطية دورية.</p>
+          <p class="muted" style="margin-top:6px;">وضع الإنتاج الرسمي: فعّل Email/Password في Firebase Auth وطبّق قواعد `database.rules.json`.</p>
           <p class="muted" id="cloudSyncStatus" style="margin-top:6px;">حالة السحابة: غير متصل</p>
         </div>
 
@@ -2293,6 +2303,193 @@ localStorage.setItem = function(key, value) {
       const base = normalizeUsername(`u${phonePart}`);
       return ensureUniqueUsername(base || 'user');
     };
+    const STAFF_AUTH_EMAIL_DOMAIN = 'staff.halaqat.local';
+    const firebaseAuthEnabled = () => !!auth && typeof auth.signInWithEmailAndPassword === 'function';
+    const staffAuthEmailFromUsername = (username) => {
+      const normalized = normalizeUsername(username || '');
+      return normalized ? `${normalized}@${STAFF_AUTH_EMAIL_DOMAIN}` : '';
+    };
+    const mapAuthErrorMessage = (err, fallback = 'تعذر التحقق من حساب الكادر') => {
+      const code = String(err?.code || '');
+      if (code === 'auth/invalid-login-credentials' || code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+        return 'بيانات دخول الكادر غير صحيحة';
+      }
+      if (code === 'auth/email-already-in-use') {
+        return 'اسم المستخدم مرتبط بحساب آخر. غيّر اسم المستخدم أو راجع إعدادات Firebase.';
+      }
+      if (code === 'auth/weak-password') {
+        return 'كلمة المرور ضعيفة. يجب أن تكون 6 أحرف على الأقل.';
+      }
+      if (code === 'auth/network-request-failed') {
+        return 'تعذر الاتصال بالشبكة. تحقق من الإنترنت ثم أعد المحاولة.';
+      }
+      if (code === 'auth/too-many-requests') {
+        return 'تم تكرار المحاولات بشكل كبير. انتظر قليلاً ثم أعد المحاولة.';
+      }
+      if (code === 'auth/operation-not-allowed') {
+        return 'يجب تفعيل Email/Password في Firebase Authentication.';
+      }
+      return fallback;
+    };
+    async function createStaffAuthAccountUsingSecondaryApp(username, password) {
+      if (!firebaseAuthEnabled()) {
+        return { ok: false, code: 'auth/not-ready', message: 'خدمة Firebase Authentication غير مفعلة' };
+      }
+      const email = staffAuthEmailFromUsername(username);
+      if (!email) return { ok: false, code: 'auth/invalid-email', message: 'اسم المستخدم غير صالح لإنشاء الحساب' };
+      const appName = `staff_creator_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`;
+      let secondaryApp = null;
+      try {
+        secondaryApp = firebase.initializeApp(firebaseConfig, appName);
+        const secondaryAuth = secondaryApp.auth();
+        if (firebase?.auth?.Auth?.Persistence?.NONE) {
+          await secondaryAuth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(() => {});
+        }
+        const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+        const createdUid = cred?.user?.uid || '';
+        await secondaryAuth.signOut().catch(() => {});
+        await secondaryApp.delete().catch(() => {});
+        return { ok: true, uid: createdUid, email };
+      } catch (err) {
+        if (secondaryApp) await secondaryApp.delete().catch(() => {});
+        return { ok: false, code: String(err?.code || ''), message: mapAuthErrorMessage(err, 'تعذر إنشاء حساب Firebase للكادر') };
+      }
+    }
+    async function signInOrProvisionStaffAuth(username, password, localStaff = null) {
+      if (!firebaseAuthEnabled()) {
+        return { ok: false, code: 'auth/not-ready', message: 'خدمة Firebase Authentication غير مفعلة' };
+      }
+      const email = staffAuthEmailFromUsername(username);
+      if (!email) return { ok: false, code: 'auth/invalid-email', message: 'اسم المستخدم غير صالح' };
+      try {
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        return { ok: true, uid: cred?.user?.uid || '', email, created: false };
+      } catch (err) {
+        const code = String(err?.code || '');
+        const allowProvision = code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials';
+        if (allowProvision && localStaff && String(localStaff.password || '') === String(password || '')) {
+          if (String(password || '').length < 6) {
+            return { ok: false, code: 'auth/weak-password', message: 'كلمة المرور الحالية أقل من 6 أحرف. اطلب من الإدارة تعيين كلمة مرور جديدة (6+).' };
+          }
+          try {
+            const created = await auth.createUserWithEmailAndPassword(email, password);
+            return { ok: true, uid: created?.user?.uid || '', email, created: true };
+          } catch (createErr) {
+            return {
+              ok: false,
+              code: String(createErr?.code || ''),
+              message: mapAuthErrorMessage(createErr, 'تعذر ترحيل حساب الكادر إلى Firebase Authentication'),
+            };
+          }
+        }
+        return { ok: false, code, message: mapAuthErrorMessage(err, 'تعذر تسجيل الدخول بحساب الكادر') };
+      }
+    }
+    async function updateStaffAuthPasswordUsingSecondaryApp(staff, nextPassword) {
+      if (!firebaseAuthEnabled()) {
+        return { ok: false, code: 'auth/not-ready', message: 'خدمة Firebase Authentication غير مفعلة' };
+      }
+      const username = normalizeUsername(staff?.username || '');
+      const email = String(staff?.authEmail || '').trim() || staffAuthEmailFromUsername(username);
+      const currentPassword = String(staff?.password || '').trim();
+      if (!email) return { ok: false, code: 'auth/invalid-email', message: 'لا يوجد بريد سحابي مرتبط بالحساب' };
+
+      const appName = `staff_password_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`;
+      let secondaryApp = null;
+      try {
+        secondaryApp = firebase.initializeApp(firebaseConfig, appName);
+        const secondaryAuth = secondaryApp.auth();
+        if (firebase?.auth?.Auth?.Persistence?.NONE) {
+          await secondaryAuth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(() => {});
+        }
+        let user = null;
+        try {
+          const signed = await secondaryAuth.signInWithEmailAndPassword(email, currentPassword);
+          user = signed?.user || null;
+        } catch (signErr) {
+          const signCode = String(signErr?.code || '');
+          if (signCode === 'auth/user-not-found') {
+            const created = await secondaryAuth.createUserWithEmailAndPassword(email, nextPassword);
+            user = created?.user || null;
+            await secondaryAuth.signOut().catch(() => {});
+            await secondaryApp.delete().catch(() => {});
+            return { ok: true, uid: user?.uid || '', email, created: true };
+          }
+          if (signCode === 'auth/wrong-password' || signCode === 'auth/invalid-login-credentials' || signCode === 'auth/invalid-credential') {
+            throw new Error('LOCAL_PASSWORD_OUT_OF_SYNC');
+          }
+          throw signErr;
+        }
+        if (!user) throw new Error('EMPTY_AUTH_USER');
+        if (staff?.authUid && String(staff.authUid) !== String(user.uid || '')) {
+          throw new Error('AUTH_UID_MISMATCH');
+        }
+        await user.updatePassword(nextPassword);
+        await secondaryAuth.signOut().catch(() => {});
+        await secondaryApp.delete().catch(() => {});
+        return { ok: true, uid: user.uid || '', email, created: false };
+      } catch (err) {
+        if (secondaryApp) await secondaryApp.delete().catch(() => {});
+        if (String(err?.message || '') === 'LOCAL_PASSWORD_OUT_OF_SYNC') {
+          return {
+            ok: false,
+            code: 'auth/local-password-out-of-sync',
+            message: 'كلمة المرور القديمة غير متطابقة مع Firebase. عدّلها من Firebase Console ثم أعد المحاولة.',
+          };
+        }
+        if (String(err?.message || '') === 'AUTH_UID_MISMATCH') {
+          return {
+            ok: false,
+            code: 'auth/uid-mismatch',
+            message: 'يوجد تعارض في ربط حساب الموظف. راجع إدارة Firebase.',
+          };
+        }
+        return {
+          ok: false,
+          code: String(err?.code || ''),
+          message: mapAuthErrorMessage(err, 'تعذر تحديث كلمة المرور في Firebase'),
+        };
+      }
+    }
+    let staffAuthMigrationRunning = false;
+    async function migrateMissingStaffAuthAccounts(options = {}) {
+      const { notify = false } = options;
+      if (!firebaseAuthEnabled() || staffAuthMigrationRunning || !isAdmin()) return { created: 0, failed: 0 };
+      const pending = (state.db?.staff || []).filter((s) => {
+        const missingUid = !String(s.authUid || '').trim();
+        const hasUser = !!normalizeUsername(s.username || '');
+        const hasPass = String(s.password || '').trim().length >= 6;
+        return missingUid && hasUser && hasPass;
+      });
+      if (!pending.length) return { created: 0, failed: 0 };
+
+      staffAuthMigrationRunning = true;
+      let created = 0;
+      let failed = 0;
+      try {
+        for (const s of pending) {
+          const res = await createStaffAuthAccountUsingSecondaryApp(s.username, String(s.password || '').trim());
+          if (res.ok) {
+            s.authUid = res.uid || '';
+            s.authEmail = res.email || staffAuthEmailFromUsername(s.username || '');
+            created += 1;
+          } else {
+            failed += 1;
+            console.error('Staff auth migration failed:', s.id, res.code, res.message);
+          }
+        }
+        if (created > 0) {
+          saveDB();
+          renderAll();
+        }
+        if (notify && (created > 0 || failed > 0)) {
+          toast(`تهيئة حسابات Firebase: نجاح ${created} / تعذر ${failed}`, failed ? 'err' : 'ok');
+        }
+        return { created, failed };
+      } finally {
+        staffAuthMigrationRunning = false;
+      }
+    }
     const safeFilePart = (v) => compactName(v)
       .replace(/[^0-9A-Za-z\u0600-\u06FF _-]/g, '')
       .replace(/\s+/g, '_')
@@ -2615,12 +2812,12 @@ localStorage.setItem = function(key, value) {
       return {
         settings: { logoDataUrl: '', allowTeacherExams: false, lockTodayEntries: true },
         staff: [
-          { id:'u_admin', name:'الإدارة', role:'admin', phone:'0553410673', username:'admin', password:'1234', section:'mens', assignedHalaqaIds:[] },
-          { id:'u_sup1', name:'أ. خالد (مشرف)', role:'supervisor', phone:'0544444444', username:'sup1', password:'1234', section:'mens', assignedHalaqaIds:['h1','h2'] },
-          { id:'u_t1', name:'أ. محمد', role:'teacher', phone:'0511111111', username:'teacher1', password:'1234', section:'mens', assignedHalaqaIds:['h1'] },
-          { id:'u_t2', name:'أ. عبدالعزيز', role:'teacher', phone:'0522222222', username:'teacher2', password:'1234', section:'mens', assignedHalaqaIds:['h2'] },
-          { id:'u_t3', name:'أ. نورة', role:'teacher', phone:'0533333333', username:'teacher3', password:'1234', section:'womens', assignedHalaqaIds:['h3'] },
-          { id:'u_board1', name:'رئيس المجلس', role:'board', phone:'0566666666', username:'board1', password:'1234', section:'mens', assignedHalaqaIds:[] },
+          { id:'u_admin', name:'الإدارة', role:'admin', phone:'0553410673', username:'admin', password:'123456', authUid:'', authEmail:'', section:'mens', assignedHalaqaIds:[] },
+          { id:'u_sup1', name:'أ. خالد (مشرف)', role:'supervisor', phone:'0544444444', username:'sup1', password:'123456', authUid:'', authEmail:'', section:'mens', assignedHalaqaIds:['h1','h2'] },
+          { id:'u_t1', name:'أ. محمد', role:'teacher', phone:'0511111111', username:'teacher1', password:'123456', authUid:'', authEmail:'', section:'mens', assignedHalaqaIds:['h1'] },
+          { id:'u_t2', name:'أ. عبدالعزيز', role:'teacher', phone:'0522222222', username:'teacher2', password:'123456', authUid:'', authEmail:'', section:'mens', assignedHalaqaIds:['h2'] },
+          { id:'u_t3', name:'أ. نورة', role:'teacher', phone:'0533333333', username:'teacher3', password:'123456', authUid:'', authEmail:'', section:'womens', assignedHalaqaIds:['h3'] },
+          { id:'u_board1', name:'رئيس المجلس', role:'board', phone:'0566666666', username:'board1', password:'123456', authUid:'', authEmail:'', section:'mens', assignedHalaqaIds:[] },
         ],
         halaqas: [
           { id:'h1', section:'mens', circleName:'حلقة النور', teacherName:'أ. محمد', scheduleType:'sun-wed', scheduleDays:SCHEDULE_PRESETS['sun-wed'], deliveryMode:'onsite', timeSlot:'after_asr' },
@@ -2677,7 +2874,9 @@ localStorage.setItem = function(key, value) {
           role: 'supervisor',
           phone: '0544444444',
           username: 'sup1',
-          password: '1234',
+          password: '123456',
+          authUid: '',
+          authEmail: '',
           section: 'mens',
           assignedHalaqaIds: ['h1', 'h2'],
         });
@@ -2691,7 +2890,9 @@ localStorage.setItem = function(key, value) {
           role: 'board',
           phone: '0566666666',
           username: 'board1',
-          password: '1234',
+          password: '123456',
+          authUid: '',
+          authEmail: '',
           section: 'mens',
           assignedHalaqaIds: [],
         });
@@ -2745,12 +2946,15 @@ localStorage.setItem = function(key, value) {
           suffix += 1;
         }
         usedUsernames.add(username);
+        const normalizedPassword = String(s.password || '').trim();
         return {
           ...s,
           section,
           assignedHalaqaIds: assigned,
           username,
-          password: String(s.password || '').trim() || '1234',
+          password: normalizedPassword.length >= 6 ? normalizedPassword : '123456',
+          authUid: String(s.authUid || '').trim(),
+          authEmail: String(s.authEmail || '').trim() || staffAuthEmailFromUsername(username),
         };
       });
 
@@ -2876,6 +3080,7 @@ localStorage.setItem = function(key, value) {
         settings: source.settings || { logoDataUrl: '', allowTeacherExams: false, lockTodayEntries: true },
         staffGlobal: [],
         announcements: [],
+        staffUidIndex: {},
       };
 
       const halaqaSectionById = {};
@@ -2900,6 +3105,13 @@ localStorage.setItem = function(key, value) {
           ? s.assignedHalaqaIds.filter((id) => halaqaSectionById[id] === section)
           : [];
         const normalized = { ...s, section, assignedHalaqaIds: assigned };
+        if (normalized.authUid) {
+          shared.staffUidIndex[normalized.authUid] = {
+            staffId: normalized.id || '',
+            role: normalized.role || '',
+            section,
+          };
+        }
         if (s.role === 'teacher' || s.role === 'supervisor') {
           buckets[section].staff.push(normalized);
         } else {
@@ -3025,9 +3237,49 @@ localStorage.setItem = function(key, value) {
       }
     }
 
+    async function waitForInitialAuthState(timeoutMs = 3500) {
+      if (!firebaseAuthEnabled()) return null;
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = (user) => {
+          if (done) return;
+          done = true;
+          resolve(user || null);
+        };
+        const timer = setTimeout(() => {
+          unsubscribe();
+          finish(auth.currentUser || null);
+        }, timeoutMs);
+        const unsubscribe = auth.onAuthStateChanged(
+          (user) => {
+            clearTimeout(timer);
+            unsubscribe();
+            finish(user);
+          },
+          () => {
+            clearTimeout(timer);
+            unsubscribe();
+            finish(auth.currentUser || null);
+          }
+        );
+      });
+    }
+
     async function pullCloudAndRefresh(options = {}) {
-      const { notify = false } = options;
-      if (!database || cloudSyncState.isPulling) return false;
+      const { notify = false, waitIfBusy = false } = options;
+      if (!database) return false;
+      if (cloudSyncState.isPulling) {
+        if (!waitIfBusy) return false;
+        const startedAt = Date.now();
+        while (cloudSyncState.isPulling && (Date.now() - startedAt) < 7000) {
+          await new Promise((resolve) => setTimeout(resolve, 120));
+        }
+        if (cloudSyncState.isPulling) return false;
+      }
+      if (firebaseAuthEnabled() && !auth.currentUser) {
+        updateCloudSyncStatus('حالة السحابة: يلزم دخول الكادر');
+        return false;
+      }
       cloudSyncState.isPulling = true;
       const before = cloudStorageFingerprint();
       try {
@@ -3060,6 +3312,12 @@ localStorage.setItem = function(key, value) {
         updateCloudSyncStatus('حالة السحابة: غير متصل');
         return;
       }
+      if (firebaseAuthEnabled() && !auth.currentUser) {
+        if (cloudSyncState.timer) clearInterval(cloudSyncState.timer);
+        cloudSyncState.timer = null;
+        updateCloudSyncStatus('حالة السحابة: يلزم دخول الكادر');
+        return;
+      }
       if (cloudSyncState.timer) clearInterval(cloudSyncState.timer);
       updateCloudSyncStatus('حالة السحابة: متصل');
       cloudSyncState.timer = setInterval(() => {
@@ -3082,7 +3340,26 @@ localStorage.setItem = function(key, value) {
         if (sess.type === 'staff' && sess.userId) {
           const u = (state.db.staff || []).find(s => s.id === sess.userId);
           if (u) {
-            state.session = { type: 'staff', userId: u.id };
+            const activeAuthUid = String(auth?.currentUser?.uid || '');
+            const expectedAuthUid = String(u.authUid || sess.authUid || '');
+            if (firebaseAuthEnabled() && !expectedAuthUid) {
+              state.session = null;
+              localStorage.removeItem(SESSION_KEY);
+              return;
+            }
+            if (firebaseAuthEnabled() && !activeAuthUid) {
+              state.session = null;
+              localStorage.removeItem(SESSION_KEY);
+              return;
+            }
+            if (firebaseAuthEnabled() && expectedAuthUid) {
+              if (!activeAuthUid || activeAuthUid !== expectedAuthUid) {
+                state.session = null;
+                localStorage.removeItem(SESSION_KEY);
+                return;
+              }
+            }
+            state.session = { type: 'staff', userId: u.id, authUid: String(auth?.currentUser?.uid || u.authUid || '') };
             if (u.role === 'teacher') {
               state.section = u.section || 'mens';
               const assigned = (u.assignedHalaqaIds || []).filter(id => state.indexes?.halaqaById?.[id]);
@@ -3843,7 +4120,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     }
 
     function loginStaffUser(u, successMsg = 'تم تسجيل الدخول') {
-      state.session = { type: 'staff', userId: u.id };
+      state.session = { type: 'staff', userId: u.id, authUid: String(auth?.currentUser?.uid || u.authUid || '') };
       if (u.role === 'teacher') {
         state.section = u.section || 'mens';
         const teacherHalaqas = (state.db?.halaqas || []).filter((h) => (u.assignedHalaqaIds || []).includes(h.id));
@@ -3853,26 +4130,68 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       $('parentView').classList.add('hidden');
       $('appView').classList.remove('hidden');
       saveSession();
+      startCloudAutoPull();
       renderAll();
+      if (u.role === 'admin') {
+        migrateMissingStaffAuthAccounts({ notify: true });
+      }
       toast(successMsg);
     }
 
     async function loginByCredentials() {
-      if (database) await pullCloudAndRefresh({ notify: false });
       const username = normalizeUsername($('loginUsername')?.value || '');
       const password = String($('loginPassword')?.value || '').trim();
       if (!username || !password) return toast('أدخل اسم المستخدم وكلمة المرور', 'err');
+      const localStaff = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username) || null;
+
+      if (firebaseAuthEnabled()) {
+        const authResult = await signInOrProvisionStaffAuth(username, password, localStaff);
+        if (!authResult.ok) return toast(authResult.message || 'تعذر تسجيل الدخول بحساب الكادر', 'err');
+
+        if (database) await pullCloudAndRefresh({ notify: false, waitIfBusy: true });
+        let u = (state.db?.staff || []).find((s) => String(s.authUid || '') && String(s.authUid || '') === String(authResult.uid || '')) || null;
+        if (!u) {
+          u = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username) || null;
+        }
+        if (!u) {
+          await auth.signOut().catch(() => {});
+          return toast('الحساب السحابي غير مربوط بموظف داخل المنصة', 'err');
+        }
+        if (u.authUid && authResult.uid && String(u.authUid) !== String(authResult.uid)) {
+          await auth.signOut().catch(() => {});
+          return toast('هذا الحساب مرتبط بموظف آخر. راجع الإدارة.', 'err');
+        }
+        let changed = false;
+        if (!u.authUid && authResult.uid) {
+          u.authUid = authResult.uid;
+          changed = true;
+        }
+        const expectedEmail = staffAuthEmailFromUsername(u.username || username);
+        if (!u.authEmail || u.authEmail !== expectedEmail) {
+          u.authEmail = expectedEmail;
+          changed = true;
+        }
+        if (String(u.password || '') !== password) {
+          u.password = password;
+          changed = true;
+        }
+        if (changed) saveDB();
+        loginStaffUser(u, authResult.created ? 'تم تسجيل الدخول وترحيل الحساب إلى Firebase' : 'تم تسجيل دخول الكادر');
+        return;
+      }
+
+      if (database) await pullCloudAndRefresh({ notify: false, waitIfBusy: true });
       const u = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username && String(s.password || '') === password);
       if (!u) return toast('بيانات دخول الكادر غير صحيحة', 'err');
-      loginStaffUser(u, 'تم تسجيل دخول الكادر');
+      loginStaffUser(u, 'تم تسجيل دخول الكادر (محلي)');
     }
 
     async function loginByPhone() {
-      if (database) await pullCloudAndRefresh({ notify: false });
+      if (database) await pullCloudAndRefresh({ notify: false, waitIfBusy: true });
       const phone = normalizePhone($('loginPhone').value);
       const u = state.indexes?.staffByPhone?.[phone] || null;
       if (u) {
-        if ((u.role === 'teacher' || u.role === 'supervisor') && String(u.password || '').trim()) {
+        if (String(u.password || '').trim()) {
           return toast('استخدم اسم المستخدم وكلمة المرور لدخول الكادر', 'err');
         }
         loginStaffUser(u);
@@ -3891,10 +4210,18 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       toast('تم تسجيل دخول ولي الأمر');
     }
 
-    function logout() {
+    async function logout() {
       state.session = null;
       state.currentParentStudentId = null;
       saveSession();
+      if (auth?.currentUser) {
+        await auth.signOut().catch((err) => console.error('Auth sign-out error:', err));
+      }
+      if (cloudSyncState.timer) {
+        clearInterval(cloudSyncState.timer);
+        cloudSyncState.timer = null;
+      }
+      startCloudAutoPull();
       $('appView').classList.add('hidden');
       $('parentView').classList.add('hidden');
       $('loginView').classList.remove('hidden');
@@ -4381,7 +4708,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       toast(`تمت إضافة ${added} طالب/ة وتخطي ${skipped}`);
     }
 
-    function createStaff() {
+    async function createStaff() {
       if (!isAdmin()) return toast('غير مسموح', 'err');
       const name = $('staffName').value.trim();
       const role = $('staffRole').value;
@@ -4390,25 +4717,45 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       const usernameInput = normalizeUsername($('staffUsername').value || '');
       const password = String($('staffPassword').value || '').trim();
       if (!name || !phone) return toast('أدخل الاسم والجوال', 'err');
-      if (!password || password.length < 4) return toast('كلمة المرور مطلوبة (4 أحرف على الأقل)', 'err');
+      if (!password || password.length < 6) return toast('كلمة المرور مطلوبة (6 أحرف على الأقل)', 'err');
+      if (!firebaseAuthEnabled()) return toast('فعّل Firebase Authentication أولاً (Email/Password)', 'err');
       const phoneTaken = state.db.staff.some((s) => normalizePhone(s.phone) === phone);
       if (phoneTaken) return toast('رقم الجوال مستخدم مسبقاً', 'err');
       let username = usernameInput || suggestStaffUsername(name, phone);
       username = ensureUniqueUsername(username);
       const usernameTaken = state.db.staff.some((s) => normalizeUsername(s.username) === username);
       if (usernameTaken) return toast('اسم المستخدم مستخدم مسبقاً', 'err');
-      state.db.staff.push({ id: uid('u'), name, role, phone, section, username, password, assignedHalaqaIds: [] });
+      const authCreated = await createStaffAuthAccountUsingSecondaryApp(username, password);
+      if (!authCreated.ok) return toast(authCreated.message || 'تعذر إنشاء حساب Firebase للكادر', 'err');
+      state.db.staff.push({
+        id: uid('u'),
+        name,
+        role,
+        phone,
+        section,
+        username,
+        password,
+        authUid: authCreated.uid || '',
+        authEmail: authCreated.email || staffAuthEmailFromUsername(username),
+        assignedHalaqaIds: [],
+      });
       $('staffName').value = '';
       $('staffPhone').value = '';
       $('staffUsername').value = '';
       $('staffPassword').value = '';
       saveDB();
       renderAll();
-      toast(`تمت إضافة الموظف. المستخدم: ${username}`);
+      toast(`تمت إضافة الموظف وربط حسابه السحابي: ${username}`);
     }
 
     function removeStaff(id) {
       if (!isAdmin()) return;
+      const s = state.db.staff.find((x) => x.id === id);
+      if (!s) return;
+      if (String(s.authUid || '').trim()) {
+        const ok = confirm('تنبيه: سيتم حذف الموظف من المنصة فقط. حساب Firebase سيبقى موجودًا لكن لن يتمكن من الدخول للمنصة. متابعة؟');
+        if (!ok) return;
+      }
       state.db.staff = state.db.staff.filter(s => s.id !== id);
       saveDB();
       renderAll();
@@ -4418,6 +4765,9 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       if (!isAdmin()) return toast('غير مسموح', 'err');
       const s = state.db.staff.find((x) => x.id === id);
       if (!s) return toast('الموظف غير موجود', 'err');
+      if (String(s.authUid || '').trim()) {
+        return toast('لا يمكن تغيير اسم المستخدم بعد ربط الحساب بـ Firebase', 'err');
+      }
       const next = prompt(`اسم المستخدم الجديد لـ ${s.name}`, s.username || '');
       if (next === null) return;
       const normalized = normalizeUsername(next);
@@ -4425,23 +4775,28 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       const unique = ensureUniqueUsername(normalized, s.id);
       if (unique !== normalized) return toast(`اسم المستخدم محجوز. جرب: ${unique}`, 'err');
       s.username = normalized;
+      s.authEmail = staffAuthEmailFromUsername(normalized);
       saveDB();
       renderAll();
       toast('تم تحديث اسم المستخدم');
     }
 
-    function resetStaffPassword(id) {
+    async function resetStaffPassword(id) {
       if (!isAdmin()) return toast('غير مسموح', 'err');
       const s = state.db.staff.find((x) => x.id === id);
       if (!s) return toast('الموظف غير موجود', 'err');
       const next = prompt(`كلمة المرور الجديدة لـ ${s.name} (${s.username || '-'})`, '');
       if (next === null) return;
       const password = String(next || '').trim();
-      if (!password || password.length < 4) return toast('كلمة المرور قصيرة', 'err');
+      if (!password || password.length < 6) return toast('كلمة المرور قصيرة (الحد الأدنى 6)', 'err');
+      const syncResult = await updateStaffAuthPasswordUsingSecondaryApp(s, password);
+      if (!syncResult.ok) return toast(syncResult.message || 'تعذر تحديث كلمة المرور السحابية', 'err');
       s.password = password;
+      s.authUid = syncResult.uid || s.authUid || '';
+      s.authEmail = syncResult.email || s.authEmail || staffAuthEmailFromUsername(s.username || '');
       saveDB();
       renderAll();
-      toast('تم تحديث كلمة المرور');
+      toast(syncResult.created ? 'تم إنشاء/تحديث كلمة المرور وربط Firebase' : 'تم تحديث كلمة المرور');
     }
 
     function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId) {
@@ -5399,10 +5754,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             <div class="row between"><b>${s.name}</b><span class="badge">${s.role}</span></div>
             <p class="muted" style="font-size:12px; margin-top:6px;">${s.phone}</p>
             <p class="muted" style="font-size:12px;">المستخدم: <span dir="ltr">${escapeAttr(s.username || '-')}</span></p>
+            <p class="muted" style="font-size:12px;">توثيق Firebase: ${s.authUid ? 'مفعل' : 'غير مفعل'}</p>
+            <p class="muted" style="font-size:12px;">البريد السحابي: <span dir="ltr">${escapeAttr(s.authEmail || '-')}</span></p>
             <p class="muted" style="font-size:12px;">الحلقات: ${assignedNames.join('، ') || '-'}</p>
             ${admin ? `
               <div class="row no-print" style="margin-top:8px;">
-                <button class="btn btn-light" onclick="editStaffUsername('${s.id}')">تعديل المستخدم</button>
+                <button class="btn btn-light" ${s.authUid ? 'disabled title="الحساب مربوط بـ Firebase"' : ''} onclick="editStaffUsername('${s.id}')">تعديل المستخدم</button>
                 <button class="btn btn-light" onclick="resetStaffPassword('${s.id}')">تغيير كلمة المرور</button>
                 <button class="btn btn-danger" onclick="removeStaff('${s.id}')">حذف</button>
               </div>
@@ -6612,6 +6969,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           : (state.db?.settings || { logoDataUrl: '', allowTeacherExams: false, lockTodayEntries: true }),
         staffGlobal: Array.isArray(src.staffGlobal) ? [...src.staffGlobal] : [],
         announcements: (Array.isArray(src.announcements) ? src.announcements : []).map((a) => ({ ...a, section: 'all' })),
+        staffUidIndex: (src.staffUidIndex && typeof src.staffUidIndex === 'object') ? src.staffUidIndex : {},
       };
     }
 
@@ -6654,6 +7012,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           (value.settings && typeof value.settings === 'object')
           || Array.isArray(value.staffGlobal)
           || Array.isArray(value.announcements)
+          || (value.staffUidIndex && typeof value.staffUidIndex === 'object')
         );
     }
 
@@ -6804,6 +7163,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       if (!confirm('سيتم حذف كل البيانات المحلية. متابعة؟')) return;
       const token = prompt('للتأكيد النهائي اكتب كلمة: حذف');
       if (token !== 'حذف') return toast('تم إلغاء الحذف', 'err');
+      if (auth?.currentUser) {
+        auth.signOut().catch((err) => console.error('Auth sign-out error:', err));
+      }
       localStorage.removeItem(STORAGE_KEY_LEGACY);
       Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
       localStorage.removeItem(SESSION_KEY);
@@ -6910,9 +7272,34 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       }
     });
 
+    let authStateWatcherBound = false;
+    function bindAuthStateWatcher() {
+      if (!firebaseAuthEnabled() || authStateWatcherBound) return;
+      authStateWatcherBound = true;
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          if (state.session?.type === 'staff') {
+            state.session = null;
+            saveSession();
+            $('appView').classList.add('hidden');
+            $('parentView').classList.add('hidden');
+            $('loginView').classList.remove('hidden');
+          }
+          startCloudAutoPull();
+          return;
+        }
+        startCloudAutoPull();
+        if (database) await pullCloudAndRefresh({ notify: false });
+      });
+    }
+
     async function bootstrapAppData() {
+      await waitForInitialAuthState();
+      bindAuthStateWatcher();
       try {
-        if (database) await FirebaseDataManager.importFromFirebase();
+        if (database && (!firebaseAuthEnabled() || !!auth?.currentUser)) {
+          await FirebaseDataManager.importFromFirebase();
+        }
       } catch (e) {
         console.error('Cloud bootstrap error', e);
       }
@@ -6921,6 +7308,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         applyLogo();
         loadSession();
         startCloudAutoPull();
+        if (database && (!firebaseAuthEnabled() || !!auth?.currentUser)) {
+          await pullCloudAndRefresh({ notify: false });
+        }
       } catch (e) {
         console.error('Load error', e);
         alert('حدث خطأ في تحميل البيانات، يرجى إعادة التحميل. ' + e.message);

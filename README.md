@@ -1,30 +1,25 @@
-# نسخة مقارنة: نظام متابعة الحلقات
+# منصة متابعة الحلقات - نسخة الإنتاج
 
-هذه نسخة مستقلة بالكامل للمقارنة مع نسختك السابقة.
-
-## الملفات
-- `index.html`
-- `service-worker.js`
+## الملفات الأساسية
+- `index.html` (واجهة التطبيق + منطق Firebase Realtime Database + Firebase Auth)
+- `database.rules.json` (قواعد أمان Realtime Database للإنتاج)
 - `manifest.json`
 - `icon.svg`
-- `firestore.rules`
+- `assets/association-logo.png`
 
-## التشغيل
-1. افتح `index.html` وعدل بيانات `window.__firebase_config` بقيم مشروعك من Firebase Console.
-2. شغّل المشروع عبر خادم محلي (مثل Live Server في VS Code).
-3. افتح الرابط المحلي (مثل `http://127.0.0.1:5500/index.html`).
+## إعداد الإنتاج الرسمي (مهم)
+1. افتح Firebase Console للمشروع.
+2. من `Authentication > Sign-in method` فعّل `Email/Password`.
+3. من `Realtime Database > Rules` الصق محتوى `database.rules.json` ثم `Publish`.
+4. تأكد أن الموقع محدث على GitHub Pages بعد آخر `push`.
 
-## الميزات
-- واجهة عربية RTL.
-- أقسام رجال/نساء.
-- إضافة حلقة + إضافة طلاب + إدارة أسابيع الطالب.
-- حفظ في Firestore بهيكل:
-  - `apps/{appId}/sections/{section}/halaqas/{halaqaId}`
-  - `.../students/{studentId}`
-  - `.../students/{studentId}/weeks/{weekId}`
-- دعم Offline عبر Firestore persistence.
-- PWA أساسي عبر Service Worker + Manifest.
+## آلية دخول الكادر
+- كل معلم/مشرف/إدارة يدخل بـ `اسم المستخدم + كلمة المرور`.
+- عند إضافة موظف جديد من داخل المنصة يتم إنشاء حساب Firebase Authentication تلقائيًا.
+- يتم ربط الموظف بـ `authUid` داخل البيانات لضبط الصلاحيات في القواعد.
+- الحد الأدنى لكلمة المرور: `6` أحرف.
 
-## ملاحظات مهمة
-- في هذه النسخة تم استخدام تسجيل دخول مجهول `Anonymous Auth` للتجربة.
-- قواعد `firestore.rules` الحالية مخصصة للتطوير فقط. قبل الإنتاج يجب تشديد الصلاحيات.
+## ملاحظات تشغيل
+- بيانات البنين والبنات مخزنة بشكل منفصل (`quran_platform_mens_v3` و`quran_platform_womens_v3`).
+- توجد بيانات مشتركة في `quran_platform_shared_v3`.
+- المزامنة السحابية تعمل تلقائيًا مع إمكانية التحديث اليدوي من الإعدادات.
