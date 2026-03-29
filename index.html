@@ -337,6 +337,32 @@
     .entry-type-option input {
       display: none;
     }
+    .admin-student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .admin-student-card {
+      padding: 12px;
+    }
+    .admin-student-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .admin-student-meta {
+      display: grid;
+      gap: 3px;
+    }
+    .admin-student-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
 
     #appView[data-display-mode="mobile"] .app-shell {
       grid-template-columns: 1fr;
@@ -1283,6 +1309,8 @@ tbody tr:hover td { background: #fef9e7; }
       .desktop-only { display: none; }
       .stack-mobile { width: 100%; }
       .controls-grid { grid-template-columns: 1fr; }
+      .admin-student-grid { grid-template-columns: 1fr; }
+      .admin-student-actions .btn { flex: 1 1 140px; }
       .app-shell { grid-template-columns: 1fr; }
       .ops-sidebar { position: static; }
       #mainTabs.side-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -5264,9 +5292,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
                 <button class="btn btn-primary" onclick="markAllStudentsAttendance()">تحضير الجميع</button>
                 ${pending ? `<button class="btn btn-light" onclick="syncPendingLogs()">مزامنة السجلات</button>` : ''}
               </div>
-            </div>
-          </div>
-        ` : `
+	            </div>
+	        ` : `
           <div class="card" style="margin-bottom:10px; border-color:#bbf7d0; background:#f0fdf4;">
             <div class="row between">
               <div>
@@ -5335,20 +5362,26 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             <p class="badge ${mobileSelectClass}" style="margin-top:6px;">${selected ? 'تم اختيار الطالب' : 'لم يتم اختيار طالب'}</p>
           </div>
 
-          <div class="${state.studentPickerMode === 'cards' ? '' : 'hidden'} grid grid-3" style="margin-bottom:10px;">
-            ${students.map(s => `
-              <div class="card" style="padding:10px; border-color:${selected && selected.id===s.id ? palette.selectedBorder : palette.cardBorder}; background:${selected && selected.id===s.id ? palette.selectedBg : '#fff'};">
-                <div class="row between">
-                  <b>${s.name}</b>
-                ${getStudentAlertHTML(s)} 
-                <p class="muted" style="font-size:12px; margin-top:5px">مدينة: ${getStudentLocation(s)}</p>
-                <p class="muted" style="font-size:12px">آخر حفظ: ${getStudentLastHifdh(s)}</p>
-                <p class="muted" style="font-size:12px">نقاط: <b>${getStudentPoints(s)}</b></p>
-                <p style="font-size:12px">${getStudentBadgesHTML(s, 2)}</p>
-				                <button class="btn btn-ok no-print" style="margin-top:8px" onclick="openEntryForm('${s.id}')">فتح ملف الطالب</button><button class="btn btn-ok no-print" style="margin-top:8px" onclick="openEntry('${s.id}')">تسجيل اليوم</button>
-              </div>
-            `).join('') || '<div class="card">لا يوجد طلاب.</div>'}
-          </div>
+	          <div class="${state.studentPickerMode === 'cards' ? '' : 'hidden'} admin-student-grid">
+	            ${students.map(s => `
+	              <div class="card admin-student-card" style="border-color:${selected && selected.id===s.id ? palette.selectedBorder : palette.cardBorder}; background:${selected && selected.id===s.id ? palette.selectedBg : '#fff'};">
+	                <div class="admin-student-head">
+	                  <b>${s.name}</b>
+	                  ${getStudentAlertHTML(s)}
+	                </div>
+	                <div class="admin-student-meta">
+	                  <p class="muted" style="font-size:12px;">مدينة: ${getStudentLocation(s)}</p>
+	                  <p class="muted" style="font-size:12px;">آخر حفظ: ${getStudentLastHifdh(s)}</p>
+	                  <p class="muted" style="font-size:12px;">نقاط: <b>${getStudentPoints(s)}</b></p>
+	                  <p style="font-size:12px;">${getStudentBadgesHTML(s, 2)}</p>
+	                </div>
+	                <div class="admin-student-actions">
+	                  <button class="btn btn-ok no-print" onclick="openEntryForm('${s.id}')">فتح ملف الطالب</button>
+	                  <button class="btn btn-ok no-print" onclick="openEntry('${s.id}')">تسجيل اليوم</button>
+	                </div>
+	              </div>
+	            `).join('') || '<div class="card">لا يوجد طلاب.</div>'}
+	          </div>
         `}
 
         ${selected ? renderEntryForm(selected, teacherMode) : (teacherMode ? '<div class="card"><p class="muted">اختر طالباً لفتح بطاقة التسجيل.</p></div>' : '')}
@@ -7366,10 +7399,26 @@ function getStudentWeeklyAya(studentId) {
 }
 window.getStudentWeeklyAya = getStudentWeeklyAya;
 
+function normalizeAdminStudentCardsLayout() {
+  const detail = document.getElementById('halaqaDetail');
+  if (!detail) return;
+  const grid = detail.querySelector('.admin-student-grid');
+  if (!grid || grid.classList.contains('hidden')) return;
+
+  const allCards = Array.from(grid.querySelectorAll('.admin-student-card'));
+  if (!allCards.length) return;
+
+  const directCards = Array.from(grid.children).filter((el) => el.classList && el.classList.contains('admin-student-card'));
+  if (directCards.length === allCards.length) return;
+
+  grid.innerHTML = allCards.map((card) => card.outerHTML).join('');
+}
+
 // تحسين عرض بطاقة الطالب مع إضافة معلومات أسبوعية
 const _orig_renderHalaqaDetail = renderHalaqaDetail;
 function renderHalaqaDetail_enhanced() {
   _orig_renderHalaqaDetail();
+  normalizeAdminStudentCardsLayout();
   // إضافة زر واتساب إذا كان المعلم مسجل دخول والحلقة مفتوحة
   const u = currentUser();
   if (!u || u.role !== 'teacher' || !state.currentHalaqaId) return;
