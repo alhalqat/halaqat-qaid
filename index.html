@@ -1436,6 +1436,10 @@ tbody tr:hover td { background: #fef9e7; }
           grid-template-columns: minmax(0, 1fr) 120px;
           align-items: stretch;
         }
+        #loginView .login-grid-3 {
+          margin-top: 0 !important;
+          align-items: stretch;
+        }
         #loginView .login-phone-input {
           direction: ltr;
           text-align: left;
@@ -1470,6 +1474,9 @@ tbody tr:hover td { background: #fef9e7; }
         @media (max-width: 760px) {
           #loginView .login-grid {
             grid-template-columns: 1fr;
+          }
+          #loginView .login-grid-3 {
+            grid-template-columns: 1fr !important;
           }
           #loginView .login-submit-btn {
             width: 100%;
@@ -1545,11 +1552,9 @@ const FirebaseDataManager = {
   },
   
   // قراءة البيانات من Firebase
-  getData: function(key, callback) {
-    if (!database) return;
-    database.ref(key).on('value', (snapshot) => {
-      callback(snapshot.val());
-    });
+  getData: function(key) {
+    if (!database) return Promise.resolve(null);
+    return database.ref(key).once('value').then((snapshot) => snapshot.val());
   },
   
   // تحديث البيانات في Firebase
@@ -1574,15 +1579,22 @@ const FirebaseDataManager = {
     });
   },
   
-  // استيراد البيانات من Firebase إلى localStorage
-  importFromFirebase: function() {
-    FIREBASE_SYNC_KEYS.forEach(key => {
-      this.getData(key, (data) => {
+  // استيراد البيانات من Firebase إلى localStorage (مرة واحدة)
+  importFromFirebase: async function() {
+    if (!database) return false;
+    const updates = await Promise.all(FIREBASE_SYNC_KEYS.map(async (key) => {
+      try {
+        const data = await this.getData(key);
         if (data !== null && data !== undefined) {
           originalSetItem.call(localStorage, key, JSON.stringify(data));
+          return true;
         }
-      });
-    });
+      } catch (err) {
+        console.error('Firebase read error:', key, err);
+      }
+      return false;
+    }));
+    return updates.some(Boolean);
   }
 };
 
@@ -1606,7 +1618,7 @@ window.addEventListener('load', () => {
       </div>
       <h2 class="login-title">جمعية تحفيظ القران الكريم بالقاعد</h2>
       <p class="quran-verse-login">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾<br><small style="font-size:12px;opacity:0.75;">سورة المزمل - 4</small></p>
-      <p class="login-subtitle">دخول المعلم/المشرف أو ولي الأمر برقم الجوال.</p>
+      <p class="login-subtitle">ولي الأمر برقم الجوال، والمعلم/المشرف بحساب خاص.</p>
       <div id="defaultLoginNumbers" class="hidden" style="margin-top:12px; padding:12px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.4); border-radius:12px; font-size:13px;">
         <b style="color:#8b6914;">أرقام الدخول الافتراضية:</b>
         <div style="margin-top:8px; display:grid; gap:6px;">
@@ -1623,7 +1635,13 @@ window.addEventListener('load', () => {
         <input id="loginPhone" type="tel" class="login-phone-input" placeholder="مثال: 0551234567 أو +966551234567" inputmode="numeric" autocomplete="tel-national" dir="ltr" />
         <button class="btn btn-gold login-submit-btn" id="loginBtn">دخول</button>
       </div>
-      <p class="login-help">يدعم الإدخال بالأرقام العربية أو الإنجليزية.</p>
+      <label for="loginUsername" class="login-label">دخول الكادر بحساب خاص</label>
+      <div class="grid login-grid-3" style="grid-template-columns: minmax(0,1fr) minmax(0,1fr) 132px; gap:8px;">
+        <input id="loginUsername" placeholder="اسم المستخدم" autocomplete="username" dir="ltr" />
+        <input id="loginPassword" type="password" placeholder="كلمة المرور" autocomplete="current-password" dir="ltr" />
+        <button class="btn btn-primary login-submit-btn" id="staffLoginBtn">دخول الكادر</button>
+      </div>
+      <p class="login-help">ولي الأمر يدخل برقم الجوال. المعلم/المشرف يدخل باسم المستخدم وكلمة المرور.</p>
       
     </div>
   </div>
@@ -1819,6 +1837,8 @@ window.addEventListener('load', () => {
                 <option value="mens">البنين</option>
                 <option value="womens">البنات</option>
               </select>
+              <input id="staffUsername" placeholder="اسم المستخدم (اختياري)" dir="ltr" />
+              <input id="staffPassword" type="password" placeholder="كلمة المرور (مطلوبة)" dir="ltr" />
               <button class="btn btn-primary" id="createStaffBtn">إضافة</button>
             </div>
           </div>
@@ -2098,6 +2118,7 @@ window.addEventListener('load', () => {
             <button class="btn btn-primary" id="importBtn">استيراد JSON</button>
           </div>
           <p class="muted" style="margin-top:6px;">يمكنك الآن حفظ واستعادة كل قسم بشكل مستقل بدون التأثير على القسم الآخر.</p>
+          <p class="muted" style="margin-top:6px;">الحفظ السحابي مفعل تلقائياً عند توفر الإنترنت، ومع ذلك يوصى بأخذ نسخة احتياطية دورية.</p>
         </div>
 
         <div class="card grid hidden" id="demoDataCard">
@@ -2244,6 +2265,35 @@ window.addEventListener('load', () => {
       if (digits.length === 9 && digits.startsWith('5')) digits = `0${digits}`;
 
       return digits;
+    };
+    const normalizeUsername = (v) => toEnglishDigits(v)
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '')
+      .replace(/[^a-z0-9._-]/g, '');
+    const ensureUniqueUsername = (base, excludeId = '') => {
+      const normalizedBase = normalizeUsername(base) || 'user';
+      const staff = Array.isArray(state.db?.staff) ? state.db.staff : [];
+      const used = new Set(
+        staff
+          .filter((s) => s.id !== excludeId)
+          .map((s) => normalizeUsername(s.username))
+          .filter(Boolean)
+      );
+      if (!used.has(normalizedBase)) return normalizedBase;
+      let i = 2;
+      let candidate = `${normalizedBase}${i}`;
+      while (used.has(candidate)) {
+        i += 1;
+        candidate = `${normalizedBase}${i}`;
+      }
+      return candidate;
+    };
+    const suggestStaffUsername = (name, phone) => {
+      const phoneDigits = normalizePhone(phone || '');
+      const phonePart = phoneDigits ? phoneDigits.slice(-5) : '';
+      const base = normalizeUsername(`u${phonePart}`);
+      return ensureUniqueUsername(base || 'user');
     };
     const safeFilePart = (v) => compactName(v)
       .replace(/[^0-9A-Za-z\u0600-\u06FF _-]/g, '')
@@ -2567,12 +2617,12 @@ window.addEventListener('load', () => {
       return {
         settings: { logoDataUrl: '', allowTeacherExams: false, lockTodayEntries: true },
         staff: [
-          { id:'u_admin', name:'الإدارة', role:'admin', phone:'0553410673', section:'mens', assignedHalaqaIds:[] },
-          { id:'u_sup1', name:'أ. خالد (مشرف)', role:'supervisor', phone:'0544444444', section:'mens', assignedHalaqaIds:['h1','h2'] },
-          { id:'u_t1', name:'أ. محمد', role:'teacher', phone:'0511111111', section:'mens', assignedHalaqaIds:['h1'] },
-          { id:'u_t2', name:'أ. عبدالعزيز', role:'teacher', phone:'0522222222', section:'mens', assignedHalaqaIds:['h2'] },
-          { id:'u_t3', name:'أ. نورة', role:'teacher', phone:'0533333333', section:'womens', assignedHalaqaIds:['h3'] },
-          { id:'u_board1', name:'رئيس المجلس', role:'board', phone:'0566666666', section:'mens', assignedHalaqaIds:[] },
+          { id:'u_admin', name:'الإدارة', role:'admin', phone:'0553410673', username:'admin', password:'1234', section:'mens', assignedHalaqaIds:[] },
+          { id:'u_sup1', name:'أ. خالد (مشرف)', role:'supervisor', phone:'0544444444', username:'sup1', password:'1234', section:'mens', assignedHalaqaIds:['h1','h2'] },
+          { id:'u_t1', name:'أ. محمد', role:'teacher', phone:'0511111111', username:'teacher1', password:'1234', section:'mens', assignedHalaqaIds:['h1'] },
+          { id:'u_t2', name:'أ. عبدالعزيز', role:'teacher', phone:'0522222222', username:'teacher2', password:'1234', section:'mens', assignedHalaqaIds:['h2'] },
+          { id:'u_t3', name:'أ. نورة', role:'teacher', phone:'0533333333', username:'teacher3', password:'1234', section:'womens', assignedHalaqaIds:['h3'] },
+          { id:'u_board1', name:'رئيس المجلس', role:'board', phone:'0566666666', username:'board1', password:'1234', section:'mens', assignedHalaqaIds:[] },
         ],
         halaqas: [
           { id:'h1', section:'mens', circleName:'حلقة النور', teacherName:'أ. محمد', scheduleType:'sun-wed', scheduleDays:SCHEDULE_PRESETS['sun-wed'], deliveryMode:'onsite', timeSlot:'after_asr' },
@@ -2628,6 +2678,8 @@ window.addEventListener('load', () => {
           name: 'أ. خالد (مشرف)',
           role: 'supervisor',
           phone: '0544444444',
+          username: 'sup1',
+          password: '1234',
           section: 'mens',
           assignedHalaqaIds: ['h1', 'h2'],
         });
@@ -2640,6 +2692,8 @@ window.addEventListener('load', () => {
           name: 'رئيس المجلس',
           role: 'board',
           phone: '0566666666',
+          username: 'board1',
+          password: '1234',
           section: 'mens',
           assignedHalaqaIds: [],
         });
@@ -2673,16 +2727,32 @@ window.addEventListener('load', () => {
       });
       const studentById = Object.fromEntries(db.students.map((s) => [s.id, s]));
 
-      db.staff = db.staff.map((s) => {
+      const usedUsernames = new Set();
+      db.staff = db.staff.map((s, idx) => {
         const section = s.section === 'womens' ? 'womens' : 'mens';
         let assigned = Array.isArray(s.assignedHalaqaIds) ? s.assignedHalaqaIds.filter((id) => halaqaById[id]) : [];
         if (s.role === 'teacher' || s.role === 'supervisor') {
           assigned = assigned.filter((id) => halaqaById[id].section === section);
         }
+        const baseUsername = normalizeUsername(
+          s.username
+          || (s.phone ? `u${normalizePhone(s.phone).slice(-6)}` : '')
+          || s.id
+          || `user${idx + 1}`
+        ) || `user${idx + 1}`;
+        let username = baseUsername;
+        let suffix = 2;
+        while (usedUsernames.has(username)) {
+          username = `${baseUsername}${suffix}`;
+          suffix += 1;
+        }
+        usedUsernames.add(username);
         return {
           ...s,
           section,
           assignedHalaqaIds: assigned,
+          username,
+          password: String(s.password || '').trim() || '1234',
         };
       });
 
@@ -3706,22 +3776,38 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       setTimeout(() => w.print(), 350);
     }
 
+    function loginStaffUser(u, successMsg = 'تم تسجيل الدخول') {
+      state.session = { type: 'staff', userId: u.id };
+      if (u.role === 'teacher') {
+        state.section = u.section || 'mens';
+        const teacherHalaqas = (state.db?.halaqas || []).filter((h) => (u.assignedHalaqaIds || []).includes(h.id));
+        state.currentHalaqaId = teacherHalaqas.length === 1 ? teacherHalaqas[0].id : null;
+      }
+      $('loginView').classList.add('hidden');
+      $('parentView').classList.add('hidden');
+      $('appView').classList.remove('hidden');
+      saveSession();
+      renderAll();
+      toast(successMsg);
+    }
+
+    function loginByCredentials() {
+      const username = normalizeUsername($('loginUsername')?.value || '');
+      const password = String($('loginPassword')?.value || '').trim();
+      if (!username || !password) return toast('أدخل اسم المستخدم وكلمة المرور', 'err');
+      const u = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username && String(s.password || '') === password);
+      if (!u) return toast('بيانات دخول الكادر غير صحيحة', 'err');
+      loginStaffUser(u, 'تم تسجيل دخول الكادر');
+    }
+
     function loginByPhone() {
       const phone = normalizePhone($('loginPhone').value);
       const u = state.indexes?.staffByPhone?.[phone] || null;
       if (u) {
-        state.session = { type:'staff', userId:u.id };
-        if (u.role === 'teacher') {
-          state.section = u.section || 'mens';
-          const teacherHalaqas = (state.db?.halaqas || []).filter((h) => (u.assignedHalaqaIds || []).includes(h.id));
-          state.currentHalaqaId = teacherHalaqas.length === 1 ? teacherHalaqas[0].id : null;
+        if ((u.role === 'teacher' || u.role === 'supervisor') && String(u.password || '').trim()) {
+          return toast('استخدم اسم المستخدم وكلمة المرور لدخول الكادر', 'err');
         }
-        $('loginView').classList.add('hidden');
-        $('parentView').classList.add('hidden');
-        $('appView').classList.remove('hidden');
-        saveSession();
-        renderAll();
-        toast('تم تسجيل الدخول');
+        loginStaffUser(u);
         return;
       }
 
@@ -3745,6 +3831,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       $('parentView').classList.add('hidden');
       $('loginView').classList.remove('hidden');
       $('loginPhone').value = '';
+      if ($('loginUsername')) $('loginUsername').value = '';
+      if ($('loginPassword')) $('loginPassword').value = '';
     }
 
     function prefillLogin(phone) {
@@ -4231,13 +4319,24 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       const role = $('staffRole').value;
       const phone = normalizePhone($('staffPhone').value);
       const section = $('staffSection').value;
+      const usernameInput = normalizeUsername($('staffUsername').value || '');
+      const password = String($('staffPassword').value || '').trim();
       if (!name || !phone) return toast('أدخل الاسم والجوال', 'err');
-      state.db.staff.push({ id: uid('u'), name, role, phone, section, assignedHalaqaIds: [] });
+      if (!password || password.length < 4) return toast('كلمة المرور مطلوبة (4 أحرف على الأقل)', 'err');
+      const phoneTaken = state.db.staff.some((s) => normalizePhone(s.phone) === phone);
+      if (phoneTaken) return toast('رقم الجوال مستخدم مسبقاً', 'err');
+      let username = usernameInput || suggestStaffUsername(name, phone);
+      username = ensureUniqueUsername(username);
+      const usernameTaken = state.db.staff.some((s) => normalizeUsername(s.username) === username);
+      if (usernameTaken) return toast('اسم المستخدم مستخدم مسبقاً', 'err');
+      state.db.staff.push({ id: uid('u'), name, role, phone, section, username, password, assignedHalaqaIds: [] });
       $('staffName').value = '';
       $('staffPhone').value = '';
+      $('staffUsername').value = '';
+      $('staffPassword').value = '';
       saveDB();
       renderAll();
-      toast('تمت إضافة الموظف');
+      toast(`تمت إضافة الموظف. المستخدم: ${username}`);
     }
 
     function removeStaff(id) {
@@ -4245,6 +4344,36 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       state.db.staff = state.db.staff.filter(s => s.id !== id);
       saveDB();
       renderAll();
+    }
+
+    function editStaffUsername(id) {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      const s = state.db.staff.find((x) => x.id === id);
+      if (!s) return toast('الموظف غير موجود', 'err');
+      const next = prompt(`اسم المستخدم الجديد لـ ${s.name}`, s.username || '');
+      if (next === null) return;
+      const normalized = normalizeUsername(next);
+      if (!normalized) return toast('اسم مستخدم غير صالح', 'err');
+      const unique = ensureUniqueUsername(normalized, s.id);
+      if (unique !== normalized) return toast(`اسم المستخدم محجوز. جرب: ${unique}`, 'err');
+      s.username = normalized;
+      saveDB();
+      renderAll();
+      toast('تم تحديث اسم المستخدم');
+    }
+
+    function resetStaffPassword(id) {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      const s = state.db.staff.find((x) => x.id === id);
+      if (!s) return toast('الموظف غير موجود', 'err');
+      const next = prompt(`كلمة المرور الجديدة لـ ${s.name} (${s.username || '-'})`, '');
+      if (next === null) return;
+      const password = String(next || '').trim();
+      if (!password || password.length < 4) return toast('كلمة المرور قصيرة', 'err');
+      s.password = password;
+      saveDB();
+      renderAll();
+      toast('تم تحديث كلمة المرور');
     }
 
     function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId) {
@@ -5201,8 +5330,15 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           <div class="card">
             <div class="row between"><b>${s.name}</b><span class="badge">${s.role}</span></div>
             <p class="muted" style="font-size:12px; margin-top:6px;">${s.phone}</p>
+            <p class="muted" style="font-size:12px;">المستخدم: <span dir="ltr">${escapeAttr(s.username || '-')}</span></p>
             <p class="muted" style="font-size:12px;">الحلقات: ${assignedNames.join('، ') || '-'}</p>
-            ${admin ? `<button class="btn btn-danger no-print" style="margin-top:8px" onclick="removeStaff('${s.id}')">حذف</button>` : ''}
+            ${admin ? `
+              <div class="row no-print" style="margin-top:8px;">
+                <button class="btn btn-light" onclick="editStaffUsername('${s.id}')">تعديل المستخدم</button>
+                <button class="btn btn-light" onclick="resetStaffPassword('${s.id}')">تغيير كلمة المرور</button>
+                <button class="btn btn-danger" onclick="removeStaff('${s.id}')">حذف</button>
+              </div>
+            ` : ''}
           </div>
         `;
       }).join('') || '<div class="card">لا يوجد موظفون.</div>';
@@ -6629,6 +6765,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.pickSmartOption = pickSmartOption;
     window.approveExamResult = approveExamResult;
     window.removeStaff = removeStaff; window.deleteStudent = deleteStudent;
+    window.editStaffUsername = editStaffUsername; window.resetStaffPassword = resetStaffPassword;
     window.selectParentStudent = selectParentStudent;
     window.exportParentCertificate = exportParentCertificate;
     window.exportKnightCard = exportKnightCard;
@@ -6641,6 +6778,10 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     try {
       // events
       safe('loginBtn', el => el.onclick = loginByPhone);
+      safe('staffLoginBtn', el => el.onclick = loginByCredentials);
+      safe('loginPhone', el => el.onkeydown = (ev) => { if (ev.key === 'Enter') loginByPhone(); });
+      safe('loginUsername', el => el.onkeydown = (ev) => { if (ev.key === 'Enter') loginByCredentials(); });
+      safe('loginPassword', el => el.onkeydown = (ev) => { if (ev.key === 'Enter') loginByCredentials(); });
       safe('logoutBtn', el => el.onclick = logout);
       safe('parentLogoutBtn', el => el.onclick = logout);
       safe('createHalaqaBtn', el => el.onclick = createHalaqa);
@@ -6700,14 +6841,22 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       }
     });
 
-    try {
-      loadDB();
-      applyLogo();
-      loadSession();
-    } catch (e) {
-      console.error('Load error', e);
-      alert('حدث خطأ في تحميل البيانات، يرجى إعادة التحميل. ' + e.message);
+    async function bootstrapAppData() {
+      try {
+        if (database) await FirebaseDataManager.importFromFirebase();
+      } catch (e) {
+        console.error('Cloud bootstrap error', e);
+      }
+      try {
+        loadDB();
+        applyLogo();
+        loadSession();
+      } catch (e) {
+        console.error('Load error', e);
+        alert('حدث خطأ في تحميل البيانات، يرجى إعادة التحميل. ' + e.message);
+      }
     }
+    bootstrapAppData();
 
     window.addEventListener('online', () => {
       if (pendingLogsCount()) syncPendingLogs();
