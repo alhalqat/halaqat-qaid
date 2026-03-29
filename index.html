@@ -240,6 +240,55 @@
       background: #fff;
       padding: 8px;
     }
+    .daily-halaqa-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .daily-halaqa-card {
+      border: 1px solid #d9e2d5;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #fff, #f8fbff);
+      padding: 12px;
+      text-align: right;
+      cursor: pointer;
+      transition: 0.18s ease;
+      font-family: inherit;
+      width: 100%;
+    }
+    .daily-halaqa-card:hover {
+      border-color: #86efac;
+      box-shadow: 0 8px 18px rgba(20, 83, 45, 0.12);
+      transform: translateY(-1px);
+    }
+    .daily-halaqa-card.active {
+      border-color: #16a34a;
+      background: linear-gradient(145deg, #f0fdf4, #fffbeb);
+      box-shadow: 0 10px 24px rgba(20, 83, 45, 0.14);
+    }
+    .daily-halaqa-card h4 {
+      margin: 0;
+      font-size: 17px;
+      color: #14532d;
+    }
+    .daily-halaqa-meta {
+      margin-top: 7px;
+      display: grid;
+      gap: 4px;
+      font-size: 12px;
+      color: #475569;
+    }
+    .daily-monitor-table th,
+    .daily-monitor-table td {
+      white-space: nowrap;
+      font-size: 13px;
+      vertical-align: top;
+    }
+    .daily-empty {
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 700;
+    }
     .teacher-weekly-table th,
     .teacher-weekly-table td {
       font-size: 13px;
@@ -1734,6 +1783,7 @@ localStorage.setItem = function(key, value) {
           <div class="ops-title">لوحة التشغيل</div>
           <div class="side-nav" id="mainTabs">
             <button class="tab-btn active" data-tab="halaqas">🕌 الحلقات</button>
+            <button class="tab-btn" data-tab="daily">📋 المتابعة اليومية</button>
             <button class="tab-btn" data-tab="students">👥 الطلاب</button>
             <button class="tab-btn" data-tab="staff">المعلمين</button>
             <button class="tab-btn" data-tab="supervision">الإشراف</button>
@@ -1776,6 +1826,24 @@ localStorage.setItem = function(key, value) {
 
         <div id="halaqaCards" class="grid grid-3"></div>
         <div id="halaqaDetail" class="card hidden"></div>
+      </section>
+
+      <section id="view-daily" class="hidden grid">
+        <div class="card row between no-print">
+          <div>
+            <p class="muted" style="font-size:12px;">متابعة يومية مركزية لجميع الحلقات</p>
+            <h3 id="dailyMonitorSectionLabel">قسم البنين</h3>
+          </div>
+          <div class="row" style="gap:8px;">
+            <input id="dailyMonitorDate" type="date" style="max-width:170px;" />
+            <button class="btn btn-light" id="dailyMonitorTodayBtn">اليوم</button>
+            <button class="btn btn-primary" id="dailyMonitorRefreshBtn">تحديث</button>
+          </div>
+        </div>
+
+        <div id="dailyMonitorSummary" class="grid grid-4"></div>
+        <div id="dailyHalaqaCards" class="daily-halaqa-grid"></div>
+        <div id="dailyHalaqaDetail" class="card hidden"></div>
       </section>
 
       <section id="view-students" class="hidden grid">
@@ -2275,12 +2343,14 @@ localStorage.setItem = function(key, value) {
       currentHalaqaId: null,
       currentStudentId: null,
       currentParentStudentId: null,
-      studentPickerMode: 'cards',
-      teacherStudentView: 'cards',
-      studentIssueFilter: 'all',
-      smartPickers: {},
-      prefillByStudent: {},
-      indexes: null,
+	      studentPickerMode: 'cards',
+	      teacherStudentView: 'cards',
+	      studentIssueFilter: 'all',
+	      dailyMonitorDate: '',
+	      currentDailyHalaqaId: null,
+	      smartPickers: {},
+	      prefillByStudent: {},
+	      indexes: null,
       session: null,
     };
 
@@ -4284,21 +4354,22 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       await loginByPhone();
     }
 
-    function setTab(tab) {
-      if (isBoardMember() && tab !== 'board') tab = 'board';
-      state.tab = tab;
-      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-      ['halaqas','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== tab));
-      renderAll();
-    }
+	    function setTab(tab) {
+	      if (isBoardMember() && tab !== 'board') tab = 'board';
+	      state.tab = tab;
+	      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+	      ['halaqas','daily','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== tab));
+	      renderAll();
+	    }
 
-    function setSection(section) {
-      state.section = section;
-      state.currentHalaqaId = null;
-      state.currentStudentId = null;
-      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === section));
-      renderAll();
-    }
+	    function setSection(section) {
+	      state.section = section;
+	      state.currentHalaqaId = null;
+	      state.currentStudentId = null;
+	      state.currentDailyHalaqaId = null;
+	      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === section));
+	      renderAll();
+	    }
 
     function setStudentPickerMode(mode) {
       state.studentPickerMode = mode === 'dropdown' ? 'dropdown' : 'cards';
@@ -5068,7 +5139,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       `;
     }
 
-    function renderHalaqas() {
+	    function renderHalaqas() {
       const u = currentUser();
       $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role} | الجوال: ${u.phone}` : '';
       $('createHalaqaBox').classList.toggle('hidden', !isAdmin());
@@ -5152,10 +5223,193 @@ function getConsecutiveAbsences(studentId, halaqaId) {
         $('halaqaCards').innerHTML = cardsHtml;
       }
 
-      renderHalaqaDetail();
-    }
+	      renderHalaqaDetail();
+	    }
 
-    function buildHalaqaWeeklyTrackingTable(halaqa, students) {
+	    function sortLogsByRecency(logs) {
+	      return [...(logs || [])].sort((a, b) =>
+	        String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+	        || String(b.id || '').localeCompare(String(a.id || ''))
+	      );
+	    }
+
+	    function getDailyMonitorDate() {
+	      const value = String(state.dailyMonitorDate || '').trim();
+	      return value || todayISO();
+	    }
+
+	    function setDailyMonitorDate(dateISO) {
+	      state.dailyMonitorDate = (dateISO || todayISO());
+	      renderDailyMonitor();
+	    }
+
+	    function openDailyHalaqa(halaqaId) {
+	      state.currentDailyHalaqaId = halaqaId || null;
+	      renderDailyMonitor();
+	    }
+
+	    function buildDailyHalaqaSnapshot(halaqa, dateISO) {
+	      const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
+	        .slice()
+	        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+	      const dayLogs = sortLogsByRecency(
+	        (state.db.logs || []).filter((l) => l.halaqaId === halaqa.id && l.date === dateISO)
+	      );
+	      const perStudent = {};
+	      dayLogs.forEach((log) => {
+	        if (!perStudent[log.studentId]) perStudent[log.studentId] = { hifdh: null, revision: null };
+	        if (log.type === 'hifdh' && !perStudent[log.studentId].hifdh) perStudent[log.studentId].hifdh = log;
+	        if (log.type === 'revision' && !perStudent[log.studentId].revision) perStudent[log.studentId].revision = log;
+	      });
+	      const rows = students.map((student) => {
+	        const entry = perStudent[student.id] || { hifdh: null, revision: null };
+	        return { student, hifdh: entry.hifdh, revision: entry.revision };
+	      });
+	      const loggedStudents = rows.filter((r) => r.hifdh || r.revision).length;
+	      const hifdhStudents = rows.filter((r) => r.hifdh).length;
+	      const revisionStudents = rows.filter((r) => r.revision).length;
+	      return {
+	        halaqa,
+	        dateISO,
+	        studentsCount: students.length,
+	        dayLogsCount: dayLogs.length,
+	        loggedStudents,
+	        missingStudents: Math.max(0, students.length - loggedStudents),
+	        hifdhStudents,
+	        revisionStudents,
+	        rows,
+	      };
+	    }
+
+	    function renderDailyMonitor() {
+	      const summaryEl = $('dailyMonitorSummary');
+	      const cardsEl = $('dailyHalaqaCards');
+	      const detailEl = $('dailyHalaqaDetail');
+	      const dateInput = $('dailyMonitorDate');
+	      const sectionLabelEl = $('dailyMonitorSectionLabel');
+	      if (!summaryEl || !cardsEl || !detailEl || !dateInput || !sectionLabelEl) return;
+
+	      const user = currentUser();
+	      if (!user || !(user.role === 'admin' || user.role === 'supervisor')) {
+	        summaryEl.innerHTML = '';
+	        cardsEl.innerHTML = '<div class="card">هذه الصفحة متاحة للإدارة/المشرف فقط.</div>';
+	        detailEl.classList.add('hidden');
+	        detailEl.innerHTML = '';
+	        return;
+	      }
+
+	      const dateISO = getDailyMonitorDate();
+	      state.dailyMonitorDate = dateISO;
+	      dateInput.value = dateISO;
+	      const sectionLabel = state.section === 'womens' ? 'قسم البنات' : 'قسم البنين';
+	      sectionLabelEl.textContent = sectionLabel;
+
+	      const halaqas = visibleHalaqas()
+	        .slice()
+	        .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+
+	      if (!halaqas.length) {
+	        summaryEl.innerHTML = `
+	          <div class="card"><p class="muted">الحلقات</p><div class="kpi">0</div></div>
+	          <div class="card"><p class="muted">الطلاب</p><div class="kpi">0</div></div>
+	          <div class="card"><p class="muted">مكتمل اليوم</p><div class="kpi">0</div></div>
+	          <div class="card"><p class="muted">ناقص اليوم</p><div class="kpi">0</div></div>
+	        `;
+	        cardsEl.innerHTML = '<div class="card">لا توجد حلقات في هذا القسم.</div>';
+	        detailEl.classList.add('hidden');
+	        detailEl.innerHTML = '';
+	        state.currentDailyHalaqaId = null;
+	        return;
+	      }
+
+	      const snapshots = halaqas.map((h) => buildDailyHalaqaSnapshot(h, dateISO));
+	      const totalStudents = snapshots.reduce((sum, s) => sum + s.studentsCount, 0);
+	      const totalLogged = snapshots.reduce((sum, s) => sum + s.loggedStudents, 0);
+	      const totalMissing = snapshots.reduce((sum, s) => sum + s.missingStudents, 0);
+	      const totalHifdh = snapshots.reduce((sum, s) => sum + s.hifdhStudents, 0);
+	      const totalRevision = snapshots.reduce((sum, s) => sum + s.revisionStudents, 0);
+
+	      summaryEl.innerHTML = `
+	        <div class="card"><p class="muted">الحلقات</p><div class="kpi">${snapshots.length}</div></div>
+	        <div class="card"><p class="muted">طلاب القسم</p><div class="kpi">${totalStudents}</div></div>
+	        <div class="card"><p class="muted">طلاب مسجل لهم اليوم</p><div class="kpi">${totalLogged}</div></div>
+	        <div class="card"><p class="muted">طلاب ناقص تسجيلهم</p><div class="kpi">${totalMissing}</div><p class="muted" style="margin-top:4px; font-size:12px;">حفظ: ${totalHifdh} • مراجعة: ${totalRevision}</p></div>
+	      `;
+
+	      if (!snapshots.some((snap) => snap.halaqa.id === state.currentDailyHalaqaId)) {
+	        state.currentDailyHalaqaId = snapshots[0]?.halaqa?.id || null;
+	      }
+
+	      cardsEl.innerHTML = snapshots.map((snap) => {
+	        const active = snap.halaqa.id === state.currentDailyHalaqaId;
+	        return `
+	          <button type="button" class="daily-halaqa-card ${active ? 'active' : ''}" onclick="openDailyHalaqa('${snap.halaqa.id}')">
+	            <div class="row between" style="align-items:flex-start; gap:8px;">
+	              <h4>${snap.halaqa.circleName}</h4>
+	              <span class="badge ${snap.missingStudents === 0 ? 'badge-green' : 'badge-warn'}">${snap.missingStudents === 0 ? 'مكتمل' : `ناقص ${snap.missingStudents}`}</span>
+	            </div>
+	            <div class="daily-halaqa-meta">
+	              <span>المعلم: ${snap.halaqa.teacherName || '-'}</span>
+	              <span>الطلاب: ${snap.studentsCount}</span>
+	              <span>المسجل اليوم: ${snap.loggedStudents}</span>
+	              <span>حفظ: ${snap.hifdhStudents} • مراجعة: ${snap.revisionStudents}</span>
+	            </div>
+	          </button>
+	        `;
+	      }).join('');
+
+	      const selected = snapshots.find((snap) => snap.halaqa.id === state.currentDailyHalaqaId) || null;
+	      if (!selected) {
+	        detailEl.classList.add('hidden');
+	        detailEl.innerHTML = '';
+	        return;
+	      }
+
+	      const fmtSurah = (log) => log ? (log.surahName || '-') : '<span class="daily-empty">—</span>';
+	      const fmtRange = (log) => log ? `${log.fromAya || '-'} - ${log.toAya || '-'}` : '<span class="daily-empty">—</span>';
+	      detailEl.classList.remove('hidden');
+	      detailEl.innerHTML = `
+	        <div class="row between" style="margin-bottom:10px;">
+	          <div>
+	            <h3>متابعة يومية: ${selected.halaqa.circleName}</h3>
+	            <p class="muted" style="font-size:12px; margin-top:4px;">المعلم: ${selected.halaqa.teacherName || '-'} • التاريخ: ${selected.dateISO}</p>
+	          </div>
+	          <div class="row" style="gap:6px;">
+	            <span class="badge">الطلاب: ${selected.studentsCount}</span>
+	            <span class="badge badge-green">مكتمل: ${selected.loggedStudents}</span>
+	            <span class="badge ${selected.missingStudents ? 'badge-warn' : ''}">ناقص: ${selected.missingStudents}</span>
+	          </div>
+	        </div>
+	        <div style="overflow:auto;">
+	          <table class="daily-monitor-table">
+	            <thead>
+	              <tr>
+	                <th>#</th>
+	                <th>اسم الطالب</th>
+	                <th>الحفظ - السورة</th>
+	                <th>الحفظ من - إلى</th>
+	                <th>المراجعة - السورة</th>
+	                <th>المراجعة من - إلى</th>
+	              </tr>
+	            </thead>
+	            <tbody>
+	              ${selected.rows.map((row, idx) => `
+	                <tr class="${!row.hifdh && !row.revision ? 'row-danger' : ''}">
+	                  <td>${idx + 1}</td>
+	                  <td>${row.student.name || '-'}</td>
+	                  <td>${fmtSurah(row.hifdh)}</td>
+	                  <td>${fmtRange(row.hifdh)}</td>
+	                  <td>${fmtSurah(row.revision)}</td>
+	                  <td>${fmtRange(row.revision)}</td>
+	                </tr>
+	              `).join('') || '<tr><td colspan="6" class="muted">لا يوجد طلاب في هذه الحلقة.</td></tr>'}
+	            </tbody>
+	          </table>
+	        </div>
+	      `;
+	    }
+
+	    function buildHalaqaWeeklyTrackingTable(halaqa, students) {
       const wr = currentWeekRange();
       const rows = (students || []).map((s) => {
         const weekLogs = logsForStudent(s.id).filter((l) => l.date >= wr.startISO && l.date <= wr.endISO);
@@ -6794,10 +7048,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         return;
       }
       $('workflowBanner').classList.remove('hidden');
-      const tabCopy = {
-        halaqas: { title: 'تشغيل الحلقات', sub: 'ادخل الحلقة، اختر الطالب، ثم سجل الإنجاز اليومي بسرعة.' },
-        students: { title: 'إدارة الطلاب', sub: 'إضافة/نقل/تحديث بيانات الطلاب ومراجعة جودة البيانات.' },
-        staff: { title: 'إدارة الكادر', sub: 'إضافة المعلمين والمشرفين وربط المعلم بحلقته.' },
+	      const tabCopy = {
+	        halaqas: { title: 'تشغيل الحلقات', sub: 'ادخل الحلقة، اختر الطالب، ثم سجل الإنجاز اليومي بسرعة.' },
+	        daily: { title: 'المتابعة اليومية', sub: 'عرض موحد لكل حلقات القسم مع تفاصيل الحفظ والمراجعة لكل طالب في نفس الصفحة.' },
+	        students: { title: 'إدارة الطلاب', sub: 'إضافة/نقل/تحديث بيانات الطلاب ومراجعة جودة البيانات.' },
+	        staff: { title: 'إدارة الكادر', sub: 'إضافة المعلمين والمشرفين وربط المعلم بحلقته.' },
         supervision: { title: 'الإشراف', sub: 'توثيق ملاحظات المشرف على أداء المعلم ومتابعة التحسين.' },
         exams: { title: 'الاختبارات', sub: 'المعلم يرفع الدرجات، ثم يعتمدها المشرف/الإدارة.' },
         reports: { title: 'التقارير', sub: 'متابعة الأداء الأسبوعي والشهري على مستوى الطالب والحلقة والقسم.' },
@@ -6886,9 +7141,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       if (missingGuardian > 0 && canManageStudents()) {
         tasks.push(`<div class="ops-task info">عدد <b>${missingGuardian}</b> طلاب بدون رقم ولي أمر.<div style="margin-top:6px;"><button class="btn btn-light" onclick="setTab('students')">تدقيق بيانات الطلاب</button></div></div>`);
       }
-      if (missingDaily > 0) {
-        tasks.push(`<div class="ops-task info">هناك <b>${missingDaily}</b> حلقات بسجل يومي ناقص اليوم.${isBoardMember() ? '' : `<div style="margin-top:6px;"><button class="btn btn-light" onclick="setTab('reports')">مراجعة السجل اليومي</button></div>`}</div>`);
-      }
+	      if (missingDaily > 0) {
+	        tasks.push(`<div class="ops-task info">هناك <b>${missingDaily}</b> حلقات بسجل يومي ناقص اليوم.${isBoardMember() ? '' : `<div style="margin-top:6px;"><button class="btn btn-light" onclick="setTab('daily')">فتح المتابعة اليومية</button></div>`}</div>`);
+	      }
       if (ann) {
         tasks.push(`<div class="ops-task ok"><b>آخر تعميم:</b> ${ann.title}<p style="margin-top:4px;">${ann.body}</p></div>`);
       }
@@ -6925,38 +7180,42 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       document.querySelectorAll('#mainTabs .tab-btn').forEach((btn) => {
         btn.style.display = 'inline-block';
       });
-      const staffTab = document.querySelector('[data-tab="staff"]');
-      const supervisionTab = document.querySelector('[data-tab="supervision"]');
-      const examsTab = document.querySelector('[data-tab="exams"]');
-      const reportsTab = document.querySelector('[data-tab="reports"]');
-      const boardTab = document.querySelector('[data-tab="board"]');
-      const knightsTab = document.querySelector('[data-tab="knights"]');
-      const settingsTab = document.querySelector('[data-tab="settings"]');
-      const halaqasTab = document.querySelector('[data-tab="halaqas"]');
-      const studentsTab = document.querySelector('[data-tab="students"]');
+	      const staffTab = document.querySelector('[data-tab="staff"]');
+	      const supervisionTab = document.querySelector('[data-tab="supervision"]');
+	      const examsTab = document.querySelector('[data-tab="exams"]');
+	      const reportsTab = document.querySelector('[data-tab="reports"]');
+	      const dailyTab = document.querySelector('[data-tab="daily"]');
+	      const boardTab = document.querySelector('[data-tab="board"]');
+	      const knightsTab = document.querySelector('[data-tab="knights"]');
+	      const settingsTab = document.querySelector('[data-tab="settings"]');
+	      const halaqasTab = document.querySelector('[data-tab="halaqas"]');
+	      const studentsTab = document.querySelector('[data-tab="students"]');
 
-      halaqasTab.style.display = 'inline-block';
-      studentsTab.style.display = 'inline-block';
-      staffTab.style.display = isAdmin() ? 'inline-block' : 'none';
-      supervisionTab.style.display = (u.role === 'admin' || u.role === 'supervisor') ? 'inline-block' : 'none';
+	      halaqasTab.style.display = 'inline-block';
+	      dailyTab.style.display = (u.role === 'admin' || u.role === 'supervisor') ? 'inline-block' : 'none';
+	      studentsTab.style.display = 'inline-block';
+	      staffTab.style.display = isAdmin() ? 'inline-block' : 'none';
+	      supervisionTab.style.display = (u.role === 'admin' || u.role === 'supervisor') ? 'inline-block' : 'none';
       examsTab.style.display = canAccessExams() ? 'inline-block' : 'none';
       reportsTab.style.display = isTeacher() ? 'none' : 'inline-block';
       boardTab.style.display = (u.role === 'admin' || u.role === 'supervisor' || u.role === 'board') ? 'inline-block' : 'none';
       knightsTab.style.display = isTeacher() ? 'none' : 'inline-block';
       settingsTab.style.display = isAdmin() ? 'inline-block' : 'none';
 
-      if (isTeacher()) {
-        staffTab.style.display = 'none';
-        supervisionTab.style.display = 'none';
-        reportsTab.style.display = 'none';
+	      if (isTeacher()) {
+	        dailyTab.style.display = 'none';
+	        staffTab.style.display = 'none';
+	        supervisionTab.style.display = 'none';
+	        reportsTab.style.display = 'none';
         boardTab.style.display = 'none';
         knightsTab.style.display = 'none';
         settingsTab.style.display = 'none';
       }
 
-      if (!isAdmin() && (state.tab === 'staff' || state.tab === 'settings')) state.tab = 'halaqas';
-      if (!(u.role === 'admin' || u.role === 'supervisor') && state.tab === 'supervision') state.tab = 'halaqas';
-      if (!canAccessExams() && state.tab === 'exams') state.tab = 'halaqas';
+	      if (!isAdmin() && (state.tab === 'staff' || state.tab === 'settings')) state.tab = 'halaqas';
+	      if (!(u.role === 'admin' || u.role === 'supervisor') && state.tab === 'daily') state.tab = 'halaqas';
+	      if (!(u.role === 'admin' || u.role === 'supervisor') && state.tab === 'supervision') state.tab = 'halaqas';
+	      if (!canAccessExams() && state.tab === 'exams') state.tab = 'halaqas';
       if (isTeacher() && (state.tab === 'reports' || state.tab === 'board' || state.tab === 'knights')) state.tab = 'halaqas';
       if (!(u.role === 'admin' || u.role === 'supervisor' || u.role === 'board') && state.tab === 'board') state.tab = 'halaqas';
       if (u.role === 'board') {
@@ -6969,16 +7228,17 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       $('appView').setAttribute('data-section', state.section);
       applyLogo();
 
-      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
-      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === state.section));
-      ['halaqas','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== state.tab));
+	      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
+	      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === state.section));
+	      ['halaqas','daily','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== state.tab));
 
       $('sessionLabel').textContent = `المستخدم: ${u.name} | الدور: ${u.role} | الجوال: ${u.phone}`;
       renderWorkflowBanner();
       renderOpsSidebar();
 
-      renderHalaqas();
-      renderStudents();
+	      renderHalaqas();
+	      renderDailyMonitor();
+	      renderStudents();
       renderStaff();
       renderSupervision();
       renderExams();
@@ -7281,12 +7541,15 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       safe('previewBulkStudentsBtn', el => el.onclick = buildBulkPreview);
       safe('bulkStudentSection', el => el.onchange = refreshBulkHalaqaOptions);
       safe('bulkStudentHalaqa', el => el.onchange = buildBulkPreview);
-      safe('bulkStudentsInput', el => el.oninput = buildBulkPreview);
-      safe('newStudentSection', el => el.onchange = refreshNewStudentHalaqaOptions);
-      safe('examSessionSelect', el => el.onchange = syncExamStudentSelect);
-      safe('studentSearch', el => el.oninput = renderStudents);
+	      safe('bulkStudentsInput', el => el.oninput = buildBulkPreview);
+	      safe('newStudentSection', el => el.onchange = refreshNewStudentHalaqaOptions);
+	      safe('examSessionSelect', el => el.onchange = syncExamStudentSelect);
+	      safe('studentSearch', el => el.oninput = renderStudents);
+	      safe('dailyMonitorDate', el => el.onchange = () => setDailyMonitorDate(el.value));
+	      safe('dailyMonitorTodayBtn', el => el.onclick = () => setDailyMonitorDate(todayISO()));
+	      safe('dailyMonitorRefreshBtn', el => el.onclick = () => renderDailyMonitor());
 
-      safe('prevWeekBtn', el => el.onclick = () => { state.weekOffset -= 1; renderReports(); });
+	      safe('prevWeekBtn', el => el.onclick = () => { state.weekOffset -= 1; renderReports(); });
       safe('nextWeekBtn', el => el.onclick = () => { state.weekOffset += 1; renderReports(); });
       safe('printBtn', el => el.onclick = printReport);
       safe('printBoardReportBtn', el => el.onclick = printBoardReport);
