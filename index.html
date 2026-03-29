@@ -5375,6 +5375,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	            <p class="muted" style="font-size:12px; margin-top:4px;">المعلم: ${selected.halaqa.teacherName || '-'} • التاريخ: ${selected.dateISO}</p>
 	          </div>
 	          <div class="row" style="gap:6px;">
+	            <button class="btn btn-primary no-print" onclick="printDailyMonitorCurrent()">طباعة PDF</button>
 	            <span class="badge">الطلاب: ${selected.studentsCount}</span>
 	            <span class="badge badge-green">مكتمل: ${selected.loggedStudents}</span>
 	            <span class="badge ${selected.missingStudents ? 'badge-warn' : ''}">ناقص: ${selected.missingStudents}</span>
@@ -5407,6 +5408,93 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	          </table>
 	        </div>
 	      `;
+	    }
+
+	    function printDailyMonitorCurrent() {
+	      const user = currentUser();
+	      if (!user || !(user.role === 'admin' || user.role === 'supervisor')) {
+	        return toast('هذه الميزة مخصصة للإدارة/المشرف', 'err');
+	      }
+	      const halaqaId = state.currentDailyHalaqaId;
+	      if (!halaqaId) return toast('اختر حلقة أولاً', 'err');
+	      const halaqa = state.indexes?.halaqaById?.[halaqaId] || null;
+	      if (!halaqa) return toast('الحلقة غير موجودة', 'err');
+
+	      const dateISO = getDailyMonitorDate();
+	      const snap = buildDailyHalaqaSnapshot(halaqa, dateISO);
+	      const sectionLabel = halaqa.section === 'womens' ? 'قسم البنات' : 'قسم البنين';
+	      const rowsHtml = snap.rows.map((row, idx) => {
+	        const hifdhSurah = row.hifdh ? escapeAttr(row.hifdh.surahName || '-') : '-';
+	        const hifdhRange = row.hifdh ? `${row.hifdh.fromAya || '-'} - ${row.hifdh.toAya || '-'}` : '-';
+	        const revSurah = row.revision ? escapeAttr(row.revision.surahName || '-') : '-';
+	        const revRange = row.revision ? `${row.revision.fromAya || '-'} - ${row.revision.toAya || '-'}` : '-';
+	        return `
+	          <tr>
+	            <td>${idx + 1}</td>
+	            <td>${escapeAttr(row.student.name || '-')}</td>
+	            <td>${hifdhSurah}</td>
+	            <td>${hifdhRange}</td>
+	            <td>${revSurah}</td>
+	            <td>${revRange}</td>
+	          </tr>
+	        `;
+	      }).join('') || '<tr><td colspan="6">لا يوجد طلاب في هذه الحلقة.</td></tr>';
+
+	      const printWindow = window.open('', '_blank');
+	      if (!printWindow) return toast('المتصفح منع نافذة الطباعة. فعّل النوافذ المنبثقة ثم أعد المحاولة.', 'err');
+
+	      const html = `
+	        <!doctype html>
+	        <html lang="ar" dir="rtl">
+	        <head>
+	          <meta charset="UTF-8" />
+	          <title>المتابعة اليومية - ${escapeAttr(halaqa.circleName || '')}</title>
+	          <style>
+	            body { font-family: "Cairo", "Tahoma", sans-serif; margin: 20px; color: #1f2937; }
+	            h1 { margin: 0 0 8px; font-size: 22px; color: #14532d; }
+	            .meta { margin-bottom: 12px; font-size: 13px; color: #475569; }
+	            .chips { margin-bottom: 12px; }
+	            .chip { display: inline-block; border: 1px solid #d1d5db; border-radius: 999px; padding: 4px 10px; font-size: 12px; margin-left: 6px; }
+	            table { width: 100%; border-collapse: collapse; }
+	            th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-size: 12px; }
+	            th { background: #f1f5f9; font-weight: 700; }
+	            @page { size: A4 portrait; margin: 12mm; }
+	          </style>
+	        </head>
+	        <body>
+	          <h1>المتابعة اليومية للحلقة</h1>
+	          <div class="meta">
+	            الحلقة: <b>${escapeAttr(halaqa.circleName || '-')}</b> |
+	            المعلم: <b>${escapeAttr(halaqa.teacherName || '-')}</b> |
+	            القسم: <b>${sectionLabel}</b> |
+	            التاريخ: <b>${dateISO}</b>
+	          </div>
+	          <div class="chips">
+	            <span class="chip">الطلاب: ${snap.studentsCount}</span>
+	            <span class="chip">مكتمل: ${snap.loggedStudents}</span>
+	            <span class="chip">ناقص: ${snap.missingStudents}</span>
+	          </div>
+	          <table>
+	            <thead>
+	              <tr>
+	                <th>#</th>
+	                <th>اسم الطالب</th>
+	                <th>الحفظ - السورة</th>
+	                <th>الحفظ من - إلى</th>
+	                <th>المراجعة - السورة</th>
+	                <th>المراجعة من - إلى</th>
+	              </tr>
+	            </thead>
+	            <tbody>${rowsHtml}</tbody>
+	          </table>
+	        </body>
+	        </html>
+	      `;
+	      printWindow.document.open();
+	      printWindow.document.write(html);
+	      printWindow.document.close();
+	      printWindow.focus();
+	      setTimeout(() => printWindow.print(), 180);
 	    }
 
 	    function buildHalaqaWeeklyTrackingTable(halaqa, students) {
