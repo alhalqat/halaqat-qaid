@@ -1607,10 +1607,6 @@ localStorage.setItem = function(key, value) {
   }
 };
 
-// تحميل البيانات من Firebase عند فتح الصفحة
-window.addEventListener('load', () => {
-  if (database) FirebaseDataManager.importFromFirebase();
-});
 </script><div class="container" id="loginView">
     <div class="card hero login-card">
       <div class="login-logo-wrap">
@@ -2116,9 +2112,11 @@ window.addEventListener('load', () => {
               <option value="shared">استيراد البيانات المشتركة فقط</option>
             </select>
             <button class="btn btn-primary" id="importBtn">استيراد JSON</button>
+            <button class="btn btn-light" id="pullCloudBtn">تحديث الآن من السحابة</button>
           </div>
           <p class="muted" style="margin-top:6px;">يمكنك الآن حفظ واستعادة كل قسم بشكل مستقل بدون التأثير على القسم الآخر.</p>
           <p class="muted" style="margin-top:6px;">الحفظ السحابي مفعل تلقائياً عند توفر الإنترنت، ومع ذلك يوصى بأخذ نسخة احتياطية دورية.</p>
+          <p class="muted" id="cloudSyncStatus" style="margin-top:6px;">حالة السحابة: غير متصل</p>
         </div>
 
         <div class="card grid hidden" id="demoDataCard">
@@ -2977,7 +2975,8 @@ window.addEventListener('load', () => {
       localStorage.removeItem(STORAGE_KEY_LEGACY);
     }
 
-    function loadDB() {
+    function loadDB(options = {}) {
+      const persist = options.persist !== false;
       try {
         const separated = loadSeparatedDBFromStorage();
         if (separated) {
@@ -2985,21 +2984,88 @@ window.addEventListener('load', () => {
         } else {
           const rawLegacy = localStorage.getItem(STORAGE_KEY_LEGACY);
           state.db = rawLegacy ? migrateIfNeeded(JSON.parse(rawLegacy)) : seedData();
-          saveSeparatedDBToStorage(state.db);
+          if (persist) saveSeparatedDBToStorage(state.db);
         }
       } catch (_e) {
         state.db = seedData();
-        saveSeparatedDBToStorage(state.db);
+        if (persist) saveSeparatedDBToStorage(state.db);
       }
       // تأكيد وجود حالة مزامنة للسجلات
       state.db.logs = (state.db.logs || []).map((l) => ({ ...l, syncStatus: l.syncStatus || 'synced' }));
       rebuildIndexes();
       recomputeAllStudentAggregates();
       rebuildIndexes();
-      saveDB();
+      if (persist) saveDB();
     }
 
     function saveDB() { saveSeparatedDBToStorage(state.db); }
+
+    const cloudSyncState = {
+      timer: null,
+      lastPulledAt: null,
+      isPulling: false,
+    };
+
+    function cloudStorageFingerprint() {
+      const keys = [STORAGE_KEYS.shared, STORAGE_KEYS.mens, STORAGE_KEYS.womens];
+      return keys.map((k) => localStorage.getItem(k) || '').join('||');
+    }
+
+    function updateCloudSyncStatus(message) {
+      const el = $('cloudSyncStatus');
+      if (!el) return;
+      el.textContent = message;
+    }
+
+    function forceRenderCurrentSessionView() {
+      if (state.session?.type === 'staff') {
+        renderAll();
+      } else if (state.session?.type === 'parent') {
+        renderParentView();
+      }
+    }
+
+    async function pullCloudAndRefresh(options = {}) {
+      const { notify = false } = options;
+      if (!database || cloudSyncState.isPulling) return false;
+      cloudSyncState.isPulling = true;
+      const before = cloudStorageFingerprint();
+      try {
+        await FirebaseDataManager.importFromFirebase();
+        const after = cloudStorageFingerprint();
+        const changed = before !== after;
+        if (changed) {
+          loadDB({ persist: false });
+          forceRenderCurrentSessionView();
+          cloudSyncState.lastPulledAt = new Date();
+          updateCloudSyncStatus(`حالة السحابة: محدثة ${cloudSyncState.lastPulledAt.toLocaleTimeString('ar-SA')}`);
+          if (notify) toast('تم تحديث البيانات من السحابة', 'ok');
+        } else {
+          updateCloudSyncStatus('حالة السحابة: لا توجد تغييرات جديدة');
+          if (notify) toast('لا توجد بيانات أحدث في السحابة');
+        }
+        return changed;
+      } catch (err) {
+        console.error('Cloud pull failed', err);
+        updateCloudSyncStatus('حالة السحابة: تعذر التحديث حالياً');
+        if (notify) toast('تعذر التحديث من السحابة', 'err');
+        return false;
+      } finally {
+        cloudSyncState.isPulling = false;
+      }
+    }
+
+    function startCloudAutoPull() {
+      if (!database) {
+        updateCloudSyncStatus('حالة السحابة: غير متصل');
+        return;
+      }
+      if (cloudSyncState.timer) clearInterval(cloudSyncState.timer);
+      updateCloudSyncStatus('حالة السحابة: متصل');
+      cloudSyncState.timer = setInterval(() => {
+        pullCloudAndRefresh({ notify: false });
+      }, 15000);
+    }
 
     function saveSession() {
       if (state.session) localStorage.setItem(SESSION_KEY, JSON.stringify(state.session));
@@ -3791,7 +3857,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       toast(successMsg);
     }
 
-    function loginByCredentials() {
+    async function loginByCredentials() {
+      if (database) await pullCloudAndRefresh({ notify: false });
       const username = normalizeUsername($('loginUsername')?.value || '');
       const password = String($('loginPassword')?.value || '').trim();
       if (!username || !password) return toast('أدخل اسم المستخدم وكلمة المرور', 'err');
@@ -3800,7 +3867,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       loginStaffUser(u, 'تم تسجيل دخول الكادر');
     }
 
-    function loginByPhone() {
+    async function loginByPhone() {
+      if (database) await pullCloudAndRefresh({ notify: false });
       const phone = normalizePhone($('loginPhone').value);
       const u = state.indexes?.staffByPhone?.[phone] || null;
       if (u) {
@@ -3835,9 +3903,9 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       if ($('loginPassword')) $('loginPassword').value = '';
     }
 
-    function prefillLogin(phone) {
+    async function prefillLogin(phone) {
       $('loginPhone').value = phone;
-      loginByPhone();
+      await loginByPhone();
     }
 
     function setTab(tab) {
@@ -6821,6 +6889,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       safe('exportSharedBtn', el => el.onclick = exportSharedJSON);
       safe('exportAllSeparatedBtn', el => el.onclick = exportAllSeparatedJSON);
       safe('importBtn', el => el.onclick = importJSON);
+      safe('pullCloudBtn', el => el.onclick = () => pullCloudAndRefresh({ notify: true }));
       safe('seedBtn', el => el.onclick = reseed);
       safe('resetBtn', el => el.onclick = resetAll);
 
@@ -6848,9 +6917,10 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         console.error('Cloud bootstrap error', e);
       }
       try {
-        loadDB();
+        loadDB({ persist: false });
         applyLogo();
         loadSession();
+        startCloudAutoPull();
       } catch (e) {
         console.error('Load error', e);
         alert('حدث خطأ في تحميل البيانات، يرجى إعادة التحميل. ' + e.message);
