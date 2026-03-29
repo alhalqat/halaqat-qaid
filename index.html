@@ -6,7 +6,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>جمعية تحفيظ القران الكريم بالقاعد - منصة المتابعة</title>
-  <meta name="theme-color" content="#14532d" />
+  <meta name="theme-color" content="#5f6f3a" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&amp;family=Cairo:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
@@ -244,6 +244,50 @@
     .teacher-weekly-table td {
       font-size: 13px;
       white-space: nowrap;
+    }
+    .halaqa-performance-card {
+      margin-bottom: 10px;
+      border-color: #d8ccb3;
+      background: linear-gradient(165deg, #fffef8, #f7f6ef);
+    }
+    .halaqa-chart {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      align-items: end;
+    }
+    .halaqa-bar-col {
+      text-align: center;
+    }
+    .halaqa-bar-track {
+      height: 110px;
+      border-radius: 10px;
+      border: 1px solid rgba(95, 111, 58, 0.20);
+      background: linear-gradient(180deg, #f6f8f1, #eef2e7);
+      padding: 6px;
+      display: flex;
+      align-items: end;
+      justify-content: center;
+    }
+    .halaqa-bar-fill {
+      width: 100%;
+      border-radius: 8px;
+      min-height: 6px;
+      background: linear-gradient(180deg, #9aa968, #5f6f3a);
+      box-shadow: 0 3px 10px rgba(95, 111, 58, 0.28);
+      transition: height 0.25s ease;
+    }
+    .halaqa-bar-value {
+      margin-top: 5px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #3f4f27;
+    }
+    .halaqa-bar-label {
+      margin-top: 2px;
+      font-size: 11px;
+      color: #6b7280;
     }
     .teacher-student-btn {
       border: 1px solid #d9e2d5;
@@ -1272,10 +1316,171 @@ tbody tr:hover td { background: #fef9e7; }
         /* Card role chip general styling */
         [class*='chip'], [class*='role'], [class*='badge'] { font-family: 'Cairo', sans-serif !important; }
 
-color:#555      .no-print { display: none !important; }
-      body { background: #fff; }
-      .card { box-shadow: none; }
-    }
+        /* Brand skin based on the association logo */
+        :root {
+          --brand-olive: #5f6f3a;
+          --brand-olive-deep: #4f5f31;
+          --brand-copper: #b8835e;
+          --brand-paper: #f3f2ee;
+          --brand-ink: #2f3a21;
+        }
+        body {
+          color: var(--brand-ink) !important;
+          background:
+            radial-gradient(circle at 10% -10%, rgba(184, 131, 94, 0.20), transparent 34%),
+            radial-gradient(circle at 92% -12%, rgba(95, 111, 58, 0.20), transparent 36%),
+            linear-gradient(180deg, #f7f5ef, var(--brand-paper)) !important;
+        }
+        .card {
+          border-color: rgba(95, 111, 58, 0.25) !important;
+          background: linear-gradient(165deg, #ffffff, #fcfbf8) !important;
+        }
+        .hero,
+        .parent-hero,
+        .knights-hero {
+          background:
+            radial-gradient(circle at 7% 18%, rgba(184, 131, 94, 0.25), transparent 34%),
+            linear-gradient(145deg, var(--brand-olive-deep), var(--brand-olive)) !important;
+          border-color: rgba(184, 131, 94, 0.45) !important;
+          color: #f8f6ef !important;
+        }
+        .btn-primary {
+          background: linear-gradient(135deg, var(--brand-olive-deep), var(--brand-olive)) !important;
+          border-color: #4f5f31 !important;
+        }
+        .btn-gold {
+          background: linear-gradient(135deg, #c89267, var(--brand-copper)) !important;
+          color: #24190f !important;
+          border-color: #9d6d48 !important;
+        }
+        #mainTabs.side-nav .tab-btn.active,
+        .tab-btn.active {
+          border-color: rgba(95, 111, 58, 0.50) !important;
+          color: var(--brand-olive-deep) !important;
+        }
+        .association-logo-badge {
+          width: 62px;
+          height: 62px;
+          object-fit: contain;
+          border-radius: 14px;
+          background: #ffffff;
+          border: 1px solid rgba(95, 111, 58, 0.30);
+          box-shadow: 0 6px 16px rgba(95, 111, 58, 0.16);
+          padding: 6px;
+        }
+        #loginView .association-logo-badge {
+          width: 96px;
+          height: 96px;
+          border-radius: 18px;
+          padding: 8px;
+          margin-bottom: 8px;
+        }
+        #loginView {
+          min-height: calc(100vh - 24px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        #loginView .login-card {
+          width: 100%;
+          max-width: 620px;
+          margin: 40px auto !important;
+          padding: 22px 20px;
+          color: #25321a !important;
+          background:
+            radial-gradient(circle at 8% 10%, rgba(184, 131, 94, 0.16), transparent 34%),
+            linear-gradient(165deg, #ffffff, #f9f7f1) !important;
+          border: 1px solid rgba(95, 111, 58, 0.30) !important;
+          box-shadow: 0 22px 44px rgba(47, 58, 33, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+        }
+        #loginView .login-card::before {
+          display: none !important;
+        }
+        #loginView .login-logo-wrap {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 2px;
+        }
+        #loginView .login-title {
+          margin-top: 4px;
+          text-align: center;
+          color: var(--brand-olive-deep) !important;
+          text-shadow: none !important;
+          font-size: 33px;
+          line-height: 1.25;
+        }
+        #loginView .quran-verse-login {
+          color: #5f6f3a !important;
+          background: rgba(95, 111, 58, 0.08);
+          border: 1px solid rgba(95, 111, 58, 0.18);
+          border-radius: 12px;
+          padding: 8px 10px;
+        }
+        #loginView .login-subtitle {
+          font-size: 14px;
+          margin-top: 10px;
+          color: #435430 !important;
+          text-align: center;
+          font-weight: 700;
+        }
+        #loginView .login-label {
+          display: block;
+          margin-top: 12px;
+          margin-bottom: 6px;
+          color: #3a4a2a;
+          font-size: 14px;
+          font-weight: 800;
+        }
+        #loginView .login-grid {
+          margin-top: 0 !important;
+          grid-template-columns: minmax(0, 1fr) 120px;
+          align-items: stretch;
+        }
+        #loginView .login-phone-input {
+          direction: ltr;
+          text-align: left;
+          font-size: 18px;
+          font-weight: 700;
+          letter-spacing: 0.6px;
+          color: #1d2a12 !important;
+          background: #ffffff !important;
+          border: 1.6px solid rgba(95, 111, 58, 0.34) !important;
+        }
+        #loginView .login-phone-input::placeholder {
+          color: #8b946e;
+          font-size: 14px;
+          letter-spacing: normal;
+        }
+        #loginView .login-phone-input:focus {
+          outline: none;
+          border-color: #b8835e !important;
+          box-shadow: 0 0 0 4px rgba(184, 131, 94, 0.20);
+        }
+        #loginView .login-submit-btn {
+          min-height: 44px;
+          font-size: 16px;
+          font-weight: 800;
+        }
+        #loginView .login-help {
+          margin-top: 8px;
+          font-size: 12px;
+          color: #5f6f3a;
+          text-align: center;
+        }
+        @media (max-width: 760px) {
+          #loginView .login-grid {
+            grid-template-columns: 1fr;
+          }
+          #loginView .login-submit-btn {
+            width: 100%;
+          }
+        }
+
+        @media print {
+          .no-print { display: none !important; }
+          body { background: #fff !important; }
+          .card { box-shadow: none !important; }
+        }
   </style>
 </head>
 <body>
@@ -1300,18 +1505,48 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+let database = null;
+const hasFirebaseSDK = typeof window !== 'undefined' && window.firebase && typeof window.firebase.initializeApp === 'function';
+if (hasFirebaseSDK) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+  } catch (err) {
+    console.error('Firebase init error:', err);
+  }
+}
+const FIREBASE_SYNC_KEYS = [
+  'quran_platform_shared_v3',
+  'quran_platform_mens_v3',
+  'quran_platform_womens_v3',
+  'quran_platform_pro_v2',
+  'students',
+  'teachers',
+  'circles',
+  'attendance',
+  'evaluations',
+  'badges',
+  'loginData',
+];
+const parseJSONSafe = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (_e) {
+    return value;
+  }
+};
 
 // Firebase Data Manager
 const FirebaseDataManager = {
   // حفظ البيانات إلى Firebase
   saveData: function(key, data) {
+    if (!database) return Promise.resolve();
     return database.ref(key).set(data);
   },
   
   // قراءة البيانات من Firebase
   getData: function(key, callback) {
+    if (!database) return;
     database.ref(key).on('value', (snapshot) => {
       callback(snapshot.val());
     });
@@ -1319,32 +1554,32 @@ const FirebaseDataManager = {
   
   // تحديث البيانات في Firebase
   updateData: function(key, updates) {
+    if (!database) return Promise.resolve();
     return database.ref(key).update(updates);
   },
   
   // حذف البيانات من Firebase
   deleteData: function(key) {
+    if (!database) return Promise.resolve();
     return database.ref(key).remove();
   },
   
   // مزامنة localStorage مع Firebase
   syncLocalStorage: function() {
-    const keys = ['students', 'teachers', 'circles', 'attendance', 'evaluations', 'badges', 'loginData'];
-    keys.forEach(key => {
+    FIREBASE_SYNC_KEYS.forEach(key => {
       const localData = localStorage.getItem(key);
       if (localData) {
-        this.saveData(key, JSON.parse(localData));
+        this.saveData(key, parseJSONSafe(localData));
       }
     });
   },
   
   // استيراد البيانات من Firebase إلى localStorage
   importFromFirebase: function() {
-    const keys = ['students', 'teachers', 'circles', 'attendance', 'evaluations', 'badges', 'loginData'];
-    keys.forEach(key => {
+    FIREBASE_SYNC_KEYS.forEach(key => {
       this.getData(key, (data) => {
-        if (data) {
-          localStorage.setItem(key, JSON.stringify(data));
+        if (data !== null && data !== undefined) {
+          originalSetItem.call(localStorage, key, JSON.stringify(data));
         }
       });
     });
@@ -1355,36 +1590,40 @@ const FirebaseDataManager = {
 const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key, value) {
   originalSetItem.apply(this, arguments);
-  const syncKeys = ['students', 'teachers', 'circles', 'attendance', 'evaluations', 'badges', 'loginData'];
-  if (syncKeys.includes(key)) {
-    FirebaseDataManager.saveData(key, JSON.parse(value)).catch(err => console.error('Firebase sync error:', err));
+  if (FIREBASE_SYNC_KEYS.includes(key)) {
+    FirebaseDataManager.saveData(key, parseJSONSafe(value)).catch(err => console.error('Firebase sync error:', err));
   }
 };
 
 // تحميل البيانات من Firebase عند فتح الصفحة
 window.addEventListener('load', () => {
-  FirebaseDataManager.importFromFirebase();
+  if (database) FirebaseDataManager.importFromFirebase();
 });
 </script><div class="container" id="loginView">
-    <div class="card hero" style="max-width:580px; margin:48px auto;">
-      <h2 style="color:#0f172a; text-shadow:0 1px 6px rgba(255,255,255,0.65);">جمعية تحفيظ القران الكريم بالقاعد</h2>
-                <p class="quran-verse-login">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾<br><small style="font-size:12px;opacity:0.75;">سورة المزمل - 4</small></p>
-      <p style="font-size:13px; opacity:0.95; margin-top:6px; color:#1f2937;">دخول المعلم/المشرف أو ولي الأمر برقم الجوال.             <div style="margin-top:10px; padding:10px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.4); border-radius:12px; font-size:13px;">               <b style="color:#8b6914;">أرقام الدخول الافتراضية:</b>               <div style="display:none;">                 <div><button onclick="prefillLogin('0553410673')" style="background:#1a5c2e;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">إدارة</button> <span style="color:#555;">0553410673</span></div>                 <div><button onclick="prefillLogin('0544444444')" style="background:#78350f;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">مشرف</button> <span style="display:none;">0544444444</span></div>                 <div><button onclick="prefillLogin('0511111111')" style="background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">معلم أ.محمد</button> <span style="display:none;">0511111111</span></div>                 <div><button onclick="prefillLogin('0522222222')" style="background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">معلم أ.عبدالعزيز</button> <span style="display:none;">0522222222</span></div>                 <div><button onclick="prefillLogin('0533333333')" style="background:#be185d;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">معلمة أ.نورة</button> <span style="display:none;">0533333333</span></div>               </div>               <p style="margin-top:6px; font-size:11px; color:#888;">⚠️ هذه أرقام تجريبية. غيّر أرقام الكادر من صفحة المعلمين بعد الدخول.</p>             </div>             <div style="margin-top:10px; padding:10px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.4); border-radius:12px; font-size:13px;">               <b style="color:#8b6914;">أرقام الدخول الافتراضية:</b>               <div style="display:none;">                 <div><button onclick="prefillLogin('0553410673')" style="background:#1a5c2e;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">إدارة</button> <span style="color:#555;"display:none;                 <div><button onclick="prefillLogin('0544444444')" style="background:#78350f;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">مشرف</button> <span style="display:none;">0544444444</span></div>                 <div><button onclick="prefillLogin('0511111111')" style="background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">معلم أ.محمد</button> <span style="display:none;">0511111111</span></div>                 <div><button onclick="prefillLogin('0522222222')" style="background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">معلم أ.عبدالعزيز</button> <span style="display:none;">0522222222</span></div>                 <div><button onclick="prefillLogin('0533333333')" style="background:#be185d;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px;">معلمة أ.نورة</button> <span style="display:none;">0533333333</span></div>               </div>               <p style="margin-top:6px; font-size:11px; color:#888;">⚠️ هذه أرقام تجريبية. غيّر أرقام الكادر من صفحة المعلمين بعد الدخول.</p>             </div></p>
-      <div class="grid grid-2" style="margin-top:14px; gap:8px;">
-        <input id="loginPhone" placeholder="رقم الجوال" style="background:#f7fafc; color:#0f172a;" />
-        <button class="btn btn-gold" id="loginBtn">دخول</button>
-		              <div style="margin-top:8px; display:none; margin-top:14px; padding:12px; background:rgba(212,175,55,0.13)display:none; gap:6px;; border:1px solid rgba(212,175,55,0.45); border-radius:12px; font-size:13px; text-align:right;">
-              <b style="color:#8b6914; font-size:14px;">&#x1F511; أرقام الدخول الافتراضية</b>
-              <div style="margin-top:8px; display:none; gap:6px;">
-                <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0553410673</span><button onclick="prefillLogin('0553410673')" style="background:#1a5c2e;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">إدارة &larr; دخول</button></div>
-                <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0544444444</span><button onclick="prefillLogin('0544444444')" style="background:#78350f;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">مشرف &larr; دخول</button></div>
-                <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0511111111</span><button onclick="prefillLogin('0511111111')" style="background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">معلم أ.محمد &larr; دخول</button></div>
-                <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0522222222</span><button onclick="prefillLogin('0522222222')" style="background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">معلم أ.عبدالعزيز &larr; دخول</button></div>
-                <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0533333333</span><button onclick="prefillLogin('0533333333')" style="background:#be185d;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">معلمة أ.نورة &larr; دخول</button></div>
-              </div>
-              <p style="margin-top:8px; font-size:11px; color:#999; border-top:1px solid rgba(212,175,55,0.3); padding-top:6px;">&#x26A0; بعد الدخول كإدارة: غيّر أرقام الكادر الفعلية من صفحة المعلمين</p>
-            </div>
+    <div class="card hero login-card">
+      <div class="login-logo-wrap">
+        <img id="loginAssociationLogo" src="./assets/association-logo.png" alt="شعار الجمعية" class="association-logo-badge" />
       </div>
+      <h2 class="login-title">جمعية تحفيظ القران الكريم بالقاعد</h2>
+      <p class="quran-verse-login">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾<br><small style="font-size:12px;opacity:0.75;">سورة المزمل - 4</small></p>
+      <p class="login-subtitle">دخول المعلم/المشرف أو ولي الأمر برقم الجوال.</p>
+      <div id="defaultLoginNumbers" class="hidden" style="margin-top:12px; padding:12px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.4); border-radius:12px; font-size:13px;">
+        <b style="color:#8b6914;">أرقام الدخول الافتراضية:</b>
+        <div style="margin-top:8px; display:grid; gap:6px;">
+          <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0553410673</span><button onclick="prefillLogin('0553410673')" style="background:#1a5c2e;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">إدارة ← دخول</button></div>
+          <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0544444444</span><button onclick="prefillLogin('0544444444')" style="background:#78350f;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">مشرف ← دخول</button></div>
+          <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0511111111</span><button onclick="prefillLogin('0511111111')" style="background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">معلم أ.محمد ← دخول</button></div>
+          <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0522222222</span><button onclick="prefillLogin('0522222222')" style="background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">معلم أ.عبدالعزيز ← دخول</button></div>
+          <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;"><span style="color:#444;">0533333333</span><button onclick="prefillLogin('0533333333')" style="background:#be185d;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">معلمة أ.نورة ← دخول</button></div>
+        </div>
+        <p style="margin-top:8px; font-size:11px; color:#888;">⚠️ هذه أرقام تجريبية. غيّر أرقام الكادر الفعلية من صفحة المعلمين بعد الدخول.</p>
+      </div>
+      <label for="loginPhone" class="login-label">رقم الجوال</label>
+      <div class="grid grid-2 login-grid">
+        <input id="loginPhone" type="tel" class="login-phone-input" placeholder="مثال: 0551234567 أو +966551234567" inputmode="numeric" autocomplete="tel-national" dir="ltr" />
+        <button class="btn btn-gold login-submit-btn" id="loginBtn">دخول</button>
+      </div>
+      <p class="login-help">يدعم الإدخال بالأرقام العربية أو الإنجليزية.</p>
       
     </div>
   </div>
@@ -1392,7 +1631,7 @@ window.addEventListener('load', () => {
   <div class="container hidden" id="parentView">
     <header class="card sticky no-print row between parent-hero">
       <div class="parent-hero-main">
-        <img id="parentAssociationLogo" alt="شعار الجمعية" class="hidden" style="width:58px; height:58px; object-fit:contain; border-radius:12px; background:#fff; border:1px solid #e5e7eb;" />
+        <img id="parentAssociationLogo" src="./assets/association-logo.png" alt="شعار الجمعية" class="association-logo-badge hidden" />
         <div>
           <h2 style="font-family:'Amiri', serif; font-size:30px;">لوحة ولي الأمر</h2>
           <p style="font-size:13px; opacity:0.92; margin-top:2px;" id="parentSessionLabel"></p>
@@ -1418,7 +1657,7 @@ window.addEventListener('load', () => {
     <header class="card sticky no-print quran-frame">
       <div class="row between">
         <div class="row">
-          <img id="associationLogo" alt="شعار الجمعية" class="hidden" style="width:58px; height:58px; object-fit:contain; border-radius:10px; background:#fff; border:1px solid #e5e7eb;" />
+          <img id="associationLogo" src="./assets/association-logo.png" alt="شعار الجمعية" class="association-logo-badge hidden" />
           <div>
           <h1>جمعية تحفيظ القران الكريم بالقاعد</h1>
           <p class="muted" style="font-size:12px" id="sessionLabel"></p>
@@ -1840,14 +2079,28 @@ window.addEventListener('load', () => {
 
         <div class="card grid">
           <h3>نسخ احتياطي واستعادة</h3>
-          <div class="row no-print">
-            <button class="btn btn-light" id="exportBtn">تصدير JSON</button>
+          <div class="row no-print" style="flex-wrap:wrap; gap:8px;">
+            <button class="btn btn-light" id="exportBtn">تصدير كامل JSON</button>
+            <button class="btn btn-light" id="exportMensBtn">تصدير البنين</button>
+            <button class="btn btn-light" id="exportWomensBtn">تصدير البنات</button>
+            <button class="btn btn-light" id="exportSharedBtn">تصدير البيانات المشتركة</button>
+            <button class="btn btn-gold" id="exportAllSeparatedBtn">تصدير 3 ملفات دفعة واحدة</button>
+          </div>
+          <div class="row no-print" style="flex-wrap:wrap; gap:8px; margin-top:8px;">
             <input type="file" id="importFile" accept="application/json" />
+            <select id="importScope" style="min-width:210px;">
+              <option value="auto">استيراد تلقائي (موصى به)</option>
+              <option value="full">استيراد كامل</option>
+              <option value="mens">استيراد قسم البنين فقط</option>
+              <option value="womens">استيراد قسم البنات فقط</option>
+              <option value="shared">استيراد البيانات المشتركة فقط</option>
+            </select>
             <button class="btn btn-primary" id="importBtn">استيراد JSON</button>
           </div>
+          <p class="muted" style="margin-top:6px;">يمكنك الآن حفظ واستعادة كل قسم بشكل مستقل بدون التأثير على القسم الآخر.</p>
         </div>
 
-        <div class="card grid">
+        <div class="card grid hidden" id="demoDataCard">
           <h3>بيانات تجريبية</h3>
           <div class="row no-print">
             <button class="btn btn-light" id="seedBtn">إعادة بيانات تجريبية</button>
@@ -1891,7 +2144,14 @@ window.addEventListener('load', () => {
   </div>
 
   <script>
-    const STORAGE_KEY = 'quran_platform_pro_v2';
+    const STORAGE_KEY_LEGACY = 'quran_platform_pro_v2';
+    const STORAGE_KEYS = {
+      shared: 'quran_platform_shared_v3',
+      mens: 'quran_platform_mens_v3',
+      womens: 'quran_platform_womens_v3',
+    };
+    const DEV_MODE = new URLSearchParams(window.location.search).get('dev') === '1'
+      || localStorage.getItem('quran_dev_mode') === '1';
     const SESSION_KEY = 'quran_platform_session_v1';
 
     const ATTENDANCE = [
@@ -1970,10 +2230,21 @@ window.addEventListener('load', () => {
     const clamp = (n,min,max) => Math.max(min, Math.min(max,n));
     const escapeAttr = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const compactName = (v) => String(v || '').replace(/\s+/g, ' ').trim();
-    const normalizePhone = (v) => String(v || '')
-      .trim()
+    const toEnglishDigits = (v) => String(v || '')
       .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-      .replace(/\D/g, '');
+      .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+
+    const normalizePhone = (v) => {
+      let digits = toEnglishDigits(v).trim().replace(/\D/g, '');
+      if (!digits) return '';
+
+      if (digits.startsWith('00')) digits = digits.slice(2);
+      if (digits.startsWith('966')) digits = `0${digits.slice(3)}`;
+      if (digits.startsWith('00') && digits.length === 11 && digits[2] === '5') digits = digits.slice(1);
+      if (digits.length === 9 && digits.startsWith('5')) digits = `0${digits}`;
+
+      return digits;
+    };
     const safeFilePart = (v) => compactName(v)
       .replace(/[^0-9A-Za-z\u0600-\u06FF _-]/g, '')
       .replace(/\s+/g, '_')
@@ -2375,11 +2646,46 @@ window.addEventListener('load', () => {
       }
       db.halaqas = db.halaqas.map(h => ({
         ...h,
+        section: h.section === 'womens' ? 'womens' : 'mens',
         scheduleType: h.scheduleType || 'sun-wed',
         scheduleDays: h.scheduleDays || SCHEDULE_PRESETS[h.scheduleType || 'sun-wed'],
         deliveryMode: h.deliveryMode || 'onsite',
         timeSlot: h.timeSlot || 'after_asr',
       }));
+      const halaqaById = Object.fromEntries(db.halaqas.map((h) => [h.id, h]));
+
+      db.students = db.students.map(s => {
+        const linkedHalaqa = halaqaById[s.halaqaId] || null;
+        const section = linkedHalaqa ? linkedHalaqa.section : (s.section === 'womens' ? 'womens' : 'mens');
+        return {
+          ...s,
+          section,
+          guardianPhone: normalizePhone(s.guardianPhone || ''),
+          points: Number(s.points || 0),
+          badges: Array.isArray(s.badges) ? s.badges : [],
+          totalHifdhAya: Number(s.totalHifdhAya || 0),
+          totalRevisionAya: Number(s.totalRevisionAya || 0),
+          totalHifdhFaces: Number(s.totalHifdhFaces || 0),
+          totalRevisionFaces: Number(s.totalRevisionFaces || 0),
+          certificates: Array.isArray(s.certificates) ? s.certificates : [],
+          plan: s.plan || { targetSurah:'', targetAya:'', targetDate:'' },
+        };
+      });
+      const studentById = Object.fromEntries(db.students.map((s) => [s.id, s]));
+
+      db.staff = db.staff.map((s) => {
+        const section = s.section === 'womens' ? 'womens' : 'mens';
+        let assigned = Array.isArray(s.assignedHalaqaIds) ? s.assignedHalaqaIds.filter((id) => halaqaById[id]) : [];
+        if (s.role === 'teacher' || s.role === 'supervisor') {
+          assigned = assigned.filter((id) => halaqaById[id].section === section);
+        }
+        return {
+          ...s,
+          section,
+          assignedHalaqaIds: assigned,
+        };
+      });
+
       db.rollcall = (db.rollcall || []).map((r) => ({
         id: r.id || uid('att'),
         studentId: r.studentId,
@@ -2387,18 +2693,19 @@ window.addEventListener('load', () => {
         date: r.date || todayISO(),
         status: ATTENDANCE.some((a) => a.key === r.status) ? r.status : 'present',
         createdAt: r.createdAt || new Date().toISOString(),
-      })).filter((r) => r.studentId && r.halaqaId);
-      db.students = db.students.map(s => ({
-        ...s,
-        guardianPhone: normalizePhone(s.guardianPhone || ''),
-        points: Number(s.points || 0),
-        badges: Array.isArray(s.badges) ? s.badges : [],
-        totalHifdhAya: Number(s.totalHifdhAya || 0),
-        totalRevisionAya: Number(s.totalRevisionAya || 0),
-        totalHifdhFaces: Number(s.totalHifdhFaces || 0),
-        totalRevisionFaces: Number(s.totalRevisionFaces || 0),
-        certificates: Array.isArray(s.certificates) ? s.certificates : [],
-        plan: s.plan || { targetSurah:'', targetAya:'', targetDate:'' },
+      })).filter((r) => {
+        const st = studentById[r.studentId];
+        const h = halaqaById[r.halaqaId];
+        return Boolean(st && h && st.section === h.section);
+      });
+
+      db.logs = db.logs.filter((l) => {
+        const st = studentById[l.studentId];
+        const h = halaqaById[l.halaqaId];
+        return Boolean(st && h && st.section === h.section);
+      }).map((l) => ({
+        ...l,
+        section: halaqaById[l.halaqaId].section,
       }));
       db.announcements = db.announcements.map((a) => ({
         id: a.id || uid('an'),
@@ -2425,12 +2732,194 @@ window.addEventListener('load', () => {
       return db;
     }
 
+    function normalizeSection(section) {
+      return section === 'womens' ? 'womens' : 'mens';
+    }
+
+    function createEmptySectionBucket() {
+      return {
+        staff: [],
+        halaqas: [],
+        students: [],
+        logs: [],
+        rollcall: [],
+        supervisorNotes: [],
+        examSessions: [],
+        announcements: [],
+      };
+    }
+
+    function mergeSeparatedDB(payload = {}) {
+      const shared = (payload && typeof payload.shared === 'object' && payload.shared) || {};
+      const mens = (payload && typeof payload.mens === 'object' && payload.mens) || createEmptySectionBucket();
+      const womens = (payload && typeof payload.womens === 'object' && payload.womens) || createEmptySectionBucket();
+      const sharedStaff = Array.isArray(shared.staffGlobal) ? shared.staffGlobal : [];
+      const sharedAnnouncements = Array.isArray(shared.announcements) ? shared.announcements : [];
+
+      const merged = {
+        settings: shared.settings || { logoDataUrl: '', allowTeacherExams: false, lockTodayEntries: true },
+        staff: [
+          ...sharedStaff.map((s) => ({ ...s, section: normalizeSection(s.section) })),
+          ...(Array.isArray(mens.staff) ? mens.staff : []).map((s) => ({ ...s, section: 'mens' })),
+          ...(Array.isArray(womens.staff) ? womens.staff : []).map((s) => ({ ...s, section: 'womens' })),
+        ],
+        halaqas: [
+          ...(Array.isArray(mens.halaqas) ? mens.halaqas : []).map((h) => ({ ...h, section: 'mens' })),
+          ...(Array.isArray(womens.halaqas) ? womens.halaqas : []).map((h) => ({ ...h, section: 'womens' })),
+        ],
+        students: [
+          ...(Array.isArray(mens.students) ? mens.students : []).map((s) => ({ ...s, section: 'mens' })),
+          ...(Array.isArray(womens.students) ? womens.students : []).map((s) => ({ ...s, section: 'womens' })),
+        ],
+        logs: [
+          ...(Array.isArray(mens.logs) ? mens.logs : []).map((l) => ({ ...l, section: 'mens' })),
+          ...(Array.isArray(womens.logs) ? womens.logs : []).map((l) => ({ ...l, section: 'womens' })),
+        ],
+        rollcall: [
+          ...(Array.isArray(mens.rollcall) ? mens.rollcall : []),
+          ...(Array.isArray(womens.rollcall) ? womens.rollcall : []),
+        ],
+        supervisorNotes: [
+          ...(Array.isArray(mens.supervisorNotes) ? mens.supervisorNotes : []).map((n) => ({ ...n, section: 'mens' })),
+          ...(Array.isArray(womens.supervisorNotes) ? womens.supervisorNotes : []).map((n) => ({ ...n, section: 'womens' })),
+        ],
+        examSessions: [
+          ...(Array.isArray(mens.examSessions) ? mens.examSessions : []).map((e) => ({ ...e, section: 'mens' })),
+          ...(Array.isArray(womens.examSessions) ? womens.examSessions : []).map((e) => ({ ...e, section: 'womens' })),
+        ],
+        announcements: [
+          ...sharedAnnouncements.map((a) => ({ ...a, section: 'all' })),
+          ...(Array.isArray(mens.announcements) ? mens.announcements : []).map((a) => ({ ...a, section: 'mens' })),
+          ...(Array.isArray(womens.announcements) ? womens.announcements : []).map((a) => ({ ...a, section: 'womens' })),
+        ],
+      };
+
+      return migrateIfNeeded(merged);
+    }
+
+    function splitDBBySection(db) {
+      const source = migrateIfNeeded(JSON.parse(JSON.stringify(db || seedData())));
+      const buckets = {
+        mens: createEmptySectionBucket(),
+        womens: createEmptySectionBucket(),
+      };
+      const shared = {
+        version: 3,
+        settings: source.settings || { logoDataUrl: '', allowTeacherExams: false, lockTodayEntries: true },
+        staffGlobal: [],
+        announcements: [],
+      };
+
+      const halaqaSectionById = {};
+      (source.halaqas || []).forEach((h) => {
+        const section = normalizeSection(h.section);
+        const normalized = { ...h, section };
+        buckets[section].halaqas.push(normalized);
+        halaqaSectionById[h.id] = section;
+      });
+
+      const studentSectionById = {};
+      (source.students || []).forEach((s) => {
+        const section = halaqaSectionById[s.halaqaId] || normalizeSection(s.section);
+        const normalized = { ...s, section };
+        buckets[section].students.push(normalized);
+        studentSectionById[s.id] = section;
+      });
+
+      (source.staff || []).forEach((s) => {
+        const section = normalizeSection(s.section);
+        const assigned = Array.isArray(s.assignedHalaqaIds)
+          ? s.assignedHalaqaIds.filter((id) => halaqaSectionById[id] === section)
+          : [];
+        const normalized = { ...s, section, assignedHalaqaIds: assigned };
+        if (s.role === 'teacher' || s.role === 'supervisor') {
+          buckets[section].staff.push(normalized);
+        } else {
+          shared.staffGlobal.push(normalized);
+        }
+      });
+
+      (source.logs || []).forEach((l) => {
+        const section = halaqaSectionById[l.halaqaId] || studentSectionById[l.studentId] || normalizeSection(l.section);
+        buckets[section].logs.push({ ...l, section });
+      });
+
+      (source.rollcall || []).forEach((r) => {
+        const section = halaqaSectionById[r.halaqaId] || studentSectionById[r.studentId];
+        if (!section) return;
+        buckets[section].rollcall.push({ ...r });
+      });
+
+      (source.supervisorNotes || []).forEach((n) => {
+        const section = halaqaSectionById[n.halaqaId] || normalizeSection(n.section);
+        buckets[section].supervisorNotes.push({ ...n, section });
+      });
+
+      (source.examSessions || []).forEach((session) => {
+        const section = halaqaSectionById[session.halaqaId] || normalizeSection(session.section);
+        buckets[section].examSessions.push({ ...session, section });
+      });
+
+      (source.announcements || []).forEach((a) => {
+        if (!a.section || a.section === 'all') {
+          shared.announcements.push({ ...a, section: 'all' });
+          return;
+        }
+        const section = normalizeSection(a.section);
+        buckets[section].announcements.push({ ...a, section });
+      });
+
+      return {
+        shared,
+        mens: buckets.mens,
+        womens: buckets.womens,
+      };
+    }
+
+    function loadSeparatedDBFromStorage() {
+      const rawShared = localStorage.getItem(STORAGE_KEYS.shared);
+      const rawMens = localStorage.getItem(STORAGE_KEYS.mens);
+      const rawWomens = localStorage.getItem(STORAGE_KEYS.womens);
+      if (!rawShared && !rawMens && !rawWomens) return null;
+      const parseStorageKey = (key, raw, fallback) => {
+        if (!raw) return fallback;
+        try {
+          return JSON.parse(raw);
+        } catch (_e) {
+          console.warn('Corrupted localStorage key removed:', key);
+          localStorage.removeItem(key);
+          return fallback;
+        }
+      };
+      const payload = {
+        shared: parseStorageKey(STORAGE_KEYS.shared, rawShared, {}),
+        mens: parseStorageKey(STORAGE_KEYS.mens, rawMens, createEmptySectionBucket()),
+        womens: parseStorageKey(STORAGE_KEYS.womens, rawWomens, createEmptySectionBucket()),
+      };
+      return mergeSeparatedDB(payload);
+    }
+
+    function saveSeparatedDBToStorage(db) {
+      const separated = splitDBBySection(db);
+      localStorage.setItem(STORAGE_KEYS.shared, JSON.stringify(separated.shared));
+      localStorage.setItem(STORAGE_KEYS.mens, JSON.stringify(separated.mens));
+      localStorage.setItem(STORAGE_KEYS.womens, JSON.stringify(separated.womens));
+      localStorage.removeItem(STORAGE_KEY_LEGACY);
+    }
+
     function loadDB() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        state.db = raw ? migrateIfNeeded(JSON.parse(raw)) : seedData();
+        const separated = loadSeparatedDBFromStorage();
+        if (separated) {
+          state.db = separated;
+        } else {
+          const rawLegacy = localStorage.getItem(STORAGE_KEY_LEGACY);
+          state.db = rawLegacy ? migrateIfNeeded(JSON.parse(rawLegacy)) : seedData();
+          saveSeparatedDBToStorage(state.db);
+        }
       } catch (_e) {
         state.db = seedData();
+        saveSeparatedDBToStorage(state.db);
       }
       // تأكيد وجود حالة مزامنة للسجلات
       state.db.logs = (state.db.logs || []).map((l) => ({ ...l, syncStatus: l.syncStatus || 'synced' }));
@@ -2440,7 +2929,7 @@ window.addEventListener('load', () => {
       saveDB();
     }
 
-    function saveDB() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.db)); }
+    function saveDB() { saveSeparatedDBToStorage(state.db); }
 
     function saveSession() {
       if (state.session) localStorage.setItem(SESSION_KEY, JSON.stringify(state.session));
@@ -2807,19 +3296,17 @@ function getConsecutiveAbsences(studentId, halaqaId) {
         attendanceForKnights(log.attendance);
     }
 
+    const DEFAULT_LOGO_SRC = './assets/association-logo.png';
+
     function applyLogo() {
-      const logo = state.db?.settings?.logoDataUrl || '';
-      const ids = ['associationLogo', 'parentAssociationLogo'];
+      const savedLogo = state.db?.settings?.logoDataUrl || '';
+      const logo = savedLogo || DEFAULT_LOGO_SRC;
+      const ids = ['associationLogo', 'parentAssociationLogo', 'loginAssociationLogo'];
       ids.forEach((id) => {
         const img = $(id);
         if (!img) return;
-        if (logo) {
-          img.src = logo;
-          img.classList.remove('hidden');
-        } else {
-          img.classList.add('hidden');
-          img.removeAttribute('src');
-        }
+        img.src = logo;
+        img.classList.remove('hidden');
       });
     }
 
@@ -2914,6 +3401,89 @@ function getConsecutiveAbsences(studentId, halaqaId) {
         totalAya,
         daily: days,
       };
+    }
+
+    function halaqaPerformanceSeries(halaqaId, days = 7) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+      const series = [];
+      for (let i = days - 1; i >= 0; i -= 1) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const iso = d.toISOString().slice(0, 10);
+
+        const logs = state.db.logs.filter((l) => l.halaqaId === halaqaId && l.date === iso);
+        const rollcalls = (state.db.rollcall || []).filter((r) => r.halaqaId === halaqaId && r.date === iso);
+        const presentLike = rollcalls.filter((r) => ['present', 'late', 'remote', 'excused'].includes(r.status)).length;
+
+        const aya = logs.reduce((sum, l) => sum + Number(l.ayaCount || 0), 0);
+        const hifdhAya = logs.filter((l) => l.type === 'hifdh').reduce((sum, l) => sum + Number(l.ayaCount || 0), 0);
+        const revisionAya = logs.filter((l) => l.type === 'revision').reduce((sum, l) => sum + Number(l.ayaCount || 0), 0);
+
+        series.push({
+          dateISO: iso,
+          dayName: dayNames[d.getDay()],
+          aya,
+          hifdhAya,
+          revisionAya,
+          records: logs.length,
+          attendancePct: rollcalls.length ? Math.round((presentLike / rollcalls.length) * 100) : null,
+        });
+      }
+      return series;
+    }
+
+    function buildHalaqaPerformancePanel(halaqaId) {
+      const series = halaqaPerformanceSeries(halaqaId, 7);
+      const maxAya = Math.max(1, ...series.map((s) => Number(s.aya || 0)));
+      const totalAya = series.reduce((sum, s) => sum + Number(s.aya || 0), 0);
+      const totalHifdhAya = series.reduce((sum, s) => sum + Number(s.hifdhAya || 0), 0);
+      const totalRevisionAya = series.reduce((sum, s) => sum + Number(s.revisionAya || 0), 0);
+      const bestDay = [...series].sort((a, b) => b.aya - a.aya)[0] || null;
+      const activeDays = series.filter((s) => s.aya > 0).length;
+      const attendanceRows = series.filter((s) => Number.isFinite(s.attendancePct));
+      const avgAttendance = attendanceRows.length
+        ? attendanceRows.reduce((acc, s) => acc + Number(s.attendancePct), 0) / attendanceRows.length
+        : null;
+
+      return `
+        <div class="card halaqa-performance-card">
+          <div class="row between">
+            <div>
+              <h3>أداء الحلقة (آخر 7 أيام)</h3>
+              <p class="muted" style="font-size:12px; margin-top:4px;">متابعة يومية للحفظ والمراجعة مع اتجاه الأداء.</p>
+            </div>
+            <div class="row" style="gap:6px;">
+              <span class="badge badge-green">إجمالي الآيات: ${totalAya}</span>
+              <span class="badge">الحفظ: ${totalHifdhAya}</span>
+              <span class="badge" style="background:#e0f2fe; color:#0369a1;">المراجعة: ${totalRevisionAya}</span>
+            </div>
+          </div>
+          <div class="halaqa-chart">
+            ${series.map((s) => {
+              const h = Math.round((Number(s.aya || 0) / maxAya) * 100);
+              const barHeight = Math.max(6, h);
+              const attendance = Number.isFinite(s.attendancePct) ? `${s.attendancePct}% حضور` : 'لا تحضير';
+              return `
+                <div class="halaqa-bar-col" title="${s.dateISO} • ${s.dayName} • ${s.aya} آية • ${attendance}">
+                  <div class="halaqa-bar-track">
+                    <div class="halaqa-bar-fill" style="height:${barHeight}%;"></div>
+                  </div>
+                  <div class="halaqa-bar-value">${s.aya}</div>
+                  <div class="halaqa-bar-label">${s.dayName}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <p class="muted" style="font-size:12px; margin-top:8px;">
+            ${bestDay ? `أفضل يوم: ${bestDay.dayName} (${bestDay.aya} آية)` : 'لا توجد بيانات كافية'}
+            • أيام نشطة: ${activeDays}/7
+            • متوسط الحضور: ${Number.isFinite(avgAttendance) ? `${Math.round(avgAttendance)}%` : 'لا يوجد'}
+          </p>
+        </div>
+      `;
     }
 
     function visibleHalaqas() {
@@ -3131,3 +3701,3088 @@ function getConsecutiveAbsences(studentId, halaqaId) {
             </table>
           </body>
         </html>
+      `);
+      w.document.close();
+      setTimeout(() => w.print(), 350);
+    }
+
+    function loginByPhone() {
+      const phone = normalizePhone($('loginPhone').value);
+      const u = state.indexes?.staffByPhone?.[phone] || null;
+      if (u) {
+        state.session = { type:'staff', userId:u.id };
+        if (u.role === 'teacher') {
+          state.section = u.section || 'mens';
+          const teacherHalaqas = (state.db?.halaqas || []).filter((h) => (u.assignedHalaqaIds || []).includes(h.id));
+          state.currentHalaqaId = teacherHalaqas.length === 1 ? teacherHalaqas[0].id : null;
+        }
+        $('loginView').classList.add('hidden');
+        $('parentView').classList.add('hidden');
+        $('appView').classList.remove('hidden');
+        saveSession();
+        renderAll();
+        toast('تم تسجيل الدخول');
+        return;
+      }
+
+      const kids = state.indexes?.parentStudentsByPhone?.[phone] || [];
+      if (!kids.length) return toast('رقم غير مسجل', 'err');
+      state.session = { type:'parent', guardianPhone: phone };
+      state.currentParentStudentId = kids[0].id;
+      $('loginView').classList.add('hidden');
+      $('appView').classList.add('hidden');
+      $('parentView').classList.remove('hidden');
+      saveSession();
+      renderParentView();
+      toast('تم تسجيل دخول ولي الأمر');
+    }
+
+    function logout() {
+      state.session = null;
+      state.currentParentStudentId = null;
+      saveSession();
+      $('appView').classList.add('hidden');
+      $('parentView').classList.add('hidden');
+      $('loginView').classList.remove('hidden');
+      $('loginPhone').value = '';
+    }
+
+    function prefillLogin(phone) {
+      $('loginPhone').value = phone;
+      loginByPhone();
+    }
+
+    function setTab(tab) {
+      if (isBoardMember() && tab !== 'board') tab = 'board';
+      state.tab = tab;
+      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+      ['halaqas','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== tab));
+      renderAll();
+    }
+
+    function setSection(section) {
+      state.section = section;
+      state.currentHalaqaId = null;
+      state.currentStudentId = null;
+      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === section));
+      renderAll();
+    }
+
+    function setStudentPickerMode(mode) {
+      state.studentPickerMode = mode === 'dropdown' ? 'dropdown' : 'cards';
+      renderHalaqaDetail();
+    }
+
+    function setTeacherStudentView(mode) {
+      state.teacherStudentView = mode === 'dropdown' ? 'dropdown' : 'cards';
+      renderHalaqaDetail();
+    }
+
+    function setDisplayMode(mode) {
+      state.displayMode = mode === 'desktop' ? 'desktop' : 'mobile';
+      renderAll();
+    }
+
+    function markAllStudentsAttendance() {
+      if (!isTeacher()) return toast('هذه الميزة مخصصة للمعلم', 'err');
+      const halaqaId = state.currentHalaqaId;
+      const halaqa = state.indexes?.halaqaById?.[halaqaId] || null;
+      if (!halaqa) return toast('اختر الحلقة أولاً', 'err');
+      const status = $('bulkAttendanceStatus')?.value || 'present';
+      const dateISO = $('bulkAttendanceDate')?.value || todayISO();
+      const students = state.indexes?.studentsByHalaqa?.[halaqaId] || [];
+      if (!students.length) return toast('لا يوجد طلاب في هذه الحلقة', 'err');
+      students.forEach((s) => upsertRollcall(s.id, halaqaId, dateISO, status));
+      saveDB();
+      renderHalaqaDetail();
+      const label = ATTENDANCE.find((a) => a.key === status)?.label || status;
+      toast(`تم تحضير جميع الطلاب (${label})`);
+    }
+
+    function createHalaqa() {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      const circleName = $('newHalaqaName').value.trim();
+      const teacherName = $('newHalaqaTeacher').value.trim();
+      const scheduleType = $('newHalaqaSchedule').value;
+      const deliveryMode = $('newHalaqaMode').value;
+      const timeSlot = $('newHalaqaTime').value || 'after_asr';
+      if (!circleName || !teacherName) return toast('أدخل اسم الحلقة والمعلم', 'err');
+      state.db.halaqas.push({
+        id: uid('h'),
+        section: state.section,
+        circleName,
+        teacherName,
+        scheduleType,
+        scheduleDays: SCHEDULE_PRESETS[scheduleType],
+        deliveryMode,
+        timeSlot,
+      });
+      $('newHalaqaName').value = '';
+      $('newHalaqaTeacher').value = '';
+      $('newHalaqaMode').value = 'onsite';
+      $('newHalaqaTime').value = 'after_asr';
+      saveDB();
+      renderAll();
+      toast('تمت إضافة الحلقة');
+    }
+
+    function openHalaqa(id) {
+      state.currentHalaqaId = id;
+      state.currentStudentId = null;
+      renderHalaqaDetail();
+    }
+
+    function closeHalaqa() {
+      state.currentHalaqaId = null;
+      state.currentStudentId = null;
+      renderHalaqaDetail();
+		    // Call closeHalaqaWithSummary before rendering
+		    closeHalaqaWithSummary();
+    }
+
+    function pickStudentFromMobile() {
+      const v = $('mobileStudentSelect').value;
+      state.currentStudentId = v || null;
+      renderHalaqaDetail();
+      syncEntryCalc();
+    }
+
+    function addStudentToHalaqa(halaqaId) {
+      if (!canManageStudents()) return toast('غير مسموح', 'err');
+      const studentId = $('attachStudentSelect').value;
+      if (!studentId) return toast('اختر طالباً', 'err');
+      const s = state.db.students.find(x => x.id === studentId);
+      const h = state.indexes?.halaqaById?.[halaqaId] || null;
+      if (!h) return toast('حلقة غير صحيحة', 'err');
+      if (!s) return;
+      if (s.section !== h.section) return toast('لا يمكن إلحاق طالب بقسم مختلف', 'err');
+      s.halaqaId = halaqaId;
+      s.section = h.section;
+      saveDB();
+      renderAll();
+      toast('تم إلحاق الطالب بالحلقة');
+    }
+
+    function openEntry(studentId) {
+      if (!studentId) return;
+      const students = state.indexes?.studentsByHalaqa?.[state.currentHalaqaId] || [];
+      if (!students.find(s => s.id === studentId)) {
+        return toast('اختر طالباً من نفس الحلقة', 'err');
+      }
+      state.currentStudentId = studentId;
+      renderHalaqaDetail();
+      // تأجيل حساب الحقول للتأكد من بناء النموذج قبل الربط
+      setTimeout(syncEntryCalc, 0);
+    }
+
+    function syncEntryCalc() {
+      const dateModeEl = $('entryDateMode');
+      const dateGregEl = $('entryDateGregorian');
+      const dateHijriEl = $('entryDateHijri');
+      const bindRange = (prefix) => {
+        const surahEl = $(`${prefix}SurahIdx`);
+        const fromEl = $(`${prefix}FromAya`);
+        const toEl = $(`${prefix}ToAya`);
+        if (!surahEl || !fromEl || !toEl) return;
+        const update = () => {
+          const surahIdx = Number(surahEl.value || 0);
+          const maxAya = SURAH_DATA[surahIdx]?.a || 1;
+          fromEl.max = String(maxAya);
+          toEl.max = String(maxAya);
+          fromEl.value = String(clamp(Number(fromEl.value || 1), 1, maxAya));
+          toEl.value = String(clamp(Number(toEl.value || 1), 1, maxAya));
+        };
+        surahEl.onchange = update;
+        fromEl.oninput = update;
+        toEl.oninput = update;
+        update();
+      };
+      bindRange('entry');
+      bindRange('hifdh');
+      bindRange('revision');
+
+      document.querySelectorAll('input[name="entryType"]').forEach((radio) => {
+        radio.onchange = () => {
+          $('entryTypeHifdhCard')?.classList.toggle('active', $('input[name="entryType"][value="hifdh"]')?.checked);
+          $('entryTypeRevisionCard')?.classList.toggle('active', $('input[name="entryType"][value="revision"]')?.checked);
+        };
+      });
+      const syncDateMode = () => {
+        if (!dateGregEl || !dateHijriEl || !dateModeEl) return;
+        const greg = dateGregEl.value || todayISO();
+        const hijri = toHijriLabelFromISO(greg);
+        dateHijriEl.value = hijri || '';
+        const hijriMode = dateModeEl.value === 'hijri';
+        dateGregEl.style.opacity = hijriMode ? '0.7' : '1';
+      };
+      if (dateModeEl) dateModeEl.onchange = syncDateMode;
+      if (dateGregEl) dateGregEl.onchange = syncDateMode;
+      syncDateMode();
+      $('entryTypeHifdhCard')?.classList.toggle('active', $('input[name="entryType"][value="hifdh"]')?.checked);
+      $('entryTypeRevisionCard')?.classList.toggle('active', $('input[name="entryType"][value="revision"]')?.checked);
+    }
+
+    function saveDailyEntry(studentId, forcedType = '') {
+      const h = state.indexes?.halaqaById?.[state.currentHalaqaId] || null;
+      const s = state.db.students.find(x => x.id === studentId);
+      if (!h || !s) return toast('بيانات غير مكتملة', 'err');
+      const entryDate = $('entryDateGregorian')?.value || todayISO();
+      const dateMode = $('entryDateMode')?.value || 'gregorian';
+      const hijriDate = dateMode === 'hijri'
+        ? (($('entryDateHijri')?.value || toHijriLabelFromISO(entryDate)))
+        : '';
+      const prefix = forcedType === 'hifdh' ? 'hifdh' : forcedType === 'revision' ? 'revision' : 'entry';
+      const type = forcedType || document.querySelector('input[name="entryType"]:checked')?.value || 'hifdh';
+      const attendance = $('teacherAttendance')?.value || $(`${prefix}Attendance`)?.value || $('entryAttendance')?.value || (h.deliveryMode === 'remote' ? 'remote' : 'present');
+      const grade = $(`${prefix}Grade`)?.value || $('entryGrade')?.value || '1';
+      const surahIdx = Number($(`${prefix}SurahIdx`)?.value || $('entrySurahIdx')?.value || 0);
+      const fromAya = Number($(`${prefix}FromAya`)?.value || $('entryFromAya')?.value || 1);
+      const toAya = Number($(`${prefix}ToAya`)?.value || $('entryToAya')?.value || 1);
+      const notes = ($(`${prefix}Notes`)?.value || $('entryNotes')?.value || '').trim();
+
+      const adminNote = $('entryAdminNote')?.value.trim() || '';
+      const surah = SURAH_DATA[surahIdx];
+      if (!surah) return toast('سورة غير صحيحة', 'err');
+      if (fromAya < 1 || toAya < 1 || fromAya > surah.a || toAya > surah.a) return toast(`المدى غير صحيح. ${surah.name} (${surah.a})`, 'err');
+
+      const count = ayaCount(fromAya, toAya);
+      const faces = calcFaces(surahIdx, fromAya, toAya);
+      const knightScore = computeKnightScore({ type, attendance });
+
+      const payload = {
+        section: h.section,
+        halaqaId: h.id,
+        studentId: s.id,
+        createdAt: new Date().toISOString(),
+        attendance,
+        grade,
+        type,
+        surahIdx,
+        surahName: surah.name,
+        fromAya,
+        toAya,
+        ayaCount: count,
+        pages: { faces },
+        dateMode,
+        hijriDate,
+        notes,
+        adminNote,
+        knightScore,
+      };
+
+      state.db.logs.unshift({
+        id: uid('log'),
+        date: entryDate,
+        syncStatus: navigator.onLine ? 'synced' : 'pending',
+        ...payload,
+      });
+      upsertRollcall(s.id, h.id, entryDate, attendance);
+
+      rebuildIndexes();
+      recomputeStudentMetrics(s.id);
+      saveDB();
+      // لا نغلق الطالب
+      renderAll();
+      syncEntryCalc();
+      if (forcedType === 'hifdh') $('hifdhNotes') && ($('hifdhNotes').value = '');
+      if (forcedType === 'revision') $('revisionNotes') && ($('revisionNotes').value = '');
+      toast('تم حفظ سجل الطالب بنجاح');
+    }
+
+    function deleteLastLog(studentId, type = '') {
+      if (!studentId) return toast('اختر طالباً أولاً', 'err');
+      const logs = state.db.logs;
+      const idx = logs.findIndex(l => l.studentId === studentId && (!type || l.type === type));
+      if (idx === -1) return toast('لا يوجد سجل لحذفه', 'err');
+      logs.splice(idx, 1);
+      saveDB();
+      rebuildIndexes();
+      recomputeStudentMetrics(studentId);
+      renderAll();
+      toast('تم حذف آخر سجل');
+    }
+
+    function createStudent() {
+      if (!canManageStudents()) return toast('غير مسموح', 'err');
+      const name = $('newStudentName').value.trim();
+      const nationalId = $('newStudentNationalId').value.trim();
+      const guardianPhone = normalizePhone($('newStudentGuardianPhone').value);
+      const section = $('newStudentSection').value;
+      const grade = $('newStudentGrade').value.trim() || '-';
+      const halaqaId = $('newStudentHalaqa').value;
+      if (!name || !halaqaId) return toast('أدخل اسم الطالب والحلقة', 'err');
+      const h = state.indexes?.halaqaById?.[halaqaId] || null;
+      if (!h) return toast('اختر حلقة صحيحة', 'err');
+      if (section !== h.section) return toast('القسم المختار لا يطابق قسم الحلقة', 'err');
+
+      state.db.students.push({
+        id: uid('s'),
+        name,
+        nationalId,
+        guardianPhone,
+        section: h.section || section,
+        grade,
+        halaqaId,
+        absentCount: 0,
+        points: 0,
+        badges: [],
+        certificates: [],
+        totalHifdhAya: 0,
+        totalRevisionAya: 0,
+        totalHifdhFaces: 0,
+        totalRevisionFaces: 0,
+        lastHifdhSurah: '',
+        lastHifdhAya: '',
+        plan: {
+          targetSurah: $('newStudentPlanSurah').value.trim(),
+          targetAya: Number($('newStudentPlanAya').value || 0),
+          targetDate: $('newStudentPlanDate').value || '',
+        },
+      });
+      $('newStudentName').value = '';
+      $('newStudentNationalId').value = '';
+      $('newStudentGuardianPhone').value = '';
+      $('newStudentGrade').value = 'ابتدائي';
+      $('newStudentPlanSurah').value = '';
+      $('newStudentPlanAya').value = '';
+      $('newStudentPlanDate').value = '';
+      saveDB();
+      renderAll();
+      toast('تمت إضافة الطالب');
+    }
+
+    function transferStudent(studentId) {
+      if (!canManageStudents()) return toast('غير مسموح', 'err');
+      const target = $('move_' + studentId).value;
+      if (!target) return toast('اختر الحلقة الهدف', 'err');
+      const s = state.db.students.find(x => x.id === studentId);
+      if (!s) return;
+      const h = state.indexes?.halaqaById?.[target] || null;
+      if (!h) return;
+      s.halaqaId = h.id;
+      s.section = h.section;
+      saveDB();
+      renderAll();
+      toast('تم نقل الطالب');
+    }
+
+    function updateStudentBasic(studentId) {
+      if (!canManageStudents()) return toast('غير مسموح', 'err');
+      const s = state.db.students.find(x => x.id === studentId);
+      if (!s) return;
+      const name = ($('edit_name_' + studentId)?.value || '').trim();
+      const nationalId = ($('edit_nid_' + studentId)?.value || '').trim();
+      const guardianPhone = normalizePhone(($('edit_guardian_' + studentId)?.value || ''));
+      const grade = ($('edit_grade_' + studentId)?.value || '').trim();
+      if (!name) return toast('اسم الطالب مطلوب', 'err');
+      s.name = name;
+      s.nationalId = nationalId;
+      s.guardianPhone = guardianPhone;
+      s.grade = grade || s.grade;
+      saveDB();
+      renderAll();
+      toast('تم تحديث بيانات الطالب');
+    }
+
+    function issueStudentCertificate(studentId) {
+      if (!canIssueCertificates()) return toast('غير مسموح', 'err');
+      const s = state.db.students.find(x => x.id === studentId);
+      if (!s) return toast('الطالب غير موجود', 'err');
+      const title = (prompt('عنوان الشهادة', 'شهادة شكر') || '').trim();
+      if (!title) return;
+      const reason = (prompt('سبب الشهادة', 'تميز في الحفظ والانضباط') || '').trim();
+      const user = currentUser();
+      s.certificates = Array.isArray(s.certificates) ? s.certificates : [];
+      s.certificates.unshift({
+        id: uid('cert'),
+        title,
+        reason,
+        date: todayISO(),
+        issuerName: user?.name || 'الإدارة',
+      });
+      saveDB();
+      renderAll();
+      toast('تم إصدار شهادة الشكر');
+    }
+
+    function parseBulkStudentLine(line) {
+      const raw = String(line || '').trim();
+      if (!raw) return null;
+      const normalized = toEnglishDigits(raw);
+      const idMatch = normalized.match(/\b\d{8,12}\b/);
+      const nationalId = idMatch ? idMatch[0] : '';
+      let name = normalized;
+      if (nationalId) {
+        name = normalized.replace(nationalId, '');
+      } else if (/[,\-|؛;\t]/.test(normalized)) {
+        const first = normalized.split(/[,\-|؛;\t]/).map(x => x.trim()).filter(Boolean)[0];
+        name = first || normalized;
+      }
+      name = compactName(name.replace(/[-,؛;|]+/g, ' '));
+      if (!name) return null;
+      return { name, nationalId };
+    }
+
+    function buildBulkPreview() {
+      const text = ($('bulkStudentsInput')?.value || '').trim();
+      const halaqaId = $('bulkStudentHalaqa')?.value || '';
+      const section = $('bulkStudentSection')?.value || state.section;
+      if (!text || !halaqaId) {
+        $('bulkStudentsPreview').classList.add('hidden');
+        $('bulkStudentsPreview').innerHTML = '';
+        return [];
+      }
+      const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      const existing = state.db.students.filter(s => s.halaqaId === halaqaId || (s.section === section && compactName(s.name)));
+      const preview = lines.map((line) => {
+        const parsed = parseBulkStudentLine(line);
+        if (!parsed) return { line, valid: false, reason: 'سطر غير صالح' };
+        const dup = existing.find((s) => {
+          const sameName = compactName(s.name) === compactName(parsed.name);
+          const sameId = parsed.nationalId && compactName(s.nationalId) === compactName(parsed.nationalId);
+          return s.halaqaId === halaqaId && (sameId || sameName);
+        });
+        if (dup) return { line, valid: false, reason: `مكرر: ${dup.name}`, parsed };
+        return { line, valid: true, reason: 'جاهز للإضافة', parsed };
+      });
+      const validCount = preview.filter(p => p.valid).length;
+      const invalidCount = preview.length - validCount;
+      $('bulkStudentsPreview').classList.remove('hidden');
+      $('bulkStudentsPreview').innerHTML = `
+        <div class="row between" style="margin-bottom:6px;">
+          <b>معاينة قبل الاستيراد</b>
+          <span class="muted">صالح: ${validCount} | مرفوض: ${invalidCount}</span>
+        </div>
+        ${preview.map((p) => `
+          <div style="padding:6px; border-bottom:1px solid #e5e7eb;">
+            <div>${p.parsed ? studentLabel({ name: p.parsed.name, nationalId: p.parsed.nationalId }) : escapeAttr(p.line)}</div>
+            <div class="${p.valid ? 'muted' : ''}" style="font-size:12px; color:${p.valid ? '#166534' : '#b91c1c'};">${p.reason}</div>
+          </div>
+        `).join('') || '<div class="muted">لا توجد أسطر.</div>'}
+      `;
+      return preview;
+    }
+
+    function refreshBulkHalaqaOptions() {
+      if (!$('bulkStudentHalaqa')) return;
+      const targetSection = $('bulkStudentSection')?.value || state.section;
+      const hs = (isAdmin() ? state.db.halaqas : visibleHalaqas()).filter(h => h.section === targetSection);
+      $('bulkStudentHalaqa').innerHTML = '<option value=\"\">اختر الحلقة</option>' + hs.map(h => `<option value="${h.id}">${h.circleName}</option>`).join('');
+      buildBulkPreview();
+    }
+
+    function refreshNewStudentHalaqaOptions() {
+      if (!$('newStudentHalaqa')) return;
+      const targetSection = $('newStudentSection')?.value || state.section;
+      const hs = (isAdmin() ? state.db.halaqas : visibleHalaqas()).filter(h => h.section === targetSection);
+      $('newStudentHalaqa').innerHTML = '<option value=\"\">اختر الحلقة</option>' + hs.map(h => `<option value="${h.id}">${h.circleName} - ${h.section==='mens'?'بنين':'بنات'}</option>`).join('');
+    }
+
+    function importBulkStudents() {
+      if (!canManageStudents()) return toast('غير مسموح', 'err');
+      const text = ($('bulkStudentsInput').value || '').trim();
+      if (!text) return toast('الصق قائمة الطلاب أولاً', 'err');
+      const halaqaId = $('bulkStudentHalaqa').value;
+      if (!halaqaId) return toast('اختر الحلقة', 'err');
+      const h = state.indexes?.halaqaById?.[halaqaId] || null;
+      if (!h) return toast('حلقة غير صحيحة', 'err');
+      const grade = ($('bulkStudentGrade').value || '').trim() || 'ابتدائي';
+      const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      const preview = buildBulkPreview();
+      let added = 0;
+      let skipped = 0;
+      lines.forEach((line, idx) => {
+        const p = preview[idx];
+        if (!p || !p.valid || !p.parsed) { skipped += 1; return; }
+        const parsed = p.parsed;
+        state.db.students.push({
+          id: uid('s'),
+          name: parsed.name,
+          nationalId: parsed.nationalId || '',
+          guardianPhone: '',
+          section: h.section,
+          grade,
+          halaqaId,
+          absentCount: 0,
+          points: 0,
+          badges: [],
+          certificates: [],
+          totalHifdhAya: 0,
+          totalRevisionAya: 0,
+          totalHifdhFaces: 0,
+          totalRevisionFaces: 0,
+          lastHifdhSurah: '',
+          lastHifdhAya: '',
+          plan: { targetSurah: '', targetAya: 0, targetDate: '' },
+        });
+        added += 1;
+      });
+      saveDB();
+      renderAll();
+      $('bulkStudentsInput').value = '';
+      $('bulkStudentsPreview').classList.add('hidden');
+      $('bulkStudentsPreview').innerHTML = '';
+      toast(`تمت إضافة ${added} طالب/ة وتخطي ${skipped}`);
+    }
+
+    function createStaff() {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      const name = $('staffName').value.trim();
+      const role = $('staffRole').value;
+      const phone = normalizePhone($('staffPhone').value);
+      const section = $('staffSection').value;
+      if (!name || !phone) return toast('أدخل الاسم والجوال', 'err');
+      state.db.staff.push({ id: uid('u'), name, role, phone, section, assignedHalaqaIds: [] });
+      $('staffName').value = '';
+      $('staffPhone').value = '';
+      saveDB();
+      renderAll();
+      toast('تمت إضافة الموظف');
+    }
+
+    function removeStaff(id) {
+      if (!isAdmin()) return;
+      state.db.staff = state.db.staff.filter(s => s.id !== id);
+      saveDB();
+      renderAll();
+    }
+
+    function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId) {
+      const today = todayISO();
+      const rows = logsForStudent(studentId).filter((l) => l.date === today);
+      if (!rows.length) return 'لا يوجد تسجيل اليوم';
+      const hifdh = rows.filter((l) => l.type === 'hifdh').length;
+      const revision = rows.filter((l) => l.type === 'revision').length;
+      const parts = [];
+      if (hifdh) parts.push(`حفظ ${hifdh}`);
+      if (revision) parts.push(`مراجعة ${revision}`);
+      const sorted = [...rows].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      const latest = sorted[0];
+      let timeLabel = '';
+      if (latest?.createdAt) {
+        const d = new Date(latest.createdAt);
+        if (!Number.isNaN(d.getTime())) {
+          timeLabel = ` • آخر تحديث ${d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+      }
+      return `${parts.join(' • ')}${timeLabel}`;
+    }
+
+    function assignTeacher() {
+      if (!isAdmin()) return;
+      const teacherId = $('assignTeacher').value;
+      const halaqaId = $('assignHalaqa').value;
+      const t = state.db.staff.find(s => s.id === teacherId);
+      const h = state.db.halaqas.find(x => x.id === halaqaId);
+      if (!t || !h) return toast('اختر معلماً وحلقة بشكل صحيح', 'err');
+      if (t.role !== 'teacher') return toast('الربط متاح للمعلمين فقط', 'err');
+      if (t.section !== h.section) return toast('لا يمكن ربط معلم بقسم مختلف عن الحلقة', 'err');
+      t.assignedHalaqaIds = t.assignedHalaqaIds || [];
+      t.assignedHalaqaIds = t.assignedHalaqaIds.filter((id) => {
+        const linked = state.indexes?.halaqaById?.[id] || state.db.halaqas.find((x) => x.id === id);
+        return linked && linked.section === t.section;
+      });
+      if (!t.assignedHalaqaIds.includes(halaqaId)) t.assignedHalaqaIds.push(halaqaId);
+      h.teacherName = t.name || h.teacherName;
+      saveDB();
+      renderAll();
+      toast('تم الربط');
+    }
+
+    function unlinkHalaqaFromTeachers(halaqaId) {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      let changed = 0;
+      state.db.staff.forEach((s) => {
+        if (!Array.isArray(s.assignedHalaqaIds)) return;
+        const before = s.assignedHalaqaIds.length;
+        s.assignedHalaqaIds = s.assignedHalaqaIds.filter((id) => id !== halaqaId);
+        if (s.assignedHalaqaIds.length !== before) changed += 1;
+      });
+      if (changed) {
+        saveDB();
+        renderAll();
+        toast(`تم فك الربط عن ${changed} معلم/ة`);
+      } else {
+        toast('لا يوجد معلمون مرتبطون بهذه الحلقة');
+      }
+    }
+
+    function editHalaqaBasic(halaqaId) {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      const h = state.db.halaqas.find((x) => x.id === halaqaId);
+      if (!h) return toast('حلقة غير موجودة', 'err');
+      const newName = prompt('اسم الحلقة الجديد:', h.circleName || '');
+      if (newName === null) return;
+      const newTeacher = prompt('اسم المعلم/المعلمة:', h.teacherName || '');
+      if (newTeacher === null) return;
+      const newTime = prompt('وقت الحلقة (مثال: after_asr / after_maghrib / after_isha / after_fajr):', h.timeSlot || 'after_asr');
+      if (newTime === null) return;
+      h.circleName = newName.trim() || h.circleName;
+      h.teacherName = newTeacher.trim() || h.teacherName;
+      h.timeSlot = (newTime.trim() || h.timeSlot || 'after_asr');
+      saveDB();
+      renderAll();
+      toast('تم تعديل بيانات الحلقة');
+    }
+
+    function deleteHalaqa(halaqaId) {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      const h = state.db.halaqas.find((x) => x.id === halaqaId);
+      if (!h) return toast('حلقة غير موجودة', 'err');
+      if (!confirm(`سيتم حذف الحلقة "${h.circleName}" مع سجلاتها. متابعة؟`)) return;
+      // إزالة الطلاب من هذه الحلقة (إبقاؤهم دون حلقة)
+      state.db.students = state.db.students.map((s) => s.halaqaId === halaqaId ? { ...s, halaqaId: '' } : s);
+      // حذف سجلات الحفظ/المراجعة والغياب المتعلقة بالحلقه
+      state.db.logs = state.db.logs.filter((l) => l.halaqaId !== halaqaId);
+      state.db.rollcall = (state.db.rollcall || []).filter((r) => r.halaqaId !== halaqaId);
+      // فك ربط المعلمين
+      unlinkHalaqaFromTeachers(halaqaId);
+      // حذف الحلقة
+      state.db.halaqas = state.db.halaqas.filter((x) => x.id !== halaqaId);
+      saveDB();
+      renderAll();
+      toast('تم حذف الحلقة');
+    }
+
+    function reportBundle(sectionFilter = null) {
+      const wr = weekRange();
+      let logs = state.db.logs.filter(l => l.date >= wr.startISO && l.date <= wr.endISO);
+
+      if (sectionFilter) {
+        logs = logs.filter(l => l.section === sectionFilter);
+      } else {
+        const allowed = new Set(visibleHalaqas().map(h => h.id));
+        logs = logs.filter(l => allowed.has(l.halaqaId));
+      }
+
+      const grouped = {};
+      logs.forEach(l => {
+        grouped[l.halaqaId] = grouped[l.halaqaId] || [];
+        grouped[l.halaqaId].push(l);
+      });
+
+      const rows = Object.entries(grouped).map(([hId, items]) => {
+        const h = state.db.halaqas.find(x => x.id === hId);
+        let faces=0, hifdh=0, revision=0, gSum=0, gN=0, ayaTotal=0;
+        items.forEach(it => {
+          faces += Number(it.pages?.faces || 0);
+          ayaTotal += Number(it.ayaCount || 0);
+          if (it.type === 'hifdh') hifdh++;
+          if (it.type === 'revision') revision++;
+          const gradeValue = gradeToScore(it.grade);
+          if (gradeValue) { gSum += gradeValue; gN++; }
+        });
+        return {
+          halaqaId:hId,
+          halaqaName:h?.circleName || '-',
+          teacherName:h?.teacherName || '-',
+          schedule: h?.scheduleType === 'full-week' ? 'كامل الأسبوع' : 'الأحد - الأربعاء',
+          deliveryMode: h?.deliveryMode === 'remote' ? 'عن بعد' : h?.deliveryMode === 'hybrid' ? 'هجين' : 'حضوري',
+          faces,
+          ayaTotal,
+          hifdh,
+          revision,
+          avg: gN ? (gSum/gN).toFixed(2) : '-',
+          entries:items.length,
+        };
+      }).sort((a,b) => b.faces - a.faces);
+
+      const totals = {
+        entries: logs.length,
+        faces: logs.reduce((s,l) => s + Number(l.pages?.faces || 0), 0),
+        ayaTotal: logs.reduce((s,l) => s + Number(l.ayaCount || 0), 0),
+        hifdh: logs.filter(l => l.type === 'hifdh').length,
+        revision: logs.filter(l => l.type === 'revision').length,
+      };
+
+      return { wr, rows, totals };
+    }
+
+    function halaqaQuality(halaqaId) {
+      const wr = weekRange();
+      const h = state.indexes?.halaqaById?.[halaqaId] || null;
+      const logs = state.db.logs.filter(l => l.halaqaId === halaqaId && l.date >= wr.startISO && l.date <= wr.endISO);
+      if (!h || !logs.length) return { score: 0, level: 'لا بيانات' };
+
+      let presentEq = 0;
+      let gSum = 0;
+      let gN = 0;
+      let aya = 0;
+      logs.forEach((l) => {
+        if (l.attendance === 'present') presentEq += 1;
+        else if (l.attendance === 'late') presentEq += 0.7;
+        else if (l.attendance === 'remote') presentEq += 0.8;
+        else if (l.attendance === 'excused') presentEq += 0.6;
+        const gradeValue = gradeToScore(l.grade);
+        if (gradeValue) { gSum += gradeValue; gN += 1; }
+        aya += Number(l.ayaCount || 0);
+      });
+
+      const attendRatio = logs.length ? (presentEq / logs.length) : 0;
+      const gradeRatio = gN ? ((gSum / gN) / 10) : 0;
+      const score = Math.round((attendRatio * 55) + (gradeRatio * 45));
+      const level = score >= 85 ? 'ممتاز' : score >= 70 ? 'جيد جداً' : score >= 55 ? 'جيد' : score >= 40 ? 'مقبول' : 'ضعيف';
+      return { score, level };
+    }
+
+    function renderStudentReport(studentId) {
+      const panel = $('studentReportPanel');
+      if (!studentId) { panel.innerHTML = '<p class="muted">اختر طالباً لعرض التقرير.</p>'; return; }
+      const s = state.db.students.find(x => x.id === studentId);
+      if (!s) { panel.innerHTML = '<p class="muted">الطالب غير موجود.</p>'; return; }
+      const h = state.db.halaqas.find(x => x.id === s.halaqaId);
+      const logs = logsForStudent(studentId).slice(0, 40);
+      const byType = { hifdh:0, revision:0 };
+      let aya = 0, faces = 0, gSum = 0, gN = 0;
+      logs.forEach(l => {
+        if (l.type === 'hifdh') byType.hifdh++;
+        if (l.type === 'revision') byType.revision++;
+        aya += Number(l.ayaCount || 0);
+        faces += Number(l.pages?.faces || 0);
+        const gradeValue = gradeToScore(l.grade);
+        if (gradeValue) { gSum += gradeValue; gN++; }
+      });
+      const avg = gN ? (gSum/gN).toFixed(2) : '-';
+
+      panel.innerHTML = `
+        <div class="grid grid-4" style="margin-bottom:10px;">
+          <div class="card"><p class="muted">الطالب</p><div style="font-weight:800; margin-top:6px">${s.name}</div></div>
+          <div class="card"><p class="muted">الحلقة</p><div style="font-weight:800; margin-top:6px">${h?.circleName || '-'}</div></div>
+          <div class="card"><p class="muted">إجمالي الآيات</p><div class="kpi">${aya}</div></div>
+          <div class="card"><p class="muted">متوسط التقدير</p><div class="kpi">${avg}</div></div>
+        </div>
+        <div class="card" style="margin-bottom:10px;">
+          <p>النقاط: <b>${Number(s.points || 0)}</b></p>
+          <p style="margin-top:6px;">الشارات: ${(getStudentBadges(s).map(b => `<span class="badge badge-gold">${b}</span>`).join(' ')) || 'لا يوجد'}</p>
+          <p style="margin-top:6px;">الحفظ: <b>${Number(s.totalHifdhAya || 0)} آية</b> (${Number(s.totalHifdhFaces || 0)} وجه) | المراجعة: <b>${Number(s.totalRevisionAya || 0)} آية</b> (${Number(s.totalRevisionFaces || 0)} وجه)</p>
+        </div>
+        <div class="card" style="overflow:auto;">
+          <table>
+            <thead><tr><th>التاريخ</th><th>النوع</th><th>السورة</th><th>المدى</th><th>الآيات</th><th>الأوجه</th><th>التقدير</th><th>الحضور</th></tr></thead>
+            <tbody>
+              ${logs.map(l => `<tr><td>${l.date}</td><td>${l.type === 'hifdh' ? 'حفظ' : 'مراجعة'}</td><td>${l.surahName}</td><td>${l.fromAya}-${l.toAya}</td><td>${l.ayaCount}</td><td>${l.pages.faces}</td><td>${l.grade}</td><td>${ATTENDANCE.find(a => a.key===l.attendance)?.label || l.attendance}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">لا يوجد سجلات.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderHalaqas() {
+      const u = currentUser();
+      $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role} | الجوال: ${u.phone}` : '';
+      $('createHalaqaBox').classList.toggle('hidden', !isAdmin());
+      const teacherMode = isTeacher();
+
+      const hs = visibleHalaqas();
+      const today = todayISO();
+      const cardsHtml = hs.map(h => {
+        const count = (state.indexes?.studentsByHalaqa?.[h.id] || []).length;
+        const q = halaqaQuality(h.id);
+        const modeLabel = h.deliveryMode === 'remote' ? 'عن بعد' : h.deliveryMode === 'hybrid' ? 'هجين' : 'حضوري';
+        const timeLabel = halaqaTimeLabel(h);
+        const todayLogs = state.db.logs.filter(l => l.halaqaId === h.id && l.date === today).length;
+        const presentToday = (state.db.rollcall || []).filter(r => r.halaqaId === h.id && r.date === today && r.status === 'present').length;
+        if (teacherMode) {
+          return `
+            <div class="teacher-halaqa-card ${state.currentHalaqaId === h.id ? 'active' : ''}">
+              <div class="row between" style="align-items:flex-start; gap:8px;">
+                <div>
+                  <div class="teacher-halaqa-title"><span>🕌</span><span>${h.circleName}</span></div>
+                  <div class="teacher-halaqa-meta">
+                    <span>⏰ ${timeLabel}</span>
+                    <span>📅 ${scheduleTypeLabel(h)}</span>
+                    <span>👥 الطلاب: ${count}</span>
+                    <span>📍 ${modeLabel}</span>
+                  </div>
+                </div>
+                <div class="row" style="gap:6px;">
+                  <span class="badge badge-green">حاضر اليوم: ${presentToday}/${count}</span>
+                  <span class="badge">سجلات اليوم: ${todayLogs}</span>
+                </div>
+              </div>
+              <div class="row" style="margin-top:10px; gap:10px;">
+                <button class="btn btn-primary" style="flex:1" onclick="openHalaqa('${h.id}')">فتح الحلقة</button>
+              </div>
+            </div>
+          `;
+        }
+        return `
+          <div class="card">
+            <div class="row between">
+              <h3>${h.circleName}</h3>
+              <span class="badge badge-gold">${modeLabel}</span>
+            </div>
+            <p class="muted" style="margin-top:8px; font-size:13px">المعلم/ة: ${h.teacherName}</p>
+            <p class="muted" style="font-size:12px">الجدول: ${h.scheduleType === 'full-week' ? 'كامل الأسبوع' : 'الأحد - الأربعاء'}</p>
+            <p class="muted" style="font-size:12px">الأيام: ${(h.scheduleDays || []).join('، ')}</p>
+            <p class="muted" style="font-size:12px">عدد الطلاب: ${count}</p>
+            <p class="muted" style="font-size:12px">الوقت: ${timeLabel}</p>
+            <p style="font-size:12px;"><span class="badge ${q.score >= 80 ? 'badge-green' : q.score >= 60 ? 'badge-gold' : 'badge-warn'}">جودة الحلقة: ${q.score}% (${q.level})</span></p>
+            <div class="row" style="margin-top:8px; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-primary" style="flex:1" onclick="openHalaqa('${h.id}')">دخول الحلقة</button>
+              ${isAdmin() ? `
+                <button class="btn btn-light" style="flex:1" onclick="editHalaqaBasic('${h.id}')">تعديل</button>
+                <button class="btn btn-light" style="flex:1" onclick="unlinkHalaqaFromTeachers('${h.id}')">فك ربط المعلمين</button>
+                <button class="btn btn-danger" style="flex:1" onclick="deleteHalaqa('${h.id}')">حذف</button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('') || '<div class="card">لا توجد حلقات متاحة.</div>';
+
+      if (teacherMode) {
+        const today = todayISO();
+        const activeHalaqa = state.currentHalaqaId ? (state.indexes?.halaqaById?.[state.currentHalaqaId] || null) : null;
+        const activeStudents = activeHalaqa ? (state.indexes?.studentsByHalaqa?.[activeHalaqa.id] || []) : [];
+        const presentCount = activeStudents.filter((s) => getRollcall(s.id, activeHalaqa?.id, today)?.status === 'present').length;
+        $('halaqaCards').innerHTML = `
+          <div class="card no-print" style="margin-bottom:10px; border-color:#d7e2d3; background:#f8fff9;">
+            <div class="row between">
+              <div>
+                <h3>حلقات المعلم</h3>
+                <p class="muted" style="font-size:12px; margin-top:4px;">اختر الحلقة مباشرة ثم ابدأ التحضير أو تسجيل الحفظ والمراجعة.</p>
+              </div>
+              ${activeHalaqa ? `<span class="badge badge-green">تحضير اليوم: ${presentCount}/${activeStudents.length}</span>` : '<span class="badge">اختر حلقة</span>'}
+            </div>
+          </div>
+          <div class="teacher-halaqa-grid">${cardsHtml}</div>
+        `;
+      } else {
+        $('halaqaCards').innerHTML = cardsHtml;
+      }
+
+      renderHalaqaDetail();
+    }
+
+    function buildHalaqaWeeklyTrackingTable(halaqa, students) {
+      const wr = currentWeekRange();
+      const rows = (students || []).map((s) => {
+        const weekLogs = logsForStudent(s.id).filter((l) => l.date >= wr.startISO && l.date <= wr.endISO);
+        const hifdhCount = weekLogs.filter((l) => l.type === 'hifdh').length;
+        const revisionCount = weekLogs.filter((l) => l.type === 'revision').length;
+        const hifdhAya = weekLogs.filter((l) => l.type === 'hifdh').reduce((sum, l) => sum + Number(l.ayaCount || 0), 0);
+        const revisionAya = weekLogs.filter((l) => l.type === 'revision').reduce((sum, l) => sum + Number(l.ayaCount || 0), 0);
+        const latest = [...weekLogs].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+        const latestHifdh = [...weekLogs].filter(l => l.type === 'hifdh').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+        const latestRevision = [...weekLogs].filter(l => l.type === 'revision').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+        const fmt = (log) => log ? `${log.surahName || '-'} (${log.fromAya || '-'}-${log.toAya || '-'})` : 'لا يوجد';
+        return {
+          name: s.name || '-',
+          hifdhCount,
+          revisionCount,
+          hifdhAya,
+          revisionAya,
+          lastHifdh: fmt(latestHifdh),
+          lastRevision: fmt(latestRevision),
+          status: latest ? (latest.syncStatus === 'pending' ? '<span class=\"badge badge-warn\">معلّق</span>' : '<span class=\"badge badge-green\">متزامن</span>') : '',
+        };
+      });
+      const totalHifdh = rows.reduce((sum, r) => sum + r.hifdhCount, 0);
+      const totalRevision = rows.reduce((sum, r) => sum + r.revisionCount, 0);
+
+      return `
+        <div class="card" style="margin-top:10px;">
+          <div class="row between" style="margin-bottom:8px;">
+            <div>
+              <h3>متابعة الحفظ والمراجعة الأسبوعية</h3>
+              <div class="row" style="margin-top:6px;">
+                <span class="badge">الحلقة: ${halaqa?.circleName || '-'}</span>
+                <span class="badge">الأسبوع الحالي</span>
+              </div>
+            </div>
+            <div class="row">
+              <span class="badge badge-green">الحفظ: ${totalHifdh}</span>
+              <span class="badge" style="background:#e0f2fe; color:#0369a1;">المراجعة: ${totalRevision}</span>
+            </div>
+          </div>
+              <div style="overflow:auto;">
+                <table class="teacher-weekly-table">
+                  <thead>
+                    <tr>
+                      <th>الطالب</th>
+                      <th>سجلات الحفظ</th>
+                      <th>آيات الحفظ</th>
+                      <th>سجلات المراجعة</th>
+                      <th>آيات المراجعة</th>
+                      <th>آخر حفظ (سورة/آيات)</th>
+                      <th>آخر مراجعة (سورة/آيات)</th>
+                      <th>الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows.map((r) => `
+                      <tr>
+                        <td>${r.name}</td>
+                        <td>${r.hifdhCount}</td>
+                        <td>${r.hifdhAya}</td>
+                        <td>${r.revisionCount}</td>
+                        <td>${r.revisionAya}</td>
+                        <td>${r.lastHifdh}</td>
+                        <td>${r.lastRevision}</td>
+                        <td>${r.status || ''}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="8" class="muted">لا يوجد طلاب.</td></tr>'}
+                  </tbody>
+                </table>
+              </div>
+        </div>
+      `;
+    }
+
+function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.students); if (!issues.length) return ''; return `<span class="badge badge-warn" style="font-size:10px;">${issues[0]}</span>`; } function getStudentLocation(s) { return s.grade || '-'; } function getStudentLastHifdh(s) { return s.lastHifdhSurah ? `${s.lastHifdhSurah} (${s.lastHifdhAya || ''})` : 'لم يبدأ'; } function getStudentPoints(s) { return Number(s.points || 0); } function getStudentBadgesHTML(s, limit) { const badges = getStudentBadges(s).slice(0, limit || 2); if (!badges.length) return '<span class="muted" style="font-size:11px;">لا يوجد</span>'; return badges.map(b => `<span class="badge badge-gold" style="font-size:10px;">${b}</span>`).join(' '); } function openEntryForm(studentId) { openEntry(studentId); } function renderHalaqaDetail() {
+      const detail = $('halaqaDetail');
+      if (!state.currentHalaqaId) {
+        detail.classList.add('hidden');
+        detail.innerHTML = '';
+        return;
+      }
+
+      const h = visibleHalaqas().find(x => x.id === state.currentHalaqaId);
+      if (!h) {
+        state.currentHalaqaId = null;
+        state.currentStudentId = null;
+        detail.classList.add('hidden');
+        detail.innerHTML = '';
+        return;
+      }
+
+      const students = state.indexes?.studentsByHalaqa?.[h.id] || [];
+      const selected = students.find(s => s.id === state.currentStudentId) || null;
+      const wp = weekProgressForHalaqa(h.id);
+      const teacherMode = isTeacher();
+      const today = todayISO();
+      const pending = pendingLogsCount();
+      const performancePanel = buildHalaqaPerformancePanel(h.id);
+
+      const availableToAttach = state.db.students.filter(s => s.section === h.section && s.halaqaId !== h.id);
+      const attachPickerOptions = availableToAttach.map(s => ({ id: s.id, label: studentLabel(s) }));
+
+      const palette = sectionPalette(h.section);
+      const mobileSelectClass = selected ? (h.section === 'womens' ? 'badge-gold' : 'badge-green') : 'badge-gold';
+      const modeLabel = h.deliveryMode === 'remote' ? 'عن بعد' : h.deliveryMode === 'hybrid' ? 'هجين' : 'حضوري';
+      const timeLabel = halaqaTimeLabel(h);
+      const attendanceOptions = ATTENDANCE
+        .filter((a) => ['present', 'absent', 'late', 'excused', 'remote'].includes(a.key))
+        .map((a) => `<option value="${a.key}">${a.label}</option>`)
+        .join('');
+      const dailyRollcalls = students.filter((s) => getRollcall(s.id, h.id, today));
+
+      detail.classList.remove('hidden');
+      detail.innerHTML = `
+        <div class="row between" style="margin-bottom:10px;">
+          <div>
+            <h3>${h.circleName}</h3>
+            <p class="muted" style="font-size:12px; margin-top:4px;">${teacherMode ? `${timeLabel} • ${modeLabel}` : `${h.teacherName} • ${modeLabel}`}</p>
+          </div>
+          <button class="btn btn-light" onclick="closeHalaqa()">إغلاق</button>
+        </div>
+
+        ${teacherMode ? `
+          <div class="card" style="margin-bottom:10px; border-color:#d7e2d3; background:#f8fbff;">
+              <div class="row" style="gap:8px;">
+                <span class="badge badge-green">حاضر اليوم: ${dailyRollcalls.length}/${students.length}</span>
+                <span class="badge">سجلات اليوم: ${state.db.logs.filter(l => l.halaqaId === h.id && l.date === today).length}</span>
+                ${pending ? `<span class="badge badge-warn">معلّقة: ${pending}</span>` : ''}
+                <span class="badge">${wp.totalAya} آية هذا الأسبوع</span>
+              </div>
+              <div class="row" style="gap:8px;">
+                <select id="bulkAttendanceStatus" class="picker-select" style="max-width:170px;">${attendanceOptions}</select>
+                <input id="bulkAttendanceDate" type="date" value="${today}" style="max-width:170px;" />
+                <button class="btn btn-primary" onclick="markAllStudentsAttendance()">تحضير الجميع</button>
+                ${pending ? `<button class="btn btn-light" onclick="syncPendingLogs()">مزامنة السجلات</button>` : ''}
+              </div>
+            </div>
+          </div>
+        ` : `
+          <div class="card" style="margin-bottom:10px; border-color:#bbf7d0; background:#f0fdf4;">
+            <div class="row between">
+              <div>
+                <p class="muted" style="font-size:12px;">إجمالي إنجاز الحلقة هذا الأسبوع</p>
+                <h3>${wp.totalAya} آية</h3>
+              </div>
+            </div>
+            <div class="grid grid-4" style="margin-top:8px;">
+              ${wp.daily.map(d => `<div class="card" style="padding:8px;"><p class="muted" style="font-size:12px;">${d.name}</p><b>${d.aya} آية</b></div>`).join('') || '<span class="muted">لا أيام محددة.</span>'}
+            </div>
+          </div>
+        `}
+
+        ${performancePanel}
+
+        ${teacherMode ? '' : `
+          <div class="card no-print" style="padding:10px; margin-bottom:10px;">
+            <div class="controls-grid">
+              <div id="attachStudentSmart"></div>
+              <input type="hidden" id="attachStudentSelect" />
+              <button class="btn btn-gold stack-mobile" onclick="addStudentToHalaqa('${h.id}')">إلحاق</button>
+              <select onchange="setStudentPickerMode(this.value)" class="picker-select">
+                <option value="cards" ${state.studentPickerMode === 'cards' ? 'selected' : ''}>عرض مربعات</option>
+                <option value="dropdown" ${state.studentPickerMode === 'dropdown' ? 'selected' : ''}>عرض قائمة منسدلة</option>
+              </select>
+            </div>
+          </div>
+        `}
+
+        ${teacherMode ? `
+          <div class="card no-print" style="padding:10px; margin-bottom:10px;">
+            <div class="row between" style="gap:10px;">
+              <div class="row" style="gap:8px;">
+                <select onchange="setTeacherStudentView(this.value)" class="picker-select" style="max-width:220px;">
+                  <option value="cards" ${state.teacherStudentView === 'cards' ? 'selected' : ''}>عرض الطلاب كمربعات</option>
+                  <option value="dropdown" ${state.teacherStudentView === 'dropdown' ? 'selected' : ''}>عرض الطلاب كقائمة</option>
+                </select>
+              </div>
+              <select id="teacherStudentDropdown" class="picker-select" style="display:none">
+                <option value="">اختر الطالب</option>
+                ${students.map((student) => `<option value="${student.id}" ${selected && selected.id === student.id ? 'selected' : ''}>${student.name}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="teacher-student-grid no-print ${state.teacherStudentView === 'cards' || state.teacherStudentView === 'compact' ? '' : 'hidden'} ${state.teacherStudentView === 'compact' ? 'compact-grid' : ''}">
+            ${students.map(student => `
+              <button type="button" class="teacher-student-btn ${selected && selected.id === student.id ? 'active' : ''} ${state.teacherStudentView === 'compact' ? 'compact' : ''}" data-student-id="${student.id}">
+                <span class="name">${student.name}</span>
+                <span class="meta">${(ATTENDANCE.find((a) => a.key === (getRollcall(student.id, h.id, today)?.status || ''))?.label || 'غير محضر')} • ${todayEntriesSummary(student.id)}</span>
+              </button>
+            `).join('') || '<div class="card">لا يوجد طلاب.</div>'}
+          </div>
+          <div class="card no-print teacher-student-select ${state.teacherStudentView === 'dropdown' ? '' : 'hidden'}">
+            <p class="muted" style="font-size:12px; margin-bottom:6px;">قائمة الطلاب</p>
+            <select class="picker-select" onchange="openEntry(this.value)">
+              <option value="">اختر الطالب لفتح بطاقة الإدخال</option>
+              ${students.map((student) => `<option value="${student.id}" ${selected && selected.id === student.id ? 'selected' : ''}>${student.name}</option>`).join('')}
+            </select>
+          </div>
+        ` : `
+          <div class="${state.studentPickerMode === 'dropdown' ? '' : 'hidden'} card" style="padding:10px; margin-bottom:10px; border-color:${selected ? palette.selectedBorder : palette.cardBorder}; background:${selected ? palette.selectedBg : '#fff'};">
+            <p class="muted" style="font-size:12px; margin-bottom:6px;">اختيار الطالب (الجوال)</p>
+            <div id="mobileStudentSmart"></div>
+            <input type="hidden" id="mobileStudentSelect" value="${selected ? selected.id : ''}" />
+            <p class="picker-hint">إذا كانت الأسماء كثيرة استخدم القائمة المنسدلة، وإذا كانت قليلة استخدم عرض المربعات.</p>
+            <p class="badge ${mobileSelectClass}" style="margin-top:6px;">${selected ? 'تم اختيار الطالب' : 'لم يتم اختيار طالب'}</p>
+          </div>
+
+          <div class="${state.studentPickerMode === 'cards' ? '' : 'hidden'} grid grid-3" style="margin-bottom:10px;">
+            ${students.map(s => `
+              <div class="card" style="padding:10px; border-color:${selected && selected.id===s.id ? palette.selectedBorder : palette.cardBorder}; background:${selected && selected.id===s.id ? palette.selectedBg : '#fff'};">
+                <div class="row between">
+                  <b>${s.name}</b>
+                ${getStudentAlertHTML(s)} 
+                <p class="muted" style="font-size:12px; margin-top:5px">مدينة: ${getStudentLocation(s)}</p>
+                <p class="muted" style="font-size:12px">آخر حفظ: ${getStudentLastHifdh(s)}</p>
+                <p class="muted" style="font-size:12px">نقاط: <b>${getStudentPoints(s)}</b></p>
+                <p style="font-size:12px">${getStudentBadgesHTML(s, 2)}</p>
+				                <button class="btn btn-ok no-print" style="margin-top:8px" onclick="openEntryForm('${s.id}')">فتح ملف الطالب</button><button class="btn btn-ok no-print" style="margin-top:8px" onclick="openEntry('${s.id}')">تسجيل اليوم</button>
+              </div>
+            `).join('') || '<div class="card">لا يوجد طلاب.</div>'}
+          </div>
+        `}
+
+        ${selected ? renderEntryForm(selected, teacherMode) : (teacherMode ? '<div class="card"><p class="muted">اختر طالباً لفتح بطاقة التسجيل.</p></div>' : '')}
+        ${teacherMode ? buildHalaqaWeeklyTrackingTable(h, students) : ''}
+      `;
+      if (!teacherMode) {
+        mountSmartPicker('attachStudentSmart', 'attachStudentSelect', attachPickerOptions, '', 'ابحث عن طالب للإلحاق');
+        mountSmartPicker(
+          'mobileStudentSmart',
+          'mobileStudentSelect',
+          students.map(st => ({ id: st.id, label: studentLabel(st) })),
+          selected?.id || '',
+          'ابحث عن طالب',
+          'pickStudentFromMobile'
+        );
+      }
+      if (selected) syncEntryCalc();
+    }
+
+    function renderEntryForm(s, teacherMode = false) {
+      const currentHalaqa = state.db.halaqas.find((h) => h.id === state.currentHalaqaId);
+      const remoteMode = currentHalaqa?.deliveryMode === 'remote';
+      const defaultAttendance = remoteMode ? 'remote' : 'present';
+      const att = ATTENDANCE.map(a => `<option value="${a.key}" ${a.key === defaultAttendance ? 'selected' : ''}>${a.label}</option>`).join('');
+      const gr = GRADES.map(g => `<option value="${g}">${g}</option>`).join('');
+      const suBase = [...SURAH_DATA].reverse();
+      const su = suBase.map((x) => `<option value="${x.n - 1}">${x.n}. ${x.name} (${x.a})</option>`).join('');
+      const studentLogs = logsForStudent(s.id);
+      const pendingStudentLogs = studentLogs.filter(l => l.syncStatus === 'pending').length;
+      const latest = studentLogs.slice(0, 8).map(l => `
+        <tr>
+          <td>${l.date}</td>
+          <td>${l.type==='hifdh'?'حفظ':'مراجعة'}</td>
+          <td>${l.surahName}</td>
+          <td>${l.fromAya}-${l.toAya}</td>
+          <td>${l.grade}</td>
+          <td>${l.syncStatus === 'pending' ? '<span class="badge badge-warn">معلّق</span>' : '<span class="badge badge-green">متزامن</span>'}</td>
+        </tr>`).join('');
+      const latestHifdh = studentLogs.find(l => l.type === 'hifdh');
+      const latestRevision = studentLogs.find(l => l.type === 'revision');
+      const fmtLatest = (log) => log ? `${log.date} • ${log.surahName} (${log.fromAya}-${log.toAya}) • تقدير: ${log.grade}` : 'لا يوجد سجل بعد';
+      const today = todayISO();
+      const todayHijri = toHijriLabelFromISO(today);
+      const prefill = state.prefillByStudent[s.id] || {};
+      const defaults = (type) => {
+        const last = studentLogs.find(l => l.type === type);
+        const pf = prefill[type] || {};
+        return {
+          attendance: pf.attendance || defaultAttendance,
+          surahIdx: pf.surahIdx ?? (last ? last.surahIdx : 0),
+          fromAya: pf.fromAya ?? (last ? last.toAya || 1 : 1),
+          toAya: pf.toAya ?? (last ? Math.min((last.toAya || 1) + 1, SURAH_DATA[last.surahIdx || 0]?.a || 1) : 1),
+          grade: pf.grade ?? '1',
+        };
+      };
+      const defH = defaults('hifdh');
+      const defR = defaults('revision');
+      const suH = suBase.map((x) => `<option value="${x.n - 1}" ${x.n - 1 === defH.surahIdx ? 'selected' : ''}>${x.n}. ${x.name} (${x.a})</option>`).join('');
+      const suR = suBase.map((x) => `<option value="${x.n - 1}" ${x.n - 1 === defR.surahIdx ? 'selected' : ''}>${x.n}. ${x.name} (${x.a})</option>`).join('');
+      const attH = ATTENDANCE.map(a => `<option value="${a.key}" ${a.key === defH.attendance ? 'selected' : ''}>${a.label}</option>`).join('');
+      const attR = ATTENDANCE.map(a => `<option value="${a.key}" ${a.key === defR.attendance ? 'selected' : ''}>${a.label}</option>`).join('');
+      const grH = GRADES.map(g => `<option value="${g}" ${g === defH.grade ? 'selected' : ''}>${g}</option>`).join('');
+      const grR = GRADES.map(g => `<option value="${g}" ${g === defR.grade ? 'selected' : ''}>${g}</option>`).join('');
+
+      if (teacherMode) {
+        return `
+          <div class="card" style="border-color:#86efac; background:#f8fff9;">
+            <div class="row between" style="margin-bottom:8px;">
+              <h3>تسجيل ${s.name}</h3>
+              ${pendingStudentLogs ? `<span class="badge badge-warn">سجلات معلّقة: ${pendingStudentLogs}</span>` : ''}
+            </div>
+            ${remoteMode ? '<p class="muted" style="font-size:12px; margin-bottom:8px;">هذه حلقة عن بعد، تم اختيار الحضور (عن بعد) تلقائياً ويمكن تعديله.</p>' : ''}
+            <div class="grid grid-4 no-print">
+              <div class="field-block">
+                <div class="field-label">نوع التاريخ</div>
+                <select id="entryDateMode">
+                  <option value="gregorian">ميلادي</option>
+                  <option value="hijri">هجري</option>
+                </select>
+              </div>
+              <div class="field-block">
+                <div class="field-label">التاريخ الميلادي</div>
+                <input id="entryDateGregorian" type="date" value="${today}" />
+              </div>
+              <div class="field-block">
+                <div class="field-label">التاريخ الهجري</div>
+                <input id="entryDateHijri" type="text" value="${todayHijri}" readonly />
+              </div>
+            </div>
+
+            <div class="card no-print" style="margin-top:10px; border-color:#d7e2d3;">
+              <h4 style="margin-bottom:8px;">جدول الحفظ</h4>
+              <div class="grid grid-4">
+                <div class="field-block">
+                  <div class="field-label">الحضور</div>
+                  <select id="teacherAttendance">${attH}</select>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">السورة</div>
+                  <input id="hifdhSurahSearch" class="picker-input" placeholder="بحث سورة..." oninput="filterSurahOptions('hifdhSurahSearch','hifdhSurahIdx')" />
+                  <select id="hifdhSurahIdx">${suH}</select>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">من آية</div>
+                  <input id="hifdhFromAya" type="number" min="1" value="${defH.fromAya}" />
+                </div>
+                <div class="field-block">
+                  <div class="field-label">إلى آية</div>
+                  <input id="hifdhToAya" type="number" min="1" value="${defH.toAya}" />
+                </div>
+                <div class="field-block">
+                  <div class="field-label">التقدير (1 - 10)</div>
+                  <select id="hifdhGrade">${grH}</select>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">ملاحظة</div>
+                  <textarea id="hifdhNotes" placeholder="ملاحظة الحفظ"></textarea>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">حفظ السجل</div>
+                  <button class="btn btn-primary" onclick="saveDailyEntry('${s.id}', 'hifdh')">حفظ الحفظ</button>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">تراجع</div>
+                  <button class="btn btn-light" onclick="deleteLastLog('${s.id}', 'hifdh')">حذف آخر سجل حفظ</button>
+                  <button class="btn btn-light" style="margin-top:6px;" onclick="copySurahToAll('hifdh')">تكرار السورة لكل الطلاب</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card no-print" style="margin-top:10px; border-color:#d7e2d3;">
+              <h4 style="margin-bottom:8px;">جدول المراجعة</h4>
+              <div class="grid grid-4">
+                <div class="field-block" style="display:none">                 <div class="field-label">الحضور</div>                 <select id="revisionAttendance" style="display:none">${attR}</select>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">السورة</div>
+                  <input id="revisionSurahSearch" class="picker-input" placeholder="بحث سورة..." oninput="filterSurahOptions('revisionSurahSearch','revisionSurahIdx')" />
+                  <select id="revisionSurahIdx">${suR}</select>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">من آية</div>
+                  <input id="revisionFromAya" type="number" min="1" value="${defR.fromAya}" />
+                </div>
+                <div class="field-block">
+                  <div class="field-label">إلى آية</div>
+                  <input id="revisionToAya" type="number" min="1" value="${defR.toAya}" />
+                </div>
+                <div class="field-block">
+                  <div class="field-label">التقدير (1 - 10)</div>
+                  <select id="revisionGrade">${grR}</select>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">ملاحظة</div>
+                  <textarea id="revisionNotes" placeholder="ملاحظة المراجعة"></textarea>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">حفظ السجل</div>
+                  <button class="btn btn-primary" onclick="saveDailyEntry('${s.id}', 'revision')">حفظ المراجعة</button>
+                </div>
+                <div class="field-block">
+                  <div class="field-label">تراجع</div>
+                  <button class="btn btn-light" onclick="deleteLastLog('${s.id}', 'revision')">حذف آخر سجل مراجعة</button>
+                  <button class="btn btn-light" style="margin-top:6px;" onclick="copySurahToAll('revision')">تكرار السورة لكل الطلاب</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="card" style="border-color:#86efac; background:#f8fff9;">
+          <h3 style="margin-bottom:8px;">سجل يومي: ${s.name}</h3>
+          <div class="grid grid-4 no-print">
+            <div class="field-block">
+              <div class="field-label">نوع التاريخ</div>
+              <select id="entryDateMode">
+                <option value="gregorian">ميلادي</option>
+                <option value="hijri">هجري</option>
+              </select>
+            </div>
+            <div class="field-block">
+              <div class="field-label">التاريخ الميلادي</div>
+              <input id="entryDateGregorian" type="date" value="${today}" />
+            </div>
+            <div class="field-block">
+              <div class="field-label">التاريخ الهجري</div>
+              <input id="entryDateHijri" type="text" value="${todayHijri}" readonly />
+            </div>
+            <div class="field-block">
+              <div class="field-label">الحضور</div>
+              <select id="entryAttendance">${att}</select>
+            </div>
+            <div class="field-block">
+              <div class="field-label">نوع الإنجاز</div>
+              <div class="entry-type-switch">
+                <label class="entry-type-option active" id="entryTypeHifdhCard">
+                  <input type="radio" name="entryType" value="hifdh" checked />
+                  <span>الحفظ</span>
+                </label>
+                <label class="entry-type-option" id="entryTypeRevisionCard">
+                  <input type="radio" name="entryType" value="revision" />
+                  <span>المراجعة</span>
+                </label>
+              </div>
+            </div>
+            <div class="field-block">
+              <div class="field-label">السورة</div>
+              <select id="entrySurahIdx">${su}</select>
+            </div>
+            <div class="field-block">
+              <div class="field-label">من آية</div>
+              <input id="entryFromAya" type="number" min="1" value="1" />
+            </div>
+            <div class="field-block">
+              <div class="field-label">إلى آية</div>
+              <input id="entryToAya" type="number" min="1" value="1" />
+            </div>
+            <div class="field-block">
+              <div class="field-label">التقدير (1 - 10)</div>
+              <select id="entryGrade">${gr}</select>
+            </div>
+            <div class="field-block">
+              <div class="field-label">حفظ السجل</div>
+              <button class="btn btn-primary" onclick="saveDailyEntry('${s.id}')">حفظ الحفظ/المراجعة</button>
+            </div>
+          </div>
+          <div class="field-block" style="margin-top:8px;">
+            <div class="field-label">ملاحظات المعلم</div>
+            <textarea id="entryNotes" placeholder="اكتب ملاحظات المعلم"></textarea>
+          </div>
+          <div class="field-block" style="margin-top:8px;">
+            <div class="field-label">ملاحظة الإدارة (اختياري)</div>
+            <textarea id="entryAdminNote" placeholder="ملاحظة للإدارة/المشرف"></textarea>
+          </div>
+          <div class="card" style="margin-top:10px; padding:8px; overflow:auto;">
+            <table>
+                <thead><tr><th>التاريخ</th><th>النوع</th><th>السورة</th><th>المدى</th><th>التقدير</th></tr></thead>
+                <tbody>${latest || '<tr><td colspan="5" class="muted">لا يوجد سجل سابق.</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStudents() {
+      const manage = canManageStudents();
+      const certAllowed = canIssueCertificates();
+      const admin = isAdmin();
+      const u = currentUser();
+      $('createStudentBox').classList.toggle('hidden', !manage);
+      $('bulkStudentsBox').classList.toggle('hidden', !manage);
+
+      const q = $('studentSearch').value.trim();
+      const hs = state.db.halaqas;
+      const visible = admin ? state.db.students : visibleStudents();
+      renderStudentsQualityBox(visible);
+      const issueFilter = state.studentIssueFilter || 'all';
+      const list = visible
+        .filter(s => !q || (s.name || '').includes(q) || (s.nationalId || '').includes(q))
+        .filter((s) => {
+          if (issueFilter === 'missing_id') return !compactName(s.nationalId);
+          if (issueFilter === 'missing_guardian') return !compactName(s.guardianPhone);
+          if (issueFilter === 'absence_alert') return Number(s.absentCount || 0) >= 4;
+          if (issueFilter === 'duplicate_name') {
+            const key = compactName(s.name);
+            if (!key) return false;
+            return visible.some((x) => x.id !== s.id && x.section === s.section && compactName(x.name) === key);
+          }
+          return true;
+        });
+
+      $('studentsRows').innerHTML = list.map(s => {
+        const currentH = hs.find(h => h.id === s.halaqaId);
+        const issues = studentIssues(s, visible);
+        const options = hs
+          .filter(h => h.section === s.section && (admin || visibleHalaqas().some(v => v.id === h.id)))
+          .map(h => `<option value="${h.id}" ${h.id===s.halaqaId?'selected':''}>${h.circleName}</option>`)
+          .join('');
+        return `
+          <tr class="${issues.length ? 'row-danger' : ''}">
+            <td>${manage ? `<input id="edit_name_${s.id}" value="${escapeAttr(s.name)}" />` : s.name}</td>
+            <td>${manage ? `<input id="edit_nid_${s.id}" value="${escapeAttr(s.nationalId || '')}" />` : (s.nationalId || '-')}</td>
+            <td>${manage ? `<input id="edit_guardian_${s.id}" value="${escapeAttr(s.guardianPhone || '')}" />` : (s.guardianPhone || '-')}</td>
+            <td>${manage ? `<input id="edit_grade_${s.id}" value="${escapeAttr(s.grade || '')}" />` : (s.grade || '-')}</td>
+            <td>${s.section === 'mens' ? 'البنين' : 'البنات'}</td>
+            <td>${currentH?.circleName || '-'}</td>
+            <td>${s.lastHifdhSurah ? `${s.lastHifdhSurah} (${s.lastHifdhAya || ''})` : 'لم يبدأ'}</td>
+            <td>${Number(s.absentCount || 0) >= 4 ? `<span class="badge badge-warn">${s.absentCount}</span>` : (s.absentCount || 0)}</td>
+            <td>${Number(s.points || 0)}</td>
+            <td>${(getStudentBadges(s).map(b => `<span class="badge badge-gold">${b}</span>`).join(' ')) || '-'}</td>
+            <td>${issues.length ? issues.map(i => `<span class="issue-chip">${i}</span>`).join('') : '<span class="muted">سليم</span>'}</td>
+            <td><select id="move_${s.id}" ${manage ? '' : 'disabled'}>${options}</select></td>
+            <td class="no-print">
+              ${(manage || certAllowed) ? `
+                <div class="row">
+                  ${manage ? `<button class="btn btn-light" onclick="updateStudentBasic('${s.id}')">تحديث</button><button class="btn btn-light" onclick="transferStudent('${s.id}')">نقل</button>` : ''}
+                  ${certAllowed ? `<button class="btn btn-gold" onclick="issueStudentCertificate('${s.id}')">شهادة شكر</button>` : ''} ${manage ? `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">🗑️ حذف</button>` : ''}
+                </div>
+              ` : '-'}
+            </td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="13" class="muted">لا توجد نتائج.</td></tr>';
+      renderStudentsWeeklyPanel(list);
+
+      if (u?.role === 'supervisor') {
+        $('newStudentSection').value = state.section;
+        $('newStudentSection').disabled = true;
+        $('bulkStudentSection').value = state.section;
+        $('bulkStudentSection').disabled = true;
+      } else {
+        $('newStudentSection').disabled = false;
+        $('bulkStudentSection').disabled = false;
+      }
+      refreshNewStudentHalaqaOptions();
+      refreshBulkHalaqaOptions();
+      if (manage) buildBulkPreview();
+      else {
+        $('bulkStudentsPreview').classList.add('hidden');
+        $('bulkStudentsPreview').innerHTML = '';
+      }
+    }
+
+    function renderStudentsWeeklyPanel(studentsList) {
+      const panel = $('studentsWeeklyPanel');
+      if (!panel) return;
+      const list = Array.isArray(studentsList) ? studentsList : [];
+      const range = currentWeekRange();
+      const hs = state.indexes?.halaqaById || {};
+
+      if (!list.length) {
+        panel.innerHTML = `
+          <h3>متابعة الحفظ والمراجعة الأسبوعية</h3>
+          <p class="muted" style="margin-top:6px;">لا يوجد طلاب ضمن الفلتر الحالي.</p>
+        `;
+        return;
+      }
+
+      const rows = list.map((s) => {
+        const weekLogs = logsForStudent(s.id).filter(
+          (l) => l.date >= range.startISO && l.date <= range.endISO
+        );
+        const hifdhCount = weekLogs.filter((l) => l.type === 'hifdh').length;
+        const revisionCount = weekLogs.filter((l) => l.type === 'revision').length;
+        const latest = [...weekLogs].sort((a, b) => {
+          const d = String(b.date || '').localeCompare(String(a.date || ''));
+          if (d !== 0) return d;
+          return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+        })[0];
+        const latestType = latest ? (latest.type === 'hifdh' ? 'حفظ' : 'مراجعة') : '-';
+        const latestSurah = latest ? (latest.surahName || '-') : '-';
+        const latestRange = latest ? `${latest.fromAya || '-'} - ${latest.toAya || '-'}` : '-';
+        const latestDate = latest ? latest.date : '-';
+        const halaqaName = hs[s.halaqaId]?.circleName || '-';
+        return { name: s.name || '-', halaqaName, hifdhCount, revisionCount, latestType, latestSurah, latestRange, latestDate };
+      });
+
+      const totalHifdh = rows.reduce((sum, r) => sum + r.hifdhCount, 0);
+      const totalRevision = rows.reduce((sum, r) => sum + r.revisionCount, 0);
+
+      panel.innerHTML = `
+        <div class="row between" style="margin-bottom:10px;">
+          <div>
+            <h3>متابعة الحفظ والمراجعة الأسبوعية</h3>
+            <div class="row" style="margin-top:6px;">
+              <span class="badge">الأسبوع الحالي</span>
+              <span class="badge">${range.startISO} ⟵ ${range.endISO}</span>
+            </div>
+          </div>
+          <div class="row">
+            <span class="badge">طلاب: ${rows.length}</span>
+            <span class="badge badge-green">الحفظ: ${totalHifdh}</span>
+            <span class="badge" style="background:#e0f2fe; color:#0369a1;">المراجعة: ${totalRevision}</span>
+          </div>
+        </div>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>الطالب</th>
+                <th>الحلقة</th>
+                <th>مرات الحفظ</th>
+                <th>مرات المراجعة</th>
+                <th>آخر إنجاز</th>
+                <th>السورة</th>
+                <th>من - إلى</th>
+                <th>تاريخ آخر إنجاز</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((r) => `
+                <tr>
+                  <td>${r.name}</td>
+                  <td>${r.halaqaName}</td>
+                  <td>${r.hifdhCount}</td>
+                  <td>${r.revisionCount}</td>
+                  <td>${r.latestType}</td>
+                  <td>${r.latestSurah}</td>
+                  <td>${r.latestRange}</td>
+                  <td>${r.latestDate}</td>
+                </tr>
+              `).join('') || '<tr><td colspan="8" class="muted">لا توجد سجلات لهذا الأسبوع.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderStaff() {
+      const admin = isAdmin();
+      $('createStaffBox').classList.toggle('hidden', !admin);
+      $('assignStaffBox').classList.toggle('hidden', !admin);
+
+      const list = admin
+        ? state.db.staff
+        : [currentUser()].filter(Boolean);
+
+      $('staffCards').innerHTML = list.map(s => {
+        const assignedNames = (s.assignedHalaqaIds || []).map(id => state.db.halaqas.find(h => h.id===id)?.circleName).filter(Boolean);
+        return `
+          <div class="card">
+            <div class="row between"><b>${s.name}</b><span class="badge">${s.role}</span></div>
+            <p class="muted" style="font-size:12px; margin-top:6px;">${s.phone}</p>
+            <p class="muted" style="font-size:12px;">الحلقات: ${assignedNames.join('، ') || '-'}</p>
+            ${admin ? `<button class="btn btn-danger no-print" style="margin-top:8px" onclick="removeStaff('${s.id}')">حذف</button>` : ''}
+          </div>
+        `;
+      }).join('') || '<div class="card">لا يوجد موظفون.</div>';
+
+      if (!admin) return;
+      if ($('staffSection')) $('staffSection').value = state.section;
+      const teacherOpts = ['<option value="">اختر المعلم</option>']
+        .concat(state.db.staff
+          .filter(s => s.role === 'teacher' && s.section === state.section)
+          .map(s => `<option value="${s.id}">${s.name} (${s.section==='mens'?'بنين':'بنات'})</option>`))
+        .join('');
+      $('assignTeacher').innerHTML = teacherOpts;
+      const halaqaOpts = ['<option value="">اختر الحلقة</option>']
+        .concat(state.db.halaqas
+          .filter(h => h.section === state.section)
+          .map(h => `<option value="${h.id}">${h.circleName} (${h.section==='mens'?'بنين':'بنات'})</option>`))
+        .join('');
+      $('assignHalaqa').innerHTML = halaqaOpts;
+    }
+
+    function renderReports() {
+      const b = reportBundle();
+      $('weekRangeLabel').textContent = `${b.wr.startISO} ⇐ ${b.wr.endISO}`;
+      $('kpiGrid').innerHTML = `
+        <div class="card"><p class="muted">إجمالي السجلات</p><div class="kpi">${b.totals.entries}</div></div>
+        <div class="card"><p class="muted">إجمالي الآيات</p><div class="kpi">${b.totals.ayaTotal}</div></div>
+        <div class="card"><p class="muted">إجمالي الأوجه</p><div class="kpi">${b.totals.faces}</div></div>
+        <div class="card"><p class="muted">حفظ / مراجعة</p><div class="kpi">${b.totals.hifdh} / ${b.totals.revision}</div></div>
+      `;
+
+      const wAll = aggregatePeriodStats('weekly', null);
+      const mAll = aggregatePeriodStats('monthly', null);
+      $('periodStats').innerHTML = `
+        <div class="card">
+          <h3>أسبوعي (${wAll.range.startISO} → ${wAll.range.endISO})</h3>
+          <p class="muted" style="margin-top:6px">عدد المعلمين: ${wAll.teacherCount} | الملتحقين: ${wAll.studentCount}</p>
+          <p class="muted">أوجه الحفظ: ${wAll.hifdhFaces} | أوجه المراجعة: ${wAll.revisionFaces}</p>
+          <p class="muted">الختمات: ${wAll.khatmat} | الأجزاء: ${wAll.ajzaa}</p>
+        </div>
+        <div class="card">
+          <h3>شهري (${mAll.range.startISO} → ${mAll.range.endISO})</h3>
+          <p class="muted" style="margin-top:6px">عدد المعلمين: ${mAll.teacherCount} | الملتحقين: ${mAll.studentCount}</p>
+          <p class="muted">أوجه الحفظ: ${mAll.hifdhFaces} | أوجه المراجعة: ${mAll.revisionFaces}</p>
+          <p class="muted">الختمات: ${mAll.khatmat} | الأجزاء: ${mAll.ajzaa}</p>
+        </div>
+      `;
+
+      $('halaqaReportRows').innerHTML = b.rows.map(r => {
+        const q = halaqaQuality(r.halaqaId);
+        return `
+        <tr>
+          <td>${r.halaqaName}</td>
+          <td>${r.teacherName}</td>
+          <td>${r.schedule}</td>
+          <td>${r.deliveryMode}</td>
+          <td>${r.faces} (آيات: ${r.ayaTotal})</td>
+          <td>${r.hifdh} / ${r.revision}</td>
+          <td>${r.avg}</td>
+          <td><span class="badge ${q.score >= 80 ? 'badge-green' : q.score >= 60 ? 'badge-gold' : 'badge-warn'}">${q.score}% - ${q.level}</span></td>
+          <td>${r.entries}</td>
+        </tr>
+      `;
+      }).join('') || '<tr><td colspan="9" class="muted">لا توجد سجلات.</td></tr>';
+
+      const tops = topMemorizersPerHalaqa(2);
+      $('halaqaTopMemorizers').innerHTML = tops.map(({ halaqa, ranked }) => `
+        <div class="card">
+          <h3>${halaqa.circleName}</h3>
+          <p class="muted" style="font-size:12px; margin:6px 0;">أفضل الحفظين هذا الأسبوع</p>
+          ${ranked.length
+            ? ranked.map((r, i) => `<p>${i + 1}. <b>${r.name}</b> — ${r.aya} آية</p>`).join('')
+            : '<p class="muted">لا يوجد بيانات حفظ في هذا الأسبوع.</p>'
+          }
+        </div>
+      `).join('');
+
+      const mens = reportBundle('mens').totals;
+      const womens = reportBundle('womens').totals;
+      $('sectionsSummary').innerHTML = `
+        <div class="card">
+          <h3>قسم البنين</h3>
+          <p class="muted" style="margin-top:6px">سجلات: ${mens.entries} | آيات: ${mens.ayaTotal} | أوجه: ${mens.faces}</p>
+        </div>
+        <div class="card">
+          <h3>قسم البنات</h3>
+          <p class="muted" style="margin-top:6px">سجلات: ${womens.entries} | آيات: ${womens.ayaTotal} | أوجه: ${womens.faces}</p>
+        </div>
+      `;
+
+      const reportStudents = (isAdmin() ? state.db.students : visibleStudents());
+      mountSmartPicker(
+        'studentReportSmart',
+        'studentReportSelect',
+        reportStudents.map(s => ({ id: s.id, label: studentLabel(s) })),
+        $('studentReportSelect').value || '',
+        'ابحث باسم الطالب أو الهوية'
+      );
+
+      const alerts = (isAdmin() ? state.db.students : visibleStudents())
+        .filter(s => Number(s.absentCount || 0) >= 4)
+        .sort((a,b) => Number(b.absentCount || 0) - Number(a.absentCount || 0));
+
+      const alertHtml = alerts.map(s => `<span class="badge badge-warn" style="margin-left:6px; margin-bottom:6px; display:inline-block;">${s.name} (${s.absentCount})</span>`).join('') || '<span class="muted">لا توجد تنبيهات غياب.</span>';
+
+      if (!$('studentReportPanel').dataset.alertRendered) {
+        $('studentReportPanel').innerHTML = `<div class="card" style="margin-bottom:8px;"><h3 style="margin-bottom:6px;">تنبيهات الغياب 4+</h3>${alertHtml}</div><p class="muted">اختر طالباً ثم اضغط عرض التقرير.</p>`;
+        $('studentReportPanel').dataset.alertRendered = '1';
+      }
+
+      const risks = earlyRiskStudents();
+      $('earlyRiskPanel').innerHTML = risks.length
+        ? risks.slice(0, 20).map((r) => `
+          <div class="ops-task warn">
+            <div class="row between">
+              <b>${r.name}</b>
+              <span class="badge badge-warn">درجة تعثر: ${r.risk}</span>
+            </div>
+            <p class="muted" style="font-size:12px; margin-top:4px;">الحلقة: ${r.halaqaName} - ${r.section === 'mens' ? 'بنين' : 'بنات'}</p>
+            <p style="margin-top:4px;">${r.reasons.join('، ')}</p>
+          </div>
+        `).join('')
+        : '<p class="muted">لا توجد حالات تعثر مبكر حالياً.</p>';
+
+      const missingDaily = halaqasMissingDailyLog(todayISO());
+      $('missingDailyPanel').innerHTML = missingDaily.length
+        ? missingDaily.map((m) => `
+          <div class="ops-task info">
+            <div class="row between">
+              <b>${m.halaqaName}</b>
+              <span class="badge badge-gold">ناقص: ${m.missing}</span>
+            </div>
+            <p class="muted" style="font-size:12px; margin-top:4px;">المعلم: ${m.teacherName}</p>
+            <p style="margin-top:4px;">المسجل اليوم: ${m.logged} / ${m.students}</p>
+          </div>
+        `).join('')
+        : '<p class="muted">جميع الحلقات مكتمل سجلها اليومي اليوم.</p>';
+    }
+
+    function getBoardSnapshot() {
+      const wr = weekRange();
+      const mensBundle = reportBundle('mens');
+      const womensBundle = reportBundle('womens');
+      const teachers = state.db.staff.filter(s => s.role === 'teacher').length;
+      const students = state.db.students.length;
+      const pendingExam = state.db.examSessions.reduce((sum, es) => sum + (es.results || []).filter(r => r.status !== 'approved').length, 0);
+      const topRows = [
+        ...mensBundle.rows.map(r => ({ ...r, section: 'mens' })),
+        ...womensBundle.rows.map(r => ({ ...r, section: 'womens' })),
+      ].sort((a, b) => Number(b.faces || 0) - Number(a.faces || 0)).slice(0, 8);
+      const now = new Date();
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const startISO = sevenDaysAgo.toISOString().slice(0, 10);
+      const risks = state.db.students.map((s) => {
+        const logs = logsForStudent(s.id);
+        const last7 = logs.filter(l => l.date >= startISO);
+        const recent = logs.slice(0, 5);
+        const avgScore = recent.length
+          ? (recent.reduce((sum, l) => sum + gradeToScore(l.grade), 0) / recent.length)
+          : 0;
+        let risk = 0;
+        const reasons = [];
+        if (Number(s.absentCount || 0) >= 4) { risk += 3; reasons.push('غياب 4+'); }
+        if (last7.length === 0) { risk += 2; reasons.push('لا سجل آخر 7 أيام'); }
+        if (recent.length >= 3 && avgScore <= 4.5) { risk += 2; reasons.push('انخفاض متوسط التقدير'); }
+        if (Number(s.totalRevisionAya || 0) < Math.max(10, Number(s.totalHifdhAya || 0) * 0.25)) { risk += 1; reasons.push('المراجعة أقل من المطلوب'); }
+        return {
+          studentId: s.id,
+          name: s.name,
+          halaqaName: state.indexes?.halaqaById?.[s.halaqaId]?.circleName || '-',
+          risk,
+          reasons,
+        };
+      }).filter(x => x.risk >= 3).sort((a, b) => b.risk - a.risk).slice(0, 10);
+      const today = todayISO();
+      const missing = state.db.halaqas.map((h) => {
+        const hStudents = state.db.students.filter(s => s.halaqaId === h.id);
+        const logs = state.db.logs.filter(l => l.halaqaId === h.id && l.date === today);
+        const loggedIds = new Set(logs.map(l => l.studentId));
+        const miss = Math.max(0, hStudents.length - loggedIds.size);
+        return {
+          halaqaName: h.circleName,
+          missing: miss,
+        };
+      }).filter(x => x.missing > 0).sort((a, b) => b.missing - a.missing).slice(0, 10);
+      return {
+        wr,
+        mens: mensBundle.totals,
+        womens: womensBundle.totals,
+        teachers,
+        students,
+        pendingExam,
+        topRows,
+        risks,
+        missing,
+      };
+    }
+
+    function renderBoardReport() {
+      if (!$('boardWeeklySummary')) return;
+      const snap = getBoardSnapshot();
+      const totalFaces = Number(snap.mens.faces || 0) + Number(snap.womens.faces || 0);
+      const totalAya = Number(snap.mens.ayaTotal || 0) + Number(snap.womens.ayaTotal || 0);
+      const riskCount = snap.risks.length;
+      const missingCount = snap.missing.length;
+
+      $('boardPeriodLabel').textContent = `نطاق التقرير: ${snap.wr.startISO} → ${snap.wr.endISO}`;
+      $('boardWeeklySummary').innerHTML = `
+        <div class="board-kpi"><span class="muted">عدد المعلمين</span><b>${snap.teachers}</b></div>
+        <div class="board-kpi"><span class="muted">عدد الطلاب</span><b>${snap.students}</b></div>
+        <div class="board-kpi"><span class="muted">أوجه الحفظ والمراجعة</span><b>${totalFaces}</b></div>
+        <div class="board-kpi"><span class="muted">إجمالي الآيات</span><b>${totalAya}</b></div>
+        <div class="board-kpi"><span class="muted">إنجاز البنين</span><b>${snap.mens.faces}</b><span class="muted">وجه</span></div>
+        <div class="board-kpi"><span class="muted">إنجاز البنات</span><b>${snap.womens.faces}</b><span class="muted">وجه</span></div>
+        <div class="board-kpi"><span class="muted">نتائج تنتظر اعتماد</span><b>${snap.pendingExam}</b></div>
+        <div class="board-kpi"><span class="muted">عناصر تتطلب قرار</span><b>${riskCount + missingCount}</b></div>
+      `;
+
+      $('boardTopHalaqas').innerHTML = snap.topRows.length
+        ? `<div class="board-table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>الحلقة</th><th>القسم</th><th>المعلم</th><th>الأوجه</th><th>السجلات</th><th>متوسط التقدير</th></tr></thead>
+              <tbody>${snap.topRows.map((r, idx) => `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td><b>${r.halaqaName}</b></td>
+                  <td><span class="badge ${r.section === 'mens' ? 'badge-green' : 'badge-warn'}">${r.section === 'mens' ? 'بنين' : 'بنات'}</span></td>
+                  <td>${r.teacherName}</td>
+                  <td><b>${r.faces}</b></td>
+                  <td>${r.entries}</td>
+                  <td>${r.avg}</td>
+                </tr>
+              `).join('')}</tbody>
+            </table>
+          </div>`
+        : '<p class="muted">لا توجد بيانات أسبوعية كافية.</p>';
+
+      $('boardActionsNeeded').innerHTML = `
+        <div class="board-action-list">
+          <div class="board-action-item warn"><b>حالات التعثر المبكر:</b> ${riskCount}</div>
+          ${snap.risks.slice(0, 6).map(r => `<div class="board-action-item warn">${r.name} - ${r.halaqaName} (${r.reasons.join('، ')})</div>`).join('') || '<p class="muted">لا توجد حالات تعثر حالياً.</p>'}
+          <div class="board-action-item info"><b>حلقات بسجل يومي ناقص:</b> ${missingCount}</div>
+          ${snap.missing.slice(0, 6).map(m => `<div class="board-action-item info">${m.halaqaName} - ناقص ${m.missing} طالب</div>`).join('') || '<p class="muted">السجلات اليومية مكتملة اليوم.</p>'}
+        </div>
+      `;
+
+      const top1 = snap.topRows[0];
+      $('boardExecSummary').innerHTML = `
+        <div class="row">
+          <span class="badge badge-gold">أفضل حلقة: ${top1 ? top1.halaqaName : 'لا يوجد'}</span>
+          <span class="badge">إجمالي الأوجه: ${totalFaces}</span>
+          <span class="badge">حالات التعثر: ${riskCount}</span>
+        </div>
+        <p style="margin-top:8px;">
+          التوصية: تعزيز متابعة الحلقات ذات السجلات الناقصة يوميًا، وتفعيل خطة دعم سريعة للطلاب ذوي التعثر المبكر،
+          والاستفادة من الحلقات الأعلى أداءً كنموذج تحسين لبقية الحلقات.
+        </p>
+      `;
+    }
+
+    function printBoardReport() {
+      const snap = getBoardSnapshot();
+      const totalFaces = Number(snap.mens.faces || 0) + Number(snap.womens.faces || 0);
+      const totalAya = Number(snap.mens.ayaTotal || 0) + Number(snap.womens.ayaTotal || 0);
+      const w = window.open('', '_blank');
+      if (!w) return toast('اسمح بفتح نافذة التقرير', 'err');
+      const topRowsHtml = snap.topRows.map((r, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${r.halaqaName}</td>
+          <td>${r.section === 'mens' ? 'بنين' : 'بنات'}</td>
+          <td>${r.teacherName}</td>
+          <td>${r.faces}</td>
+          <td>${r.entries}</td>
+          <td>${r.avg}</td>
+        </tr>
+      `).join('');
+      const riskRows = snap.risks.map((r, idx) => `<li>${idx + 1}. ${r.name} - ${r.halaqaName} (${r.reasons.join('، ')})</li>`).join('');
+      const missingRows = snap.missing.map((m, idx) => `<li>${idx + 1}. ${m.halaqaName} - ناقص ${m.missing} طالب</li>`).join('');
+      w.document.write(`
+        <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="utf-8" />
+            <title>تقرير مجلس الإدارة - جمعية تحفيظ القران الكريم بالقاعد</title>
+            <style>
+              body{font-family:Tajawal,Arial,sans-serif;margin:0;background:#f8f5ed;color:#1f2937;}
+              .page{max-width:1100px;margin:0 auto;padding:18px;}
+              .hero{background:linear-gradient(130deg,#14532d,#0f766e);color:#fff;border-radius:16px;padding:16px;border:1px solid rgba(255,255,255,0.25);}
+              h1{margin:0;font-family:Amiri,serif;font-size:34px}
+              .sub{opacity:.92;margin-top:6px;font-size:13px}
+              .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+              .kpi{background:#fff;border:1px solid #dfd1b2;border-radius:12px;padding:10px}
+              .kpi b{display:block;margin-top:6px;font-size:26px;color:#14532d}
+              .panel{margin-top:12px;background:#fff;border:1px solid #dfd1b2;border-radius:12px;padding:12px}
+              .panel h2{margin:0 0 8px 0;font-size:18px;color:#14532d}
+              table{width:100%;border-collapse:collapse}
+              th,td{border-top:1px solid #e5ddd0;padding:8px;text-align:right;font-size:13px}
+              thead th{background:#f8f5ed;border-top:0}
+              ul{margin:8px 0 0;padding-right:18px}
+              li{margin-bottom:6px}
+              @media print { body{background:#fff} .page{max-width:none} }
+            </style>
+          </head>
+          <body>
+            <div class="page">
+              <div class="hero">
+                <h1>جمعية تحفيظ القران الكريم بالقاعد</h1>
+                <div class="sub">تقرير مجلس الإدارة التنفيذي - الفترة ${snap.wr.startISO} إلى ${snap.wr.endISO}</div>
+              </div>
+              <div class="kpis">
+                <div class="kpi"><span>عدد المعلمين</span><b>${snap.teachers}</b></div>
+                <div class="kpi"><span>عدد الطلاب</span><b>${snap.students}</b></div>
+                <div class="kpi"><span>إجمالي الأوجه</span><b>${totalFaces}</b></div>
+                <div class="kpi"><span>إجمالي الآيات</span><b>${totalAya}</b></div>
+              </div>
+              <div class="panel">
+                <h2>أفضل الحلقات</h2>
+                <table>
+                  <thead><tr><th>#</th><th>الحلقة</th><th>القسم</th><th>المعلم</th><th>الأوجه</th><th>السجلات</th><th>متوسط التقدير</th></tr></thead>
+                  <tbody>${topRowsHtml || '<tr><td colspan="7">لا توجد بيانات كافية.</td></tr>'}</tbody>
+                </table>
+              </div>
+              <div class="panel">
+                <h2>حالات تعثر مبكر (${snap.risks.length})</h2>
+                <ul>${riskRows || '<li>لا توجد حالات تعثر حالياً.</li>'}</ul>
+              </div>
+              <div class="panel">
+                <h2>السجل اليومي الناقص (${snap.missing.length})</h2>
+                <ul>${missingRows || '<li>السجلات اليومية مكتملة اليوم.</li>'}</ul>
+              </div>
+              <div class="panel">
+                <h2>توصية تنفيذية</h2>
+                <p>اعتماد متابعة يومية للحلقات ذات النقص، وجدولة جلسات تحسين للتعثر المبكر، وتوثيق أفضل الممارسات من الحلقات الأعلى أداءً وتعميمها.</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      w.document.close();
+      setTimeout(() => w.print(), 280);
+    }
+
+    function saveSupervisionNote() {
+      const u = currentUser();
+      if (!u || (u.role !== 'admin' && u.role !== 'supervisor')) return toast('غير مسموح', 'err');
+      const halaqaId = $('supervisionHalaqaSelect').value;
+      const date = $('supervisionDate').value || todayISO();
+      const teacherScore = clamp(Number($('supervisionTeacherScore').value || 0), 1, 5);
+      const note = $('supervisionNoteText').value.trim();
+      if (!halaqaId || !note) return toast('أدخل الحلقة والملاحظة', 'err');
+      state.db.supervisorNotes.unshift({
+        id: uid('supnote'),
+        halaqaId,
+        date,
+        teacherScore,
+        note,
+        authorId: u.id,
+      });
+      $('supervisionNoteText').value = '';
+      saveDB();
+      renderSupervision();
+      toast('تم حفظ ملاحظة الإشراف');
+    }
+
+    function saveAnnouncement() {
+      const u = currentUser();
+      if (!u || u.role !== 'admin') return toast('إرسال التعميم متاح للإدارة فقط', 'err');
+      const title = ($('announcementTitle').value || '').trim();
+      const body = ($('announcementBody').value || '').trim();
+      const section = $('announcementSection').value || 'all';
+      const date = $('announcementDate').value || todayISO();
+      if (!title || !body) return toast('أدخل عنوان ونص التعميم', 'err');
+      state.db.announcements.unshift({
+        id: uid('an'),
+        title,
+        body,
+        date,
+        section,
+        audience: 'teachers',
+        createdBy: u.id,
+      });
+      $('announcementTitle').value = '';
+      $('announcementBody').value = '';
+      saveDB();
+      renderAll();
+      toast('تم إرسال التعميم');
+    }
+
+    function renderAnnouncementFeed() {
+      const u = currentUser();
+      if (!u || !$('announcementFeed')) return;
+      const list = visibleAnnouncementsForUser(u).slice(0, 20);
+      $('announcementFeed').innerHTML = list.length
+        ? list.map((a) => {
+          const author = state.db.staff.find(s => s.id === a.createdBy)?.name || 'الإدارة';
+          const secLabel = a.section === 'all' ? 'كل الأقسام' : (a.section === 'mens' ? 'البنين' : 'البنات');
+          return `
+            <div class="ops-task info">
+              <div class="row between">
+                <b>${a.title}</b>
+                <span class="badge">${a.date}</span>
+              </div>
+              <p class="muted" style="font-size:12px; margin-top:4px;">القسم: ${secLabel} - بواسطة: ${author}</p>
+              <p style="margin-top:4px;">${a.body}</p>
+            </div>
+          `;
+        }).join('')
+        : '<p class="muted">لا توجد تعميمات حالياً.</p>';
+    }
+
+    function renderSupervision() {
+      const u = currentUser();
+      const allowed = !!u && (u.role === 'admin' || u.role === 'supervisor');
+      $('supervisionCreateBox').classList.toggle('hidden', !allowed);
+      $('announcementCreateBox').classList.toggle('hidden', !(u && u.role === 'admin'));
+      if (!allowed) {
+        $('supervisionNotesList').innerHTML = '<p class="muted">هذه الصفحة متاحة للإدارة والمشرفين فقط.</p>';
+        renderAnnouncementFeed();
+        return;
+      }
+      const hs = visibleHalaqas();
+      $('supervisionHalaqaSelect').innerHTML = '<option value=\"\">اختر الحلقة</option>' + hs.map(h => `<option value="${h.id}">${h.circleName}</option>`).join('');
+      if (!$('supervisionDate').value) $('supervisionDate').value = todayISO();
+      if (!$('announcementDate').value) $('announcementDate').value = todayISO();
+      const allowedH = new Set(hs.map(h => h.id));
+      const notes = state.db.supervisorNotes.filter(n => allowedH.has(n.halaqaId));
+      $('supervisionNotesList').innerHTML = notes.length ? notes.map((n) => {
+        const h = state.indexes?.halaqaById?.[n.halaqaId];
+        const a = state.db.staff.find(s => s.id === n.authorId);
+        return `
+          <div class="card" style="margin-bottom:8px;">
+            <div class="row between">
+              <b>${h?.circleName || '-'}</b>
+              <span class="badge badge-gold">تقييم المعلم: ${n.teacherScore}/5</span>
+            </div>
+            <p class="muted" style="font-size:12px; margin-top:6px;">${n.date} - بواسطة: ${a?.name || '—'}</p>
+            <p style="margin-top:6px;">${n.note}</p>
+          </div>
+        `;
+      }).join('') : '<p class="muted">لا توجد ملاحظات إشراف.</p>';
+      renderAnnouncementFeed();
+    }
+
+    function canAccessExams() {
+      const u = currentUser();
+      if (!u) return false;
+      if (u.role === 'admin' || u.role === 'supervisor') return true;
+      if (u.role === 'teacher') return true;
+      return false;
+    }
+
+    function examGradeLabel(total) {
+      const t = Number(total || 0);
+      if (t >= 90) return 'ممتاز';
+      if (t >= 80) return 'جيد جداً';
+      if (t >= 70) return 'جيد';
+      if (t >= 60) return 'مقبول';
+      return 'ضعيف';
+    }
+
+    function createExamSession() {
+      if (!canAccessExams()) return toast('غير مسموح', 'err');
+      const halaqaId = $('examHalaqaSelect').value;
+      const startDate = $('examStartDate').value;
+      const examType = $('examType').value;
+      const title = $('examTitle').value.trim();
+      if (!halaqaId || !startDate || !title) return toast('أكمل بيانات جلسة الاختبار', 'err');
+      state.db.examSessions.unshift({
+        id: uid('exam'),
+        halaqaId,
+        startDate,
+        examType,
+        title,
+        createdBy: currentUser().id,
+        results: [],
+      });
+      $('examTitle').value = '';
+      saveDB();
+      renderExams();
+      toast('تم إنشاء جلسة الاختبار');
+    }
+
+    function saveExamResult() {
+      if (!canAccessExams()) return toast('غير مسموح', 'err');
+      const u = currentUser();
+      const sessionId = $('examSessionSelect').value;
+      const studentId = $('examStudentSelect').value;
+      if (!sessionId || !studentId) return toast('اختر الجلسة والطالب', 'err');
+      const hifdh = clamp(Number($('examHifdh').value || 0), 0, 40);
+      const tajweed = clamp(Number($('examTajweed').value || 0), 0, 25);
+      const fluency = clamp(Number($('examFluency').value || 0), 0, 15);
+      const revision = clamp(Number($('examRevision').value || 0), 0, 10);
+      const discipline = clamp(Number($('examDiscipline').value || 0), 0, 10);
+      const total = hifdh + tajweed + fluency + revision + discipline;
+      const session = state.db.examSessions.find(e => e.id === sessionId);
+      if (!session) return;
+      const existing = (session.results || []).find(r => r.studentId === studentId);
+      const byTeacher = u?.role === 'teacher';
+      const payload = {
+        studentId,
+        hifdh,
+        tajweed,
+        fluency,
+        revision,
+        discipline,
+        total,
+        gradeLabel: examGradeLabel(total),
+        by: u?.id || '',
+        at: todayISO(),
+        status: byTeacher ? 'pending' : 'approved',
+        approvedBy: byTeacher ? '' : (u?.id || ''),
+        approvedAt: byTeacher ? '' : todayISO(),
+      };
+      if (existing) Object.assign(existing, payload);
+      else session.results.push(payload);
+      saveDB();
+      renderExams();
+      toast(byTeacher ? 'تم رفع النتيجة بانتظار اعتماد المشرف' : 'تم حفظ واعتماد نتيجة الاختبار');
+    }
+
+    function approveExamResult(sessionId, studentId) {
+      const u = currentUser();
+      if (!u || (u.role !== 'admin' && u.role !== 'supervisor')) return toast('غير مسموح', 'err');
+      const session = state.db.examSessions.find(e => e.id === sessionId);
+      if (!session) return;
+      const result = (session.results || []).find(r => r.studentId === studentId);
+      if (!result) return toast('النتيجة غير موجودة', 'err');
+      result.status = 'approved';
+      result.approvedBy = u.id;
+      result.approvedAt = todayISO();
+      saveDB();
+      renderExams();
+      toast('تم اعتماد نتيجة الطالب');
+    }
+
+    function renderExams() {
+      const allowed = canAccessExams();
+      $('examCreateBox').classList.toggle('hidden', !allowed);
+      $('examScoreBox').classList.toggle('hidden', !allowed);
+      if (!allowed) {
+        $('examSessionsList').innerHTML = '<p class="muted">هذه الصفحة متاحة للمعلمين والمشرفين والإدارة.</p>';
+        return;
+      }
+      const hs = visibleHalaqas();
+      const hsOpts = '<option value=\"\">اختر الحلقة</option>' + hs.map(h => `<option value="${h.id}">${h.circleName}</option>`).join('');
+      $('examHalaqaSelect').innerHTML = hsOpts;
+      if (!$('examStartDate').value) $('examStartDate').value = todayISO();
+
+      const sessions = state.db.examSessions.filter(s => hs.some(h => h.id === s.halaqaId));
+      $('examSessionSelect').innerHTML = '<option value=\"\">اختر جلسة</option>' + sessions.map(s => {
+        const h = state.indexes?.halaqaById?.[s.halaqaId];
+        return `<option value="${s.id}">${s.title} - ${h?.circleName || ''} (${s.startDate})</option>`;
+      }).join('');
+      syncExamStudentSelect();
+
+      $('examSessionsList').innerHTML = sessions.length ? sessions.map((s) => {
+        const h = state.indexes?.halaqaById?.[s.halaqaId];
+        const rows = (s.results || []).map((r) => {
+          const st = state.db.students.find(x => x.id === r.studentId);
+          const entryBy = state.db.staff.find(x => x.id === r.by)?.name || '—';
+          const approvedBy = state.db.staff.find(x => x.id === r.approvedBy)?.name || '—';
+          const status = r.status === 'approved' ? '<span class="badge badge-green">معتمد</span>' : '<span class="badge badge-gold">بانتظار الاعتماد</span>';
+          const allowApprove = (currentUser()?.role === 'admin' || currentUser()?.role === 'supervisor') && r.status !== 'approved';
+          return `<tr>
+            <td>${st?.name || '—'}</td>
+            <td>${r.hifdh}</td>
+            <td>${r.tajweed}</td>
+            <td>${r.fluency}</td>
+            <td>${r.revision}</td>
+            <td>${r.discipline}</td>
+            <td><b>${r.total}</b></td>
+            <td>${r.gradeLabel || examGradeLabel(r.total)}</td>
+            <td>${status}</td>
+            <td>${entryBy} (${r.at || '-'})</td>
+            <td>${r.status === 'approved' ? `${approvedBy} (${r.approvedAt || '-'})` : '-'}</td>
+            <td class="no-print">${allowApprove ? `<button class="btn btn-ok" onclick="approveExamResult('${s.id}','${r.studentId}')">اعتماد</button>` : '-'}</td>
+          </tr>`;
+        }).join('');
+        return `
+          <div class="card" style="margin-bottom:10px; overflow:auto;">
+            <p><b>${s.title}</b> — ${h?.circleName || '-'} — ${s.startDate}</p>
+            <p class="muted" style="font-size:12px;">نوع الاختبار: ${s.examType}</p>
+            <table>
+              <thead><tr><th>الطالب</th><th>حفظ/40</th><th>تجويد/25</th><th>طلاقة/15</th><th>مراجعة/10</th><th>انضباط/10</th><th>المجموع/100</th><th>التقدير</th><th>الحالة</th><th>الإدخال</th><th>الاعتماد</th><th class="no-print">إجراء</th></tr></thead>
+              <tbody>${rows || '<tr><td colspan="12" class="muted">لا نتائج بعد.</td></tr>'}</tbody>
+            </table>
+          </div>
+        `;
+      }).join('') : '<p class="muted">لا توجد جلسات اختبار.</p>';
+    }
+
+    function syncExamStudentSelect() {
+      const sessionId = $('examSessionSelect')?.value;
+      if (!sessionId) {
+        const sessions = state.db.examSessions || [];
+        const fallback = sessions[0];
+        if (fallback) $('examSessionSelect').value = fallback.id;
+      }
+      const selectedSession = state.db.examSessions.find(s => s.id === $('examSessionSelect').value);
+      const hId = selectedSession?.halaqaId || '';
+      const students = state.db.students.filter(st => st.halaqaId === hId);
+      mountSmartPicker(
+        'examStudentSmart',
+        'examStudentSelect',
+        students.map(s => ({ id: s.id, label: studentLabel(s) })),
+        $('examStudentSelect').value || '',
+        'ابحث عن طالب الجلسة'
+      );
+    }
+
+    function saveKnightPhoto() {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      const studentId = $('knightPhotoStudentSelect').value;
+      const file = $('knightPhotoFile').files[0];
+      if (!studentId || !file) return toast('اختر الطالب والصورة', 'err');
+      const s = state.db.students.find(x => x.id === studentId && x.section === 'mens');
+      if (!s) return toast('اختر طالبًا من البنين', 'err');
+      const reader = new FileReader();
+      reader.onload = () => {
+        s.socialPhoto = String(reader.result || '');
+        saveDB();
+        renderKnights();
+        toast('تم حفظ الصورة');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderKnights() {
+      const admin = isAdmin();
+      const weeklyMens = knightsRanking('weekly', 'mens').slice(0, 10);
+      const monthlyMens = knightsRanking('monthly', 'mens').slice(0, 10);
+      const weeklyWomens = knightsRanking('weekly', 'womens').slice(0, 10);
+      const monthlyWomens = knightsRanking('monthly', 'womens').slice(0, 10);
+      const toRows = (rows, section) => rows.length
+        ? rows.map((k, i) => {
+            const h = state.indexes?.halaqaById?.[k.halaqaId];
+            const rankStyle = i === 0 ? 'background:linear-gradient(135deg,#a16207,#d97706);' : '';
+            return `
+              <div class="knight-row">
+                <div class="row" style="min-width:0; flex-wrap:nowrap;">
+                  <span class="knight-rank" style="${rankStyle}">${i + 1}</span>
+                  ${k.photo ? `<img src="${k.photo}" alt="${k.name}" style="width:42px;height:42px;border-radius:10px;object-fit:cover;border:1px solid ${section === 'mens' ? '#93c5fd' : '#f9a8d4'};" />` : ''}
+                  <div style="min-width:0;">
+                    <b style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${k.name}</b>
+                    <span class="muted" style="font-size:12px;">${h?.circleName || '-'}</span>
+                  </div>
+                </div>
+                <span class="score">${k.score} نقطة</span>
+              </div>
+            `;
+          }).join('')
+        : '<p class="muted">لا بيانات.</p>';
+      const mensHtml = `
+        <h4 style="margin-bottom:6px;">تصنيف أسبوعي</h4>
+        ${toRows(weeklyMens, 'mens')}
+        <h4 style="margin:14px 0 6px;">تصنيف شهري</h4>
+        ${toRows(monthlyMens, 'mens')}
+      `;
+      const womensHtml = `
+        <h4 style="margin-bottom:6px;">تصنيف أسبوعي</h4>
+        ${toRows(weeklyWomens, 'womens')}
+        <h4 style="margin:14px 0 6px;">تصنيف شهري</h4>
+        ${toRows(monthlyWomens, 'womens')}
+      `;
+      if (admin || state.section === 'mens') $('knightsMensBoard').innerHTML = mensHtml;
+      else $('knightsMensBoard').innerHTML = '<p class="muted">غير متاح لهذا الحساب.</p>';
+      if (admin || state.section === 'womens') $('knightsWomensBoard').innerHTML = womensHtml;
+      else $('knightsWomensBoard').innerHTML = '<p class="muted">غير متاح لهذا الحساب.</p>';
+
+      const boys = state.db.students.filter(s => s.section === 'mens');
+      mountSmartPicker(
+        'knightPhotoStudentSmart',
+        'knightPhotoStudentSelect',
+        boys.map(s => ({ id: s.id, label: studentLabel(s) })),
+        $('knightPhotoStudentSelect').value || '',
+        'ابحث عن طالب البنين'
+      );
+      $('knightPhotoTools').classList.toggle('hidden', !admin);
+
+      const topMens = weeklyMens[0];
+      const topWomens = weeklyWomens[0];
+      const cardTemplate = (top, sectionLabel, sectionKey) => top ? `
+        <div class="knight-social-card">
+          <p class="badge badge-gold">وثيقة نشر</p>
+          <h4>فارس الأسبوع - ${sectionLabel}</h4>
+          <div class="row" style="margin-top:8px;">
+            ${top.photo ? `<img src="${top.photo}" alt="${top.name}" />` : '<div style="width:74px;height:74px;border-radius:14px;border:2px solid #d4af37;background:#f1f5f9;"></div>'}
+            <div style="min-width:0;">
+              <div class="hero-name">${top.name}</div>
+              <div class="meta">المجموع: <b>${top.score}</b> نقطة</div>
+              <div class="meta">${(state.indexes?.halaqaById?.[top.halaqaId]?.circleName) || '-'}</div>
+            </div>
+          </div>
+          <p class="meta">جمعية تحفيظ القران الكريم بالقاعد</p>
+          <div class="row no-print" style="margin-top:10px;">
+            <button class="btn btn-gold" onclick="exportKnightCard('${sectionKey}','weekly')">تحميل بطاقة ${sectionLabel}</button>
+          </div>
+        </div>
+      ` : `
+        <div class="knight-social-card">
+          <h4>فارس الأسبوع - ${sectionLabel}</h4>
+          <p class="muted" style="margin-top:8px;">لا يوجد فارس أسبوعي لهذا القسم حالياً.</p>
+        </div>
+      `;
+      $('knightSocialCardContent').innerHTML = `
+        <div class="knight-social-grid">
+          ${cardTemplate(topMens, 'البنين', 'mens')}
+          ${cardTemplate(topWomens, 'البنات', 'womens')}
+        </div>
+      `;
+      $('boardReportText').innerHTML = `
+        <p>فارس الأسبوع (بنين): <b>${topMens ? topMens.name : 'لا يوجد'}</b> | فارس الأسبوع (بنات): <b>${topWomens ? topWomens.name : 'لا يوجد'}</b></p>
+        <p style="margin-top:6px;">توصية: اعتماد التكريم الأسبوعي رسميًا، وإبراز أفضل 3 طلاب في كل قسم مع نشر بطاقة الفرسان في قنوات الجمعية.</p>
+      `;
+    }
+
+    async function exportKnightCard(section = 'mens', period = 'weekly') {
+      const rows = knightsRanking(period, section);
+      const top = rows[0];
+      if (!top) return toast('لا توجد بيانات فارس لهذا القسم حالياً', 'err');
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 1080;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return toast('تعذر تجهيز بطاقة الفرسان', 'err');
+
+        const mainA = section === 'mens' ? '#1d4ed8' : '#be185d';
+        const mainB = section === 'mens' ? '#0f766e' : '#9d174d';
+        const sectionLabel = section === 'mens' ? 'البنين' : 'البنات';
+        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0, '#fffef8');
+        grad.addColorStop(0.58, section === 'mens' ? '#eff6ff' : '#fdf2f8');
+        grad.addColorStop(1, '#f8fafc');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'rgba(161, 98, 7, 0.14)';
+        ctx.beginPath();
+        ctx.arc(150, 170, 145, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(20, 83, 45, 0.13)';
+        ctx.beginPath();
+        ctx.arc(955, 880, 180, 0, Math.PI * 2);
+        ctx.fill();
+
+        roundedRectPath(ctx, 42, 42, 996, 996, 38);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#d4af37';
+        ctx.stroke();
+
+        ctx.fillStyle = '#14532d';
+        ctx.textAlign = 'center';
+        ctx.font = '700 66px Amiri, Tajawal, sans-serif';
+        ctx.fillText('فرسان القرآن', 540, 150);
+        ctx.font = '700 36px Tajawal, Amiri, sans-serif';
+        ctx.fillStyle = '#334155';
+        ctx.fillText(`فارس ${period === 'monthly' ? 'الشهر' : 'الأسبوع'} - قسم ${sectionLabel}`, 540, 204);
+
+        const logo = await loadImageSafe(state.db?.settings?.logoDataUrl || '');
+        if (logo) {
+          roundedRectPath(ctx, 92, 90, 108, 108, 16);
+          ctx.save();
+          ctx.clip();
+          ctx.drawImage(logo, 92, 90, 108, 108);
+          ctx.restore();
+          ctx.strokeStyle = '#d6d3d1';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        const photo = await loadImageSafe(top.photo || '');
+        const px = 410;
+        const py = 250;
+        const size = 260;
+        roundedRectPath(ctx, px, py, size, size, 24);
+        if (photo) {
+          ctx.save();
+          ctx.clip();
+          ctx.drawImage(photo, px, py, size, size);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fill();
+        }
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#d4af37';
+        ctx.stroke();
+
+        ctx.fillStyle = mainA;
+        ctx.font = '700 62px Amiri, Tajawal, sans-serif';
+        ctx.fillText(top.name || 'الطالب', 540, 580);
+        ctx.fillStyle = '#475569';
+        ctx.font = '700 34px Tajawal, Amiri, sans-serif';
+        ctx.fillText(`المجموع: ${top.score} نقطة`, 540, 635);
+        const topHalaqa = state.indexes?.halaqaById?.[top.halaqaId]?.circleName || '-';
+        ctx.fillText(`الحلقة: ${topHalaqa}`, 540, 680);
+
+        roundedRectPath(ctx, 118, 738, 844, 236, 20);
+        ctx.fillStyle = section === 'mens' ? 'rgba(59,130,246,0.09)' : 'rgba(236,72,153,0.11)';
+        ctx.fill();
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = section === 'mens' ? '#93c5fd' : '#f9a8d4';
+        ctx.stroke();
+
+        ctx.fillStyle = mainB;
+        ctx.font = '700 36px Tajawal, Amiri, sans-serif';
+        ctx.fillText('أفضل 3 طلاب في القسم', 540, 790);
+        const topThree = rows.slice(0, 3);
+        ctx.font = '700 30px Tajawal, Amiri, sans-serif';
+        topThree.forEach((k, i) => {
+          ctx.fillStyle = i === 0 ? '#a16207' : '#14532d';
+          ctx.fillText(`${i + 1}. ${k.name} - ${k.score} نقطة`, 540, 836 + (i * 48));
+        });
+
+        ctx.fillStyle = '#334155';
+        ctx.font = '700 24px Tajawal, Amiri, sans-serif';
+        ctx.fillText('جمعية تحفيظ القران الكريم بالقاعد', 540, 1022);
+
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = `knights-${section}-${period}-${todayISO()}.png`;
+        a.click();
+        toast('تم تنزيل بطاقة الفرسان');
+      } catch (_e) {
+        toast('تعذر إنشاء بطاقة الفرسان', 'err');
+      }
+    }
+
+    function savePlatformOptions() {
+      if (!isAdmin()) return toast('غير مسموح', 'err');
+      toast('لا توجد خيارات منصة قابلة للتعديل حالياً');
+    }
+
+    function renderSettings() {
+      const u = currentUser();
+      const demoCard = $('demoDataCard');
+      if (demoCard) {
+        const canSeeDemoTools = Boolean(DEV_MODE && u && u.role === 'admin');
+        demoCard.classList.toggle('hidden', !canSeeDemoTools);
+      }
+    }
+
+    function renderParentView() {
+      if (!state.session || state.session.type !== 'parent') return;
+      applyLogo();
+      const kids = state.indexes?.parentStudentsByPhone?.[state.session.guardianPhone] || [];
+      $('parentSessionLabel').textContent = `جوال ولي الأمر: ${state.session.guardianPhone}`;
+
+      $('parentStudentsCards').innerHTML = `
+        <div class="parent-side-title">أبنائي في الحلقات</div>
+        <p class="muted" style="font-size:12px;">اختر اسم الطالب لعرض التقرير التفصيلي وشهادة الشكر.</p>
+        <div class="parent-student-list">
+          ${kids.map(k => {
+            const h = state.db.halaqas.find(x => x.id === k.halaqaId);
+            return `
+              <button class="parent-student-btn ${state.currentParentStudentId === k.id ? 'active' : ''}" onclick="selectParentStudent('${k.id}')">
+                <div style="font-size:15px; font-weight:800;">${k.name}</div>
+                <div class="muted" style="font-size:12px; margin-top:4px;">${h?.circleName || 'بدون حلقة'} • ${k.section === 'mens' ? 'البنين' : 'البنات'}</div>
+              </button>
+            `;
+          }).join('') || '<span class="muted">لا يوجد طلاب مرتبطون بهذا الرقم.</span>'}
+        </div>
+      `;
+
+      const selected = kids.find(k => k.id === state.currentParentStudentId) || kids[0];
+      if (!selected) {
+        $('parentStudentReport').innerHTML = '<p class="muted">لا توجد بيانات.</p>';
+        $('parentCertificatePanel').innerHTML = '<p class="muted">لا توجد شهادات.</p>';
+        return;
+      }
+      state.currentParentStudentId = selected.id;
+      const h = state.db.halaqas.find(x => x.id === selected.halaqaId);
+      const logs = logsForStudent(selected.id).slice(0, 20);
+      const totalAya = logs.reduce((s, l) => s + Number(l.ayaCount || 0), 0);
+      const totalFaces = logs.reduce((s, l) => s + Number(l.pages?.faces || 0), 0);
+      const hifdhAya = Number(selected.totalHifdhAya || 0);
+      const revisionAya = Number(selected.totalRevisionAya || 0);
+      const hifdhFaces = Number(selected.totalHifdhFaces || 0);
+      const revisionFaces = Number(selected.totalRevisionFaces || 0);
+      const wr = weekRange();
+      const weekLogs = logs.filter(l => l.date >= wr.startISO && l.date <= wr.endISO);
+      const weekAya = weekLogs.reduce((s, l) => s + Number(l.ayaCount || 0), 0);
+      const alertAbs = Number(selected.absentCount || 0) >= 4;
+      const certs = Array.isArray(selected.certificates) ? selected.certificates : [];
+      const latestCert = certs[0] || null;
+      const targetAya = Number(selected.plan?.targetAya || 0);
+      const currentAya = Number(selected.lastHifdhAya || 0);
+      const progressPercent = targetAya > 0 ? Math.min(100, Math.round((currentAya / targetAya) * 100)) : 0;
+      const badges = getStudentBadges(selected);
+
+      $('parentStudentReport').innerHTML = `
+        <div class="row between" style="align-items:flex-start;">
+          <div>
+            <h3 style="font-family:'Amiri', serif; font-size:28px; color:#14532d;">ملف الطالب: ${selected.name}</h3>
+            <p class="muted" style="margin-top:4px;">الحلقة: <b>${h?.circleName || '-'}</b> | الصف: <b>${selected.grade || '-'}</b></p>
+          </div>
+          <span class="badge ${alertAbs ? 'badge-warn' : 'badge-green'}">${alertAbs ? 'تنبيه غياب' : 'انتظام جيد'}</span>
+        </div>
+        <div class="parent-kpis">
+          <div class="parent-kpi"><p class="muted">آخر حفظ</p><b>${selected.lastHifdhSurah || '-'} ${selected.lastHifdhAya ? '(' + selected.lastHifdhAya + ')' : ''}</b></div>
+          <div class="parent-kpi"><p class="muted">إنجاز الأسبوع</p><div class="kpi" style="font-size:25px;">${weekAya}</div></div>
+          <div class="parent-kpi"><p class="muted">إجمالي الآيات</p><div class="kpi" style="font-size:25px;">${totalAya}</div></div>
+          <div class="parent-kpi"><p class="muted">إجمالي الأوجه</p><div class="kpi" style="font-size:25px;">${totalFaces}</div></div>
+        </div>
+        <div class="parent-progress">
+          <div class="row between" style="align-items:center;">
+            <p>النقاط: <b>${Number(selected.points || 0)}</b></p>
+            <p>الحفظ: <b>${hifdhAya}</b> آية (${hifdhFaces} وجه) | المراجعة: <b>${revisionAya}</b> آية (${revisionFaces} وجه)</p>
+          </div>
+          ${targetAya > 0 ? `
+            <p style="margin-top:6px;">خطة الطالب: ${selected.plan?.targetSurah || '-'} حتى آية ${targetAya} - نسبة التقدم: <b>${progressPercent}%</b></p>
+            <div class="parent-progress-bar"><div class="parent-progress-fill" style="width:${progressPercent}%"></div></div>
+          ` : '<p class="muted" style="margin-top:6px;">لا توجد خطة مستهدفة مضافة للطالب حالياً.</p>'}
+          <p style="margin-top:8px;">الشارات: ${badges.map(b => `<span class="badge badge-gold">${b}</span>`).join(' ') || 'لا يوجد'}</p>
+        </div>
+        <div class="card" style="margin-top:10px; overflow:auto;">
+          <h3 style="margin-bottom:8px;">آخر المتابعات</h3>
+          <table>
+            <thead><tr><th>التاريخ</th><th>النوع</th><th>السورة</th><th>المدى</th><th>الآيات</th><th>التقدير</th></tr></thead>
+            <tbody>
+              ${logs.map(l => `<tr><td>${l.date}</td><td>${l.type === 'hifdh' ? 'حفظ' : 'مراجعة'}</td><td>${l.surahName}</td><td>${l.fromAya}-${l.toAya}</td><td>${l.ayaCount}</td><td>${l.grade}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">لا يوجد سجلات.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+      $('parentCertificatePanel').innerHTML = latestCert ? `
+        <div class="row between" style="margin-bottom:10px;">
+          <h3 style="font-family:'Amiri', serif; font-size:26px; color:#14532d;">شهادة الطالب</h3>
+          <div class="row">
+            <button class="btn btn-light no-print" onclick="exportParentCertificate('${selected.id}')">مشاركة الشهادة (صورة)</button>
+            <button class="btn btn-light no-print" onclick="window.print()">طباعة</button>
+          </div>
+        </div>
+        <div class="certificate-showcase">
+          <div class="certificate-watermark">جمعية<br/>تحفيظ القرآن</div>
+          <div style="text-align:center;"><span class="certificate-ribbon">وثيقة تكريم</span></div>
+          <div class="certificate-basmala">بسم الله الرحمن الرحيم</div>
+          <div class="certificate-title">شهادة شكر وتقدير</div>
+          <div class="certificate-subtitle">تمنحها الجمعية تقديراً لجهد الطالب في حلقات القرآن</div>
+          <div class="certificate-student">${selected.name}</div>
+          <div class="certificate-reason">${latestCert.reason || 'لتميزه في الحفظ والانضباط وحسن السلوك.'}</div>
+          <div class="certificate-footer">
+            <div class="certificate-meta">
+              <div class="muted">الجهة المانحة</div>
+              <b>${latestCert.issuerName || 'إدارة الجمعية'}</b>
+            </div>
+            <div class="certificate-meta">
+              <div class="muted">تاريخ الشهادة</div>
+              <b>${latestCert.date || '-'}</b>
+            </div>
+            <div class="certificate-meta">
+              <div class="muted">الحلقة</div>
+              <b>${h?.circleName || '-'}</b>
+            </div>
+          </div>
+        </div>
+      ` : `
+        <div class="certificate-empty">
+          <h3 style="margin-bottom:8px;">شهادة الشكر</h3>
+          <p class="muted">لا توجد شهادة شكر للطالب حالياً. عند إصدار شهادة جديدة ستظهر هنا تلقائيًا بشكل جاهز للطباعة.</p>
+        </div>
+      `;
+      refreshSelectUX($('parentView'));
+    }
+
+    function renderWorkflowBanner() {
+      const u = currentUser();
+      if (!u || !$('workflowBanner')) return;
+      if (u.role === 'teacher') {
+        $('workflowBanner').classList.add('hidden');
+        return;
+      }
+      $('workflowBanner').classList.remove('hidden');
+      const tabCopy = {
+        halaqas: { title: 'تشغيل الحلقات', sub: 'ادخل الحلقة، اختر الطالب، ثم سجل الإنجاز اليومي بسرعة.' },
+        students: { title: 'إدارة الطلاب', sub: 'إضافة/نقل/تحديث بيانات الطلاب ومراجعة جودة البيانات.' },
+        staff: { title: 'إدارة الكادر', sub: 'إضافة المعلمين والمشرفين وربط المعلم بحلقته.' },
+        supervision: { title: 'الإشراف', sub: 'توثيق ملاحظات المشرف على أداء المعلم ومتابعة التحسين.' },
+        exams: { title: 'الاختبارات', sub: 'المعلم يرفع الدرجات، ثم يعتمدها المشرف/الإدارة.' },
+        reports: { title: 'التقارير', sub: 'متابعة الأداء الأسبوعي والشهري على مستوى الطالب والحلقة والقسم.' },
+        board: { title: 'بوابة المجلس', sub: 'ملخص أسبوعي استراتيجي لرئيس المجلس والأعضاء.' },
+        knights: { title: 'منصة الفرسان', sub: 'تكريم أفضل الطلاب أسبوعياً وشهرياً مع بطاقة نشر جاهزة.' },
+        settings: { title: 'الإعدادات', sub: 'الشعار والنسخ الاحتياطي وخيارات التشغيل.' },
+      };
+      const current = tabCopy[state.tab] || tabCopy.halaqas;
+      const sectionLabel = isBoardMember() ? 'البنين + البنات' : (state.section === 'mens' ? 'قسم البنين' : 'قسم البنات');
+      const latestAnn = visibleAnnouncementsForUser(u)[0] || null;
+      const scopeBadgeClass = isBoardMember() ? 'badge-gold' : (state.section === 'mens' ? 'badge-green' : 'badge-warn');
+      $('workflowBanner').innerHTML = `
+        <div class="context-title">${current.title}</div>
+        <div class="context-sub">${current.sub}</div>
+                  <div style="margin-top:6px;text-align:center;"><span class="hijri-badge" id="hijriDateBadge">📅 جارٍ التحميل...</span></div>
+        <div class="row" style="margin-top:8px;">
+          <span class="badge ${scopeBadgeClass}">${sectionLabel}</span>
+          <span class="badge">الدور: ${u.role}</span>
+          ${latestAnn ? `<span class="badge badge-gold">تعميم: ${latestAnn.title}</span>` : ''}
+        </div>
+      `;
+                      // Update Hijri date badge
+      const _hb = document.getElementById('hijriDateBadge');
+      if (_hb) {
+        const _today = new Date();
+        try {
+          const _hijri = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {day:'numeric',month:'long',year:'numeric'}).format(_today);
+          _hb.textContent = '📅 ' + _hijri;
+        } catch(e) { _hb.textContent = '📅 ' + _today.toLocaleDateString('ar-SA'); }
+      }
+
+    }
+
+    function renderOpsSidebar() {
+      const u = currentUser();
+      if (!u || !$('opsSidebarStats') || !$('opsSidebarTasks')) return;
+
+      const today = todayISO();
+      const scopedHalaqas = isBoardMember()
+        ? state.db.halaqas
+        : (isAdmin() ? state.db.halaqas.filter(h => h.section === state.section) : visibleHalaqas());
+      const allowedHIds = new Set(scopedHalaqas.map(h => h.id));
+      const scopedStudents = state.db.students.filter(s => allowedHIds.has(s.halaqaId));
+      const todayLogs = state.db.logs.filter(l => l.date === today && allowedHIds.has(l.halaqaId));
+      const pendingExam = state.db.examSessions
+        .filter(es => allowedHIds.has(es.halaqaId))
+        .reduce((sum, es) => sum + (es.results || []).filter(r => r.status !== 'approved').length, 0);
+      const absentAlert = scopedStudents.filter(s => Number(s.absentCount || 0) >= 4).length;
+      const missingGuardian = scopedStudents.filter(s => !compactName(s.guardianPhone)).length;
+      const missingDaily = scopedHalaqas
+        .map((h) => {
+          const students = state.db.students.filter(s => s.halaqaId === h.id);
+          const logs = state.db.logs.filter(l => l.halaqaId === h.id && l.date === today);
+          const loggedIds = new Set(logs.map(l => l.studentId));
+          return Math.max(0, students.length - loggedIds.size);
+        })
+        .filter((x) => x > 0).length;
+      const ann = visibleAnnouncementsForUser(u)[0] || null;
+
+      if (u.role === 'teacher') {
+        $('opsSidebarStats').classList.add('hidden');
+        $('opsSidebarTasks').classList.add('hidden');
+        return;
+      }
+
+      $('opsSidebarStats').classList.remove('hidden');
+      $('opsSidebarTasks').classList.remove('hidden');
+
+      $('opsSidebarStats').innerHTML = `
+        <div class="ops-title" style="font-size:14px; margin-bottom:6px;">لوحة اليوم</div>
+        <p class="muted" style="font-size:12px;">${today}</p>
+        <p style="margin-top:6px;">الحلقات: <b>${scopedHalaqas.length}</b></p>
+        <p>الطلاب: <b>${scopedStudents.length}</b></p>
+        <p>سجلات اليوم: <b>${todayLogs.length}</b></p>
+        <p>اختبارات بانتظار الاعتماد: <b>${pendingExam}</b></p>
+        <p>الحلقات ذات سجل ناقص اليوم: <b>${missingDaily}</b></p>
+      `;
+
+      const tasks = [];
+      if (pendingExam > 0 && (u.role === 'admin' || u.role === 'supervisor')) {
+        tasks.push(`<div class="ops-task warn">هناك <b>${pendingExam}</b> نتيجة اختبار بانتظار الاعتماد.<div style="margin-top:6px;"><button class="btn btn-ok" onclick="setTab('exams')">فتح الاختبارات</button></div></div>`);
+      }
+      if (absentAlert > 0) {
+        tasks.push(`<div class="ops-task warn">عدد <b>${absentAlert}</b> طلاب تجاوزوا 4 غيابات.${isBoardMember() ? '' : `<div style="margin-top:6px;"><button class="btn btn-light" onclick="setTab('reports')">عرض التنبيهات</button></div>`}</div>`);
+      }
+      if (missingGuardian > 0 && canManageStudents()) {
+        tasks.push(`<div class="ops-task info">عدد <b>${missingGuardian}</b> طلاب بدون رقم ولي أمر.<div style="margin-top:6px;"><button class="btn btn-light" onclick="setTab('students')">تدقيق بيانات الطلاب</button></div></div>`);
+      }
+      if (missingDaily > 0) {
+        tasks.push(`<div class="ops-task info">هناك <b>${missingDaily}</b> حلقات بسجل يومي ناقص اليوم.${isBoardMember() ? '' : `<div style="margin-top:6px;"><button class="btn btn-light" onclick="setTab('reports')">مراجعة السجل اليومي</button></div>`}</div>`);
+      }
+      if (ann) {
+        tasks.push(`<div class="ops-task ok"><b>آخر تعميم:</b> ${ann.title}<p style="margin-top:4px;">${ann.body}</p></div>`);
+      }
+      if (!tasks.length) {
+        tasks.push('<div class="ops-task ok">لا توجد مهام عاجلة حالياً.</div>');
+      }
+      $('opsSidebarTasks').innerHTML = `
+        <div class="ops-title" style="font-size:14px; margin-bottom:6px;">المهام العاجلة</div>
+        ${tasks.join('')}
+      `;
+    }
+
+    function selectParentStudent(studentId) {
+      state.currentParentStudentId = studentId;
+      renderParentView();
+    }
+
+    function renderAll() {
+      rebuildIndexes();
+      const u = currentUser();
+      if (!u) return;
+
+      if (u.role === 'teacher') {
+        state.section = u.section || state.section;
+      }
+
+      $('appView').setAttribute('data-role', u.role || '');
+      $('sectionTabs').style.display = (u.role === 'teacher' || u.role === 'board') ? 'none' : 'inline-flex';
+      $('appView').setAttribute('data-display-mode', state.displayMode);
+      document.querySelectorAll('#displaySwitch button').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.display === state.displayMode);
+      });
+
+      document.querySelectorAll('#mainTabs .tab-btn').forEach((btn) => {
+        btn.style.display = 'inline-block';
+      });
+      const staffTab = document.querySelector('[data-tab="staff"]');
+      const supervisionTab = document.querySelector('[data-tab="supervision"]');
+      const examsTab = document.querySelector('[data-tab="exams"]');
+      const reportsTab = document.querySelector('[data-tab="reports"]');
+      const boardTab = document.querySelector('[data-tab="board"]');
+      const knightsTab = document.querySelector('[data-tab="knights"]');
+      const settingsTab = document.querySelector('[data-tab="settings"]');
+      const halaqasTab = document.querySelector('[data-tab="halaqas"]');
+      const studentsTab = document.querySelector('[data-tab="students"]');
+
+      halaqasTab.style.display = 'inline-block';
+      studentsTab.style.display = 'inline-block';
+      staffTab.style.display = isAdmin() ? 'inline-block' : 'none';
+      supervisionTab.style.display = (u.role === 'admin' || u.role === 'supervisor') ? 'inline-block' : 'none';
+      examsTab.style.display = canAccessExams() ? 'inline-block' : 'none';
+      reportsTab.style.display = isTeacher() ? 'none' : 'inline-block';
+      boardTab.style.display = (u.role === 'admin' || u.role === 'supervisor' || u.role === 'board') ? 'inline-block' : 'none';
+      knightsTab.style.display = isTeacher() ? 'none' : 'inline-block';
+      settingsTab.style.display = isAdmin() ? 'inline-block' : 'none';
+
+      if (isTeacher()) {
+        staffTab.style.display = 'none';
+        supervisionTab.style.display = 'none';
+        reportsTab.style.display = 'none';
+        boardTab.style.display = 'none';
+        knightsTab.style.display = 'none';
+        settingsTab.style.display = 'none';
+      }
+
+      if (!isAdmin() && (state.tab === 'staff' || state.tab === 'settings')) state.tab = 'halaqas';
+      if (!(u.role === 'admin' || u.role === 'supervisor') && state.tab === 'supervision') state.tab = 'halaqas';
+      if (!canAccessExams() && state.tab === 'exams') state.tab = 'halaqas';
+      if (isTeacher() && (state.tab === 'reports' || state.tab === 'board' || state.tab === 'knights')) state.tab = 'halaqas';
+      if (!(u.role === 'admin' || u.role === 'supervisor' || u.role === 'board') && state.tab === 'board') state.tab = 'halaqas';
+      if (u.role === 'board') {
+        state.tab = 'board';
+        document.querySelectorAll('#mainTabs .tab-btn').forEach((btn) => {
+          btn.style.display = btn.dataset.tab === 'board' ? 'inline-block' : 'none';
+        });
+      }
+
+      $('appView').setAttribute('data-section', state.section);
+      applyLogo();
+
+      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
+      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === state.section));
+      ['halaqas','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== state.tab));
+
+      $('sessionLabel').textContent = `المستخدم: ${u.name} | الدور: ${u.role} | الجوال: ${u.phone}`;
+      renderWorkflowBanner();
+      renderOpsSidebar();
+
+      renderHalaqas();
+      renderStudents();
+      renderStaff();
+      renderSupervision();
+      renderExams();
+      renderReports();
+      renderBoardReport();
+      renderKnights();
+      renderSettings();
+      refreshSelectUX($('appView'));
+    }
+
+    function downloadJSONFile(payload, fileName) {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      a.click();
+      const objectURL = a.href;
+      setTimeout(() => URL.revokeObjectURL(objectURL), 1000);
+    }
+
+    function coerceSectionBackup(section, rawBucket) {
+      const targetSection = normalizeSection(section);
+      const src = (rawBucket && typeof rawBucket === 'object') ? rawBucket : {};
+      return {
+        staff: (Array.isArray(src.staff) ? src.staff : []).map((s) => ({ ...s, section: targetSection })),
+        halaqas: (Array.isArray(src.halaqas) ? src.halaqas : []).map((h) => ({ ...h, section: targetSection })),
+        students: (Array.isArray(src.students) ? src.students : []).map((s) => ({ ...s, section: targetSection })),
+        logs: (Array.isArray(src.logs) ? src.logs : []).map((l) => ({ ...l, section: targetSection })),
+        rollcall: Array.isArray(src.rollcall) ? [...src.rollcall] : [],
+        supervisorNotes: (Array.isArray(src.supervisorNotes) ? src.supervisorNotes : []).map((n) => ({ ...n, section: targetSection })),
+        examSessions: (Array.isArray(src.examSessions) ? src.examSessions : []).map((session) => ({ ...session, section: targetSection })),
+        announcements: (Array.isArray(src.announcements) ? src.announcements : []).map((a) => ({ ...a, section: targetSection })),
+      };
+    }
+
+    function coerceSharedBackup(rawShared) {
+      const src = (rawShared && typeof rawShared === 'object') ? rawShared : {};
+      return {
+        version: Number(src.version || 3),
+        settings: (src.settings && typeof src.settings === 'object')
+          ? src.settings
+          : (state.db?.settings || { logoDataUrl: '', allowTeacherExams: false, lockTodayEntries: true }),
+        staffGlobal: Array.isArray(src.staffGlobal) ? [...src.staffGlobal] : [],
+        announcements: (Array.isArray(src.announcements) ? src.announcements : []).map((a) => ({ ...a, section: 'all' })),
+      };
+    }
+
+    function isMergedBackupShape(value) {
+      return !!value
+        && typeof value === 'object'
+        && Array.isArray(value.staff)
+        && Array.isArray(value.halaqas)
+        && Array.isArray(value.students)
+        && Array.isArray(value.logs);
+    }
+
+    function isSeparatedBackupShape(value) {
+      return !!value
+        && typeof value === 'object'
+        && value.shared
+        && value.mens
+        && value.womens;
+    }
+
+    function hasSectionBucketShape(value) {
+      return !!value
+        && typeof value === 'object'
+        && (
+          Array.isArray(value.staff)
+          || Array.isArray(value.halaqas)
+          || Array.isArray(value.students)
+          || Array.isArray(value.logs)
+          || Array.isArray(value.rollcall)
+          || Array.isArray(value.supervisorNotes)
+          || Array.isArray(value.examSessions)
+          || Array.isArray(value.announcements)
+        );
+    }
+
+    function hasSharedBucketShape(value) {
+      return !!value
+        && typeof value === 'object'
+        && (
+          (value.settings && typeof value.settings === 'object')
+          || Array.isArray(value.staffGlobal)
+          || Array.isArray(value.announcements)
+        );
+    }
+
+    function extractFullBackup(parsed) {
+      if (parsed?.backupType === 'full' && parsed.data) return parsed.data;
+      if (isSeparatedBackupShape(parsed)) return mergeSeparatedDB(parsed);
+      if (isMergedBackupShape(parsed)) return parsed;
+      throw new Error('invalid_full');
+    }
+
+    function extractSectionBackup(parsed, section) {
+      const targetSection = normalizeSection(section);
+      if (parsed?.backupType === 'section') {
+        const parsedSection = normalizeSection(parsed.section);
+        if (parsedSection !== targetSection) throw new Error('section_mismatch');
+        return coerceSectionBackup(targetSection, parsed.data);
+      }
+      if (parsed?.backupType === 'full' && parsed.data) {
+        return splitDBBySection(migrateIfNeeded(parsed.data))[targetSection];
+      }
+      if (isSeparatedBackupShape(parsed)) {
+        return coerceSectionBackup(targetSection, parsed[targetSection]);
+      }
+      if (isMergedBackupShape(parsed)) {
+        return splitDBBySection(migrateIfNeeded(parsed))[targetSection];
+      }
+      if (!hasSectionBucketShape(parsed)) throw new Error('invalid_section');
+      return coerceSectionBackup(targetSection, parsed);
+    }
+
+    function extractSharedBackup(parsed) {
+      if (parsed?.backupType === 'shared') return coerceSharedBackup(parsed.data);
+      if (parsed?.backupType === 'full' && parsed.data) return splitDBBySection(migrateIfNeeded(parsed.data)).shared;
+      if (isSeparatedBackupShape(parsed)) return coerceSharedBackup(parsed.shared);
+      if (isMergedBackupShape(parsed)) return splitDBBySection(migrateIfNeeded(parsed)).shared;
+      if (!hasSharedBucketShape(parsed)) throw new Error('invalid_shared');
+      return coerceSharedBackup(parsed);
+    }
+
+    function detectImportScope(parsed) {
+      if (parsed?.backupType === 'section') return normalizeSection(parsed.section);
+      if (parsed?.backupType === 'shared') return 'shared';
+      if (parsed?.backupType === 'full') return 'full';
+      if (isSeparatedBackupShape(parsed) || isMergedBackupShape(parsed)) return 'full';
+      throw new Error('undetected_scope');
+    }
+
+    function exportJSON() {
+      downloadJSONFile(state.db, `quran-platform-backup-${todayISO()}.json`);
+    }
+
+    function exportSectionJSON(section, options = {}) {
+      const silent = Boolean(options.silent);
+      const targetSection = normalizeSection(section);
+      const separated = splitDBBySection(state.db);
+      const payload = {
+        backupType: 'section',
+        schemaVersion: 3,
+        section: targetSection,
+        exportedAt: new Date().toISOString(),
+        data: separated[targetSection],
+      };
+      const label = targetSection === 'mens' ? 'mens' : 'womens';
+      downloadJSONFile(payload, `quran-platform-${label}-backup-${todayISO()}.json`);
+      if (!silent) toast(`تم تصدير نسخة قسم ${targetSection === 'mens' ? 'البنين' : 'البنات'}`);
+    }
+
+    function exportSharedJSON(options = {}) {
+      const silent = Boolean(options.silent);
+      const separated = splitDBBySection(state.db);
+      const payload = {
+        backupType: 'shared',
+        schemaVersion: 3,
+        exportedAt: new Date().toISOString(),
+        data: separated.shared,
+      };
+      downloadJSONFile(payload, `quran-platform-shared-backup-${todayISO()}.json`);
+      if (!silent) toast('تم تصدير البيانات المشتركة');
+    }
+
+    function exportAllSeparatedJSON() {
+      exportSectionJSON('mens', { silent: true });
+      exportSectionJSON('womens', { silent: true });
+      exportSharedJSON({ silent: true });
+      toast('تم تجهيز 3 ملفات: البنين + البنات + المشتركة');
+    }
+
+    function importJSON() {
+      const f = $('importFile').files[0];
+      if (!f) return toast('اختر ملفاً', 'err');
+      const requestedScope = $('importScope')?.value || 'auto';
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          const scope = requestedScope === 'auto' ? detectImportScope(parsed) : requestedScope;
+          if (scope === 'full') {
+            state.db = migrateIfNeeded(extractFullBackup(parsed));
+            saveDB();
+            renderAll();
+            toast('تم استيراد النسخة الكاملة');
+            return;
+          }
+
+          const currentSeparated = splitDBBySection(state.db);
+          const nextSeparated = {
+            shared: currentSeparated.shared,
+            mens: currentSeparated.mens,
+            womens: currentSeparated.womens,
+          };
+
+          if (scope === 'mens' || scope === 'womens') {
+            nextSeparated[scope] = coerceSectionBackup(scope, extractSectionBackup(parsed, scope));
+            state.db = mergeSeparatedDB(nextSeparated);
+            saveDB();
+            renderAll();
+            toast(`تم استيراد بيانات ${scope === 'mens' ? 'البنين' : 'البنات'} فقط`);
+            return;
+          }
+
+          if (scope === 'shared') {
+            nextSeparated.shared = coerceSharedBackup(extractSharedBackup(parsed));
+            state.db = mergeSeparatedDB(nextSeparated);
+            saveDB();
+            renderAll();
+            toast('تم استيراد البيانات المشتركة فقط');
+            return;
+          }
+
+          throw new Error('invalid_scope');
+        } catch (_e) {
+          toast('ملف غير صالح أو نوع الاستيراد غير مطابق', 'err');
+        }
+      };
+      reader.readAsText(f);
+    }
+
+    function reseed() {
+      if (!DEV_MODE) return toast('غير متاح في نسخة الإنتاج', 'err');
+      if (!confirm('سيتم تحميل بيانات تجريبية واستبدال البيانات الحالية. متابعة؟')) return;
+      state.db = seedData();
+      saveDB();
+      renderAll();
+      toast('تمت إعادة البيانات التجريبية');
+    }
+
+    function resetAll() {
+      if (!confirm('سيتم حذف كل البيانات المحلية. متابعة؟')) return;
+      const token = prompt('للتأكيد النهائي اكتب كلمة: حذف');
+      if (token !== 'حذف') return toast('تم إلغاء الحذف', 'err');
+      localStorage.removeItem(STORAGE_KEY_LEGACY);
+      Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+      localStorage.removeItem(SESSION_KEY);
+      loadDB();
+      renderAll();
+      toast('تم حذف البيانات');
+    }
+
+    function printReport() { window.print(); }
+
+    // expose inline handlers
+    window.openHalaqa = openHalaqa;
+    window.closeHalaqa = closeHalaqa;
+    window.openEntry = openEntry;
+    window.pickStudentFromMobile = pickStudentFromMobile;
+    window.setStudentPickerMode = setStudentPickerMode;
+    window.setTeacherStudentView = setTeacherStudentView;
+    window.setTab = setTab;
+    window.addStudentToHalaqa = addStudentToHalaqa;
+    window.markAllStudentsAttendance = markAllStudentsAttendance;
+    window.saveDailyEntry = saveDailyEntry;
+    window.issueStudentCertificate = issueStudentCertificate;
+    window.updateStudentBasic = updateStudentBasic;
+    window.transferStudent = transferStudent;
+    window.setStudentIssueFilter = setStudentIssueFilter;
+    window.quickAuditReport = quickAuditReport;
+    window.pickSmartOption = pickSmartOption;
+    window.approveExamResult = approveExamResult;
+    window.removeStaff = removeStaff; window.deleteStudent = deleteStudent;
+    window.selectParentStudent = selectParentStudent;
+    window.exportParentCertificate = exportParentCertificate;
+    window.exportKnightCard = exportKnightCard;
+    window.syncPendingLogs = syncPendingLogs;
+    window.copySurahToAll = copySurahToAll;
+    window.filterSurahOptions = filterSurahOptions; window.saveBothEntries = saveBothEntries; window.copyWeeklyReportToWhatsapp = copyWeeklyReportToWhatsapp; window.closeHalaqaWithSummary = closeHalaqaWithSummary;
+
+    const safe = (id, fn) => { const el = $(id); if (el) fn(el); };
+
+    try {
+      // events
+      safe('loginBtn', el => el.onclick = loginByPhone);
+      safe('logoutBtn', el => el.onclick = logout);
+      safe('parentLogoutBtn', el => el.onclick = logout);
+      safe('createHalaqaBtn', el => el.onclick = createHalaqa);
+      safe('createStudentBtn', el => el.onclick = createStudent);
+      safe('createStaffBtn', el => el.onclick = createStaff);
+      safe('assignTeacherBtn', el => el.onclick = assignTeacher);
+      safe('saveSupervisionNoteBtn', el => el.onclick = saveSupervisionNote);
+      safe('createExamSessionBtn', el => el.onclick = createExamSession);
+      safe('saveExamResultBtn', el => el.onclick = saveExamResult);
+      safe('saveAnnouncementBtn', el => el.onclick = saveAnnouncement);
+      safe('importBulkStudentsBtn', el => el.onclick = importBulkStudents);
+      safe('previewBulkStudentsBtn', el => el.onclick = buildBulkPreview);
+      safe('bulkStudentSection', el => el.onchange = refreshBulkHalaqaOptions);
+      safe('bulkStudentHalaqa', el => el.onchange = buildBulkPreview);
+      safe('bulkStudentsInput', el => el.oninput = buildBulkPreview);
+      safe('newStudentSection', el => el.onchange = refreshNewStudentHalaqaOptions);
+      safe('examSessionSelect', el => el.onchange = syncExamStudentSelect);
+      safe('studentSearch', el => el.oninput = renderStudents);
+
+      safe('prevWeekBtn', el => el.onclick = () => { state.weekOffset -= 1; renderReports(); });
+      safe('nextWeekBtn', el => el.onclick = () => { state.weekOffset += 1; renderReports(); });
+      safe('printBtn', el => el.onclick = printReport);
+      safe('printBoardReportBtn', el => el.onclick = printBoardReport);
+
+      safe('showStudentReportBtn', el => el.onclick = () => {
+        const panel = $('studentReportPanel');
+        if (panel) panel.dataset.alertRendered = '0';
+        renderStudentReport($('studentReportSelect')?.value);
+      });
+
+      safe('saveKnightPhotoBtn', el => el.onclick = saveKnightPhoto);
+      safe('saveLogoBtn', el => el.onclick = saveLogo);
+      safe('clearLogoBtn', el => el.onclick = clearLogo);
+      safe('exportBtn', el => el.onclick = exportJSON);
+      safe('exportMensBtn', el => el.onclick = () => exportSectionJSON('mens'));
+      safe('exportWomensBtn', el => el.onclick = () => exportSectionJSON('womens'));
+      safe('exportSharedBtn', el => el.onclick = exportSharedJSON);
+      safe('exportAllSeparatedBtn', el => el.onclick = exportAllSeparatedJSON);
+      safe('importBtn', el => el.onclick = importJSON);
+      safe('seedBtn', el => el.onclick = reseed);
+      safe('resetBtn', el => el.onclick = resetAll);
+
+      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.onclick = () => setSection(b.dataset.section));
+      document.querySelectorAll('#displaySwitch button').forEach((b) => {
+        b.onclick = () => setDisplayMode(b.dataset.display);
+      });
+    } catch (e) {
+      console.error('Initialization error', e);
+      alert('حدث خطأ أثناء تهيئة الصفحة: ' + e.message);
+    }
+
+    document.body.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-student-id]');
+      if (btn?.dataset?.studentId) {
+        openEntry(btn.dataset.studentId);
+      }
+    });
+
+    try {
+      loadDB();
+      applyLogo();
+      loadSession();
+    } catch (e) {
+      console.error('Load error', e);
+      alert('حدث خطأ في تحميل البيانات، يرجى إعادة التحميل. ' + e.message);
+    }
+
+    window.addEventListener('online', () => {
+      if (pendingLogsCount()) syncPendingLogs();
+    });
+    window.onerror = function(msg, src, line, col, err) {
+      console.error('Global error', msg, src, line, col, err);
+      if (DEV_MODE) {
+        alert('حدث خطأ غير متوقع: ' + msg);
+      } else {
+        toast('حدث خطأ تقني غير متوقع، أعد المحاولة', 'err');
+      }
+    };
+  
+// === PATCH v37: تحسينات واجهة المعلم ===
+// 1. تحسين بطاقات الطلاب في واجهة المعلم لإظهار معلومات إضافية
+// 2. إضافة زر تقرير واتساب في شريط المعلم
+// 3. تحسين عرض الطالب المختار
+
+// تعريف دالة getStudentWeeklyAya لحساب آيات الطالب هذا الأسبوع
+function getStudentWeeklyAya(studentId) {
+  const wr = weekRange();
+  return logsForStudent(studentId)
+    .filter(l => l.date >= wr.startISO && l.date <= wr.endISO)
+    .reduce((s, l) => s + Number(l.ayaCount || 0), 0);
+}
+window.getStudentWeeklyAya = getStudentWeeklyAya;
+
+// تحسين عرض بطاقة الطالب مع إضافة معلومات أسبوعية
+const _orig_renderHalaqaDetail = renderHalaqaDetail;
+function renderHalaqaDetail_enhanced() {
+  _orig_renderHalaqaDetail();
+  // إضافة زر واتساب إذا كان المعلم مسجل دخول والحلقة مفتوحة
+  const u = currentUser();
+  if (!u || u.role !== 'teacher' || !state.currentHalaqaId) return;
+  // إضافة معلومات آيات الأسبوع على بطاقات الطلاب
+  document.querySelectorAll('.teacher-student-btn').forEach(btn => {
+    const sId = btn.dataset.studentId;
+    if (!sId) return;
+    const aya = getStudentWeeklyAya(sId);
+    const s = state.db.students.find(x => x.id === sId);
+    const metaEl = btn.querySelector('.meta');
+    if (metaEl && aya > 0) {
+      if (!metaEl.querySelector('.aya-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'aya-badge';
+        badge.style.cssText = 'display:inline-block;background:#dcfce7;color:#166534;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-right:4px;';
+        badge.textContent = aya + ' آية';
+        metaEl.insertBefore(badge, metaEl.firstChild);
+      }
+    }
+  });
+}
+window.renderHalaqaDetail = renderHalaqaDetail_enhanced;
+
+// إضافة زر الواتساب في شريط المعلم عند فتح الحلقة
+const _origOpenHalaqa = openHalaqa;
+function openHalaqa_enhanced(id) {
+  _origOpenHalaqa(id);
+  setTimeout(() => {
+    const u = currentUser();
+    if (!u || u.role !== 'teacher') return;
+    const existing = document.getElementById('wa-report-btn');
+    if (existing) return;
+    const closeBtnArea = document.querySelector('#halaqaDetail .row.between');
+    if (!closeBtnArea) return;
+    const waBtn = document.createElement('button');
+    waBtn.id = 'wa-report-btn';
+    waBtn.className = 'btn btn-ok no-print';
+    waBtn.style.cssText = 'background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-size:13px;';
+    waBtn.textContent = '📊 تقرير واتساب';
+    waBtn.onclick = copyWeeklyReportToWhatsapp;
+    closeBtnArea.insertBefore(waBtn, closeBtnArea.querySelector('.btn-light'));
+  }, 100);
+}
+window.openHalaqa = openHalaqa_enhanced;
+  </script>
+</body>
+</html>
