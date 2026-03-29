@@ -1857,6 +1857,10 @@ localStorage.setItem = function(key, value) {
               <select id="assignHalaqa"></select>
               <button class="btn btn-gold" id="assignTeacherBtn">ربط المعلم بالحلقة</button>
             </div>
+            <div class="card" style="margin-top:8px;">
+              <p class="muted" style="font-size:12px; margin-bottom:8px;">إذا ظهر تعذر في تهيئة Firebase، فعّل Email/Password ثم أعد المحاولة من الزر التالي.</p>
+              <button class="btn btn-light" onclick="migrateStaffAuthNow()">إعادة تهيئة حسابات Firebase</button>
+            </div>
           </div>
         </details>
 
@@ -2466,6 +2470,7 @@ localStorage.setItem = function(key, value) {
       staffAuthMigrationRunning = true;
       let created = 0;
       let failed = 0;
+      let firstError = '';
       try {
         for (const s of pending) {
           const res = await createStaffAuthAccountUsingSecondaryApp(s.username, String(s.password || '').trim());
@@ -2475,6 +2480,7 @@ localStorage.setItem = function(key, value) {
             created += 1;
           } else {
             failed += 1;
+            if (!firstError) firstError = res.message || res.code || 'سبب غير معروف';
             console.error('Staff auth migration failed:', s.id, res.code, res.message);
           }
         }
@@ -2483,9 +2489,10 @@ localStorage.setItem = function(key, value) {
           renderAll();
         }
         if (notify && (created > 0 || failed > 0)) {
-          toast(`تهيئة حسابات Firebase: نجاح ${created} / تعذر ${failed}`, failed ? 'err' : 'ok');
+          const suffix = failed && firstError ? ` | أول سبب: ${firstError}` : '';
+          toast(`تهيئة حسابات Firebase: نجاح ${created} / تعذر ${failed}${suffix}`, failed ? 'err' : 'ok');
         }
-        return { created, failed };
+        return { created, failed, firstError };
       } finally {
         staffAuthMigrationRunning = false;
       }
@@ -7207,6 +7214,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.syncPendingLogs = syncPendingLogs;
     window.copySurahToAll = copySurahToAll;
     window.filterSurahOptions = filterSurahOptions; window.saveBothEntries = saveBothEntries; window.copyWeeklyReportToWhatsapp = copyWeeklyReportToWhatsapp; window.closeHalaqaWithSummary = closeHalaqaWithSummary;
+    window.migrateStaffAuthNow = () => migrateMissingStaffAuthAccounts({ notify: true });
 
     const safe = (id, fn) => { const el = $(id); if (el) fn(el); };
 
