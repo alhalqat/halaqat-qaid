@@ -4192,6 +4192,11 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       const u = state.indexes?.staffByPhone?.[phone] || null;
       if (u) {
         if (String(u.password || '').trim()) {
+          const adminBootstrapAllowed = u.role === 'admin' && !String(u.authUid || '').trim();
+          if (adminBootstrapAllowed) {
+            loginStaffUser(u, 'تم دخول الإدارة عبر الجوال مؤقتًا لإكمال ربط Firebase');
+            return;
+          }
           return toast('استخدم اسم المستخدم وكلمة المرور لدخول الكادر', 'err');
         }
         loginStaffUser(u);
