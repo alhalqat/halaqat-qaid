@@ -2333,7 +2333,16 @@ localStorage.setItem = function(key, value) {
       if (code === 'auth/operation-not-allowed') {
         return 'يجب تفعيل Email/Password في Firebase Authentication.';
       }
-      return fallback;
+      if (code === 'auth/unauthorized-domain') {
+        return 'النطاق غير مصرح به. أضف alhalqat.github.io في Firebase Authentication > Settings > Authorized domains.';
+      }
+      if (code === 'auth/invalid-api-key' || code === 'auth/api-key-not-valid') {
+        return 'مفتاح Firebase API غير صالح أو مقيد بشكل يمنع Authentication.';
+      }
+      if (code === 'auth/operation-not-supported-in-this-environment') {
+        return 'بيئة المتصفح الحالية لا تدعم Firebase Auth. جرب Safari/Chrome حديث بدون وضع حماية شديد.';
+      }
+      return code ? `${fallback} (${code})` : fallback;
     };
     async function createStaffAuthAccountUsingSecondaryApp(username, password) {
       if (!firebaseAuthEnabled()) {
