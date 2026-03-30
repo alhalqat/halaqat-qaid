@@ -2466,7 +2466,7 @@ localStorage.setItem = function(key, value) {
         return { ok: false, code: String(err?.code || ''), message: mapAuthErrorMessage(err, 'تعذر إنشاء حساب Firebase للكادر') };
       }
     }
-    async function signInOrProvisionStaffAuth(username, password, localStaff = null) {
+	    async function signInOrProvisionStaffAuth(username, password, localStaff = null) {
       if (!firebaseAuthEnabled()) {
         return { ok: false, code: 'auth/not-ready', message: 'خدمة Firebase Authentication غير مفعلة' };
       }
@@ -2493,10 +2493,70 @@ localStorage.setItem = function(key, value) {
             };
           }
         }
-        return { ok: false, code, message: mapAuthErrorMessage(err, 'تعذر تسجيل الدخول بحساب الكادر') };
-      }
-    }
-    async function updateStaffAuthPasswordUsingSecondaryApp(staff, nextPassword) {
+	        return { ok: false, code, message: mapAuthErrorMessage(err, 'تعذر تسجيل الدخول بحساب الكادر') };
+	      }
+	    }
+	    function normalizeCloudStaffForRuntime(staff, fallbackSection = 'mens') {
+	      const base = (staff && typeof staff === 'object') ? staff : {};
+	      const section = normalizeSection(base.section || fallbackSection);
+	      const username = normalizeUsername(base.username || '');
+	      return {
+	        ...base,
+	        section,
+	        username,
+	        assignedHalaqaIds: Array.isArray(base.assignedHalaqaIds) ? [...base.assignedHalaqaIds] : [],
+	        authUid: String(base.authUid || '').trim(),
+	        authEmail: String(base.authEmail || '').trim() || staffAuthEmailFromUsername(username),
+	        password: String(base.password || '').trim(),
+	      };
+	    }
+	    async function resolveStaffFromCloudIdentity({ uid = '', username = '', email = '' } = {}) {
+	      if (!database) return null;
+	      const targetUid = String(uid || '').trim();
+	      const targetUsername = normalizeUsername(username || '');
+	      const targetEmail = String(email || '').trim().toLowerCase();
+	      try {
+	        const [sharedRaw, mensRaw, womensRaw] = await Promise.all([
+	          FirebaseDataManager.getData(STORAGE_KEYS.shared).catch(() => null),
+	          FirebaseDataManager.getData(STORAGE_KEYS.mens).catch(() => null),
+	          FirebaseDataManager.getData(STORAGE_KEYS.womens).catch(() => null),
+	        ]);
+	        const candidates = [];
+	        const pushList = (list, section) => {
+	          (Array.isArray(list) ? list : []).forEach((staff) => {
+	            candidates.push(normalizeCloudStaffForRuntime(staff, section));
+	          });
+	        };
+	        pushList(sharedRaw?.staffGlobal, 'mens');
+	        pushList(mensRaw?.staff, 'mens');
+	        pushList(womensRaw?.staff, 'womens');
+
+	        const uidIndexEntry = (sharedRaw?.staffUidIndex && targetUid) ? sharedRaw.staffUidIndex[targetUid] : null;
+	        let found = null;
+	        if (uidIndexEntry?.staffId) {
+	          const indexedSection = uidIndexEntry.section ? normalizeSection(uidIndexEntry.section) : '';
+	          found = candidates.find((s) => {
+	            const idMatch = String(s.id || '') === String(uidIndexEntry.staffId || '');
+	            const sectionMatch = !indexedSection || s.section === indexedSection;
+	            return idMatch && sectionMatch;
+	          }) || null;
+	        }
+	        if (!found && targetUid) {
+	          found = candidates.find((s) => String(s.authUid || '') === targetUid) || null;
+	        }
+	        if (!found && targetEmail) {
+	          found = candidates.find((s) => String(s.authEmail || '').trim().toLowerCase() === targetEmail) || null;
+	        }
+	        if (!found && targetUsername) {
+	          found = candidates.find((s) => normalizeUsername(s.username || '') === targetUsername) || null;
+	        }
+	        return found || null;
+	      } catch (err) {
+	        console.error('Cloud staff resolve error', err);
+	        return null;
+	      }
+	    }
+	    async function updateStaffAuthPasswordUsingSecondaryApp(staff, nextPassword) {
       if (!firebaseAuthEnabled()) {
         return { ok: false, code: 'auth/not-ready', message: 'خدمة Firebase Authentication غير مفعلة' };
       }
@@ -4285,9 +4345,31 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	        if (!u) {
 	          u = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username) || null;
 	        }
+	        if (!u && database) {
+	          const cloudStaff = await resolveStaffFromCloudIdentity({
+	            uid: resolvedUid,
+	            username,
+	            email: staffAuthEmailFromUsername(username),
+	          });
+	          if (cloudStaff) {
+	            const existingIndex = (state.db?.staff || []).findIndex((s) =>
+	              String(s.id || '') === String(cloudStaff.id || '')
+	              || (cloudStaff.authUid && String(s.authUid || '') === String(cloudStaff.authUid))
+	              || (normalizeUsername(s.username || '') && normalizeUsername(s.username || '') === normalizeUsername(cloudStaff.username || ''))
+	            );
+	            if (existingIndex >= 0) {
+	              state.db.staff[existingIndex] = { ...state.db.staff[existingIndex], ...cloudStaff };
+	            } else {
+	              state.db.staff.push(cloudStaff);
+	            }
+	            rebuildIndexes();
+	            saveDB();
+	            u = cloudStaff;
+	          }
+	        }
 	        if (!u) {
 	          await auth.signOut().catch(() => {});
-	          return toast('تم التحقق من الحساب، لكن لم يتم تحميل ربط الموظف من السحابة. أعد المحاولة بعد ثوانٍ.', 'err');
+	          return toast('تم التحقق من الحساب لكن تعذر جلب ربط الموظف من السحابة. تأكد من مزامنة حساب المعلم من صفحة المعلمين.', 'err');
 	        }
 	        if (u.authUid && resolvedUid && String(u.authUid) !== resolvedUid) {
 	          await auth.signOut().catch(() => {});
