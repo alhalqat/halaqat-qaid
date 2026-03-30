@@ -2361,6 +2361,13 @@ localStorage.setItem = function(key, value) {
     const $ = (id) => document.getElementById(id);
     const uid = (p) => `${p}_${Date.now()}_${Math.random().toString(16).slice(2,6)}`;
     const todayISO = () => new Date().toISOString().slice(0,10);
+    const todayLocalISO = () => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
     const addDaysISO = (iso,d) => { const x = new Date(iso); x.setDate(x.getDate()+d); return x.toISOString().slice(0,10); };
     const normalizeISODate = (value, fallback = todayISO()) => {
       const raw = String(value || '').trim();
@@ -4613,18 +4620,18 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     }
 
     function getTeacherViewDate() {
-      const today = todayISO();
+      const today = todayLocalISO();
       const normalized = normalizeISODate(state.teacherViewDate || today, today);
       return normalized > today ? today : normalized;
     }
 
     function isTeacherReadOnlyView() {
-      return isTeacher() && getTeacherViewDate() !== todayISO();
+      return isTeacher() && getTeacherViewDate() !== todayLocalISO();
     }
 
     function setTeacherViewDate(dateISO) {
       if (!isTeacher()) return;
-      const today = todayISO();
+      const today = todayLocalISO();
       const normalized = normalizeISODate(dateISO, today);
       state.teacherViewDate = normalized > today ? today : normalized;
       renderHalaqaDetail();
@@ -4632,7 +4639,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 
     function shiftTeacherViewDate(days) {
       if (!isTeacher()) return;
-      const today = todayISO();
+      const today = todayLocalISO();
       const base = getTeacherViewDate();
       const shifted = normalizeISODate(addDaysISO(base, Number(days || 0)), base);
       state.teacherViewDate = shifted > today ? today : shifted;
@@ -4691,14 +4698,14 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     function openHalaqa(id) {
       state.currentHalaqaId = id;
       state.currentStudentId = null;
-      if (isTeacher() && !state.teacherViewDate) state.teacherViewDate = todayISO();
+      if (isTeacher() && !state.teacherViewDate) state.teacherViewDate = todayLocalISO();
       renderHalaqaDetail();
     }
 
     function closeHalaqa() {
       state.currentHalaqaId = null;
       state.currentStudentId = null;
-      if (isTeacher()) state.teacherViewDate = todayISO();
+      if (isTeacher()) state.teacherViewDate = todayLocalISO();
       renderHalaqaDetail();
     }
 
@@ -5856,7 +5863,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const students = state.indexes?.studentsByHalaqa?.[h.id] || [];
       const selected = students.find(s => s.id === state.currentStudentId) || null;
       const teacherMode = isTeacher();
-      const today = todayISO();
+      const today = todayLocalISO();
       const teacherViewDate = teacherMode ? getTeacherViewDate() : today;
       const viewDate = teacherMode ? teacherViewDate : today;
       const isHistoryView = teacherMode && teacherViewDate !== today;
@@ -6048,7 +6055,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const latestHifdh = studentLogs.find(l => l.type === 'hifdh');
       const latestRevision = studentLogs.find(l => l.type === 'revision');
       const fmtLatest = (log) => log ? `${log.date} • ${log.surahName} (${log.fromAya}-${log.toAya}) • تقدير: ${log.grade}` : 'لا يوجد سجل بعد';
-      const today = todayISO();
+      const today = todayLocalISO();
       const viewDate = normalizeISODate(viewDateISO, today);
       const todayHijri = toHijriLabelFromISO(viewDate);
       const historyMode = teacherMode && viewDate !== today;
