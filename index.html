@@ -2360,7 +2360,6 @@ localStorage.setItem = function(key, value) {
 
     const $ = (id) => document.getElementById(id);
     const uid = (p) => `${p}_${Date.now()}_${Math.random().toString(16).slice(2,6)}`;
-    const todayISO = () => new Date().toISOString().slice(0,10);
     const todayLocalISO = () => {
       const d = new Date();
       const y = d.getFullYear();
@@ -2368,13 +2367,33 @@ localStorage.setItem = function(key, value) {
       const day = String(d.getDate()).padStart(2, '0');
       return `${y}-${m}-${day}`;
     };
-    const addDaysISO = (iso,d) => { const x = new Date(iso); x.setDate(x.getDate()+d); return x.toISOString().slice(0,10); };
-    const normalizeISODate = (value, fallback = todayISO()) => {
+    const todayISO = () => todayLocalISO();
+    const dateToISO = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const parseISODate = (value) => {
       const raw = String(value || '').trim();
-      if (!raw) return fallback;
-      const d = new Date(`${raw}T00:00:00`);
-      if (Number.isNaN(d.getTime())) return fallback;
-      return d.toISOString().slice(0, 10);
+      const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return null;
+      const y = Number(m[1]);
+      const month = Number(m[2]);
+      const day = Number(m[3]);
+      const dt = new Date(y, month - 1, day);
+      if (Number.isNaN(dt.getTime())) return null;
+      if (dateToISO(dt) !== raw) return null;
+      return dt;
+    };
+    const addDaysISO = (iso,d) => {
+      const base = parseISODate(iso) || parseISODate(todayISO()) || new Date();
+      base.setDate(base.getDate() + Number(d || 0));
+      return dateToISO(base);
+    };
+    const normalizeISODate = (value, fallback = todayISO()) => {
+      const parsed = parseISODate(value);
+      return parsed ? dateToISO(parsed) : fallback;
     };
     const clamp = (n,min,max) => Math.max(min, Math.min(max,n));
     const escapeAttr = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -3967,7 +3986,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       end.setDate(end.getDate() + state.weekOffset * 7);
       const start = new Date(end);
       start.setDate(start.getDate() - 6);
-      return { startISO:start.toISOString().slice(0,10), endISO:end.toISOString().slice(0,10) };
+      return { startISO: dateToISO(start), endISO: dateToISO(end) };
     }
 
     function currentWeekRange(offset = 0) {
@@ -3978,21 +3997,21 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       const end = new Date(start);
       end.setDate(start.getDate() + 6);
       return {
-        startISO: start.toISOString().slice(0, 10),
-        endISO: end.toISOString().slice(0, 10),
+        startISO: dateToISO(start),
+        endISO: dateToISO(end),
       };
     }
 
     function weekRangeFromDate(dateISO) {
-      const ref = new Date(`${normalizeISODate(dateISO)}T00:00:00`);
-      if (Number.isNaN(ref.getTime())) return currentWeekRange(0);
+      const ref = parseISODate(normalizeISODate(dateISO));
+      if (!ref || Number.isNaN(ref.getTime())) return currentWeekRange(0);
       const start = new Date(ref);
       start.setDate(ref.getDate() - ref.getDay());
       const end = new Date(start);
       end.setDate(start.getDate() + 6);
       return {
-        startISO: start.toISOString().slice(0, 10),
-        endISO: end.toISOString().slice(0, 10),
+        startISO: dateToISO(start),
+        endISO: dateToISO(end),
       };
     }
 
@@ -4000,7 +4019,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      return { startISO:start.toISOString().slice(0,10), endISO:end.toISOString().slice(0,10) };
+      return { startISO: dateToISO(start), endISO: dateToISO(end) };
     }
 
     function attendanceForKnights(att) {
