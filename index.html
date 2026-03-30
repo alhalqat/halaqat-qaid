@@ -1594,6 +1594,24 @@ tbody tr:hover td { background: #fef9e7; }
           color: #5f6f3a;
           text-align: center;
         }
+        #loginView .login-parent-box {
+          margin-top: 10px;
+          border: 1px dashed rgba(95, 111, 58, 0.35);
+          border-radius: 12px;
+          padding: 8px 10px;
+          background: rgba(95, 111, 58, 0.04);
+        }
+        #loginView .login-parent-box summary {
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 800;
+          color: #415329;
+          list-style: none;
+          outline: none;
+        }
+        #loginView .login-parent-box summary::-webkit-details-marker {
+          display: none;
+        }
         @media (max-width: 760px) {
           #loginView .login-grid {
             grid-template-columns: 1fr;
@@ -1745,7 +1763,7 @@ localStorage.setItem = function(key, value) {
       </div>
       <h2 class="login-title">جمعية تحفيظ القران الكريم بالقاعد</h2>
       <p class="quran-verse-login">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾<br><small style="font-size:12px;opacity:0.75;">سورة المزمل - 4</small></p>
-      <p class="login-subtitle">ولي الأمر برقم الجوال، والمعلم/المشرف بحساب خاص.</p>
+      <p class="login-subtitle">دخول المعلمين والكادر باسم المستخدم وكلمة المرور.</p>
       <div id="defaultLoginNumbers" class="hidden" style="margin-top:12px; padding:12px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.4); border-radius:12px; font-size:13px;">
         <b style="color:#8b6914;">أرقام الدخول الافتراضية:</b>
         <div style="margin-top:8px; display:grid; gap:6px;">
@@ -1757,18 +1775,20 @@ localStorage.setItem = function(key, value) {
         </div>
         <p style="margin-top:8px; font-size:11px; color:#888;">⚠️ هذه أرقام تجريبية. غيّر أرقام الكادر الفعلية من صفحة المعلمين بعد الدخول.</p>
       </div>
-      <label for="loginPhone" class="login-label">رقم الجوال</label>
-      <div class="grid grid-2 login-grid">
-        <input id="loginPhone" type="tel" class="login-phone-input" placeholder="مثال: 0551234567 أو +966551234567" inputmode="numeric" autocomplete="tel-national" dir="ltr" />
-        <button class="btn btn-gold login-submit-btn" id="loginBtn">دخول</button>
-      </div>
       <label for="loginUsername" class="login-label">دخول الكادر بحساب خاص</label>
       <div class="grid login-grid-3" style="grid-template-columns: minmax(0,1fr) minmax(0,1fr) 132px; gap:8px;">
         <input id="loginUsername" placeholder="اسم المستخدم" autocomplete="username" dir="ltr" />
         <input id="loginPassword" type="password" placeholder="كلمة المرور" autocomplete="current-password" dir="ltr" />
         <button class="btn btn-primary login-submit-btn" id="staffLoginBtn">دخول الكادر</button>
       </div>
-      <p class="login-help">ولي الأمر يدخل برقم الجوال. المعلم/المشرف يدخل باسم المستخدم وكلمة المرور.</p>
+      <details class="login-parent-box">
+        <summary>دخول ولي الأمر (برقم الجوال)</summary>
+        <div class="grid grid-2 login-grid" style="margin-top:8px;">
+          <input id="loginPhone" type="tel" class="login-phone-input" placeholder="مثال: 0551234567 أو +966551234567" inputmode="numeric" autocomplete="tel-national" dir="ltr" />
+          <button class="btn btn-gold login-submit-btn" id="loginBtn">دخول ولي الأمر</button>
+        </div>
+      </details>
+      <p class="login-help">للمعلمين: استخدم اسم المستخدم وكلمة المرور فقط.</p>
       
     </div>
   </div>
