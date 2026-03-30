@@ -2348,6 +2348,7 @@ localStorage.setItem = function(key, value) {
       currentParentStudentId: null,
 	      studentPickerMode: 'cards',
 	      teacherStudentView: 'cards',
+	      teacherViewDate: '',
 	      studentIssueFilter: 'all',
 	      dailyMonitorDate: '',
 	      currentDailyHalaqaId: null,
@@ -2361,6 +2362,13 @@ localStorage.setItem = function(key, value) {
     const uid = (p) => `${p}_${Date.now()}_${Math.random().toString(16).slice(2,6)}`;
     const todayISO = () => new Date().toISOString().slice(0,10);
     const addDaysISO = (iso,d) => { const x = new Date(iso); x.setDate(x.getDate()+d); return x.toISOString().slice(0,10); };
+    const normalizeISODate = (value, fallback = todayISO()) => {
+      const raw = String(value || '').trim();
+      if (!raw) return fallback;
+      const d = new Date(`${raw}T00:00:00`);
+      if (Number.isNaN(d.getTime())) return fallback;
+      return d.toISOString().slice(0, 10);
+    };
     const clamp = (n,min,max) => Math.max(min, Math.min(max,n));
     const escapeAttr = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const compactName = (v) => String(v || '').replace(/\s+/g, ' ').trim();
@@ -3664,6 +3672,7 @@ localStorage.setItem = function(key, value) {
 
     function copySurahToAll(type = 'hifdh') {
       if (!isTeacher()) return toast('للمعلمين فقط', 'err');
+      if (isTeacherReadOnlyView()) return toast('وضع العرض السابق قراءة فقط. اختر "اليوم" للتعديل.', 'err');
       const halaqaId = state.currentHalaqaId;
       const students = state.indexes?.studentsByHalaqa?.[halaqaId] || [];
       if (!students.length) return toast('لا يوجد طلاب في الحلقة', 'err');
@@ -3683,6 +3692,7 @@ localStorage.setItem = function(key, value) {
 
 // التحسين 1: حفظ الحفظ والمراجعة معاً
 function saveBothEntries(studentId) {
+  if (isTeacherReadOnlyView()) return toast('وضع العرض السابق قراءة فقط. اختر "اليوم" للتعديل.', 'err');
   const hasHifdh = $('hifdhSurahIdx') && Number($('hifdhToAya')?.value || 0) > 0;
   const hasRevision = $('revisionSurahIdx') && Number($('revisionToAya')?.value || 0) > 0;
   
@@ -3715,22 +3725,56 @@ function closeHalaqaWithSummary() {
   setTimeout(() => closeHalaqa(), 2500);
 }
 
-// التحسين 6: نسخ التقرير الأسبوعي للواتساب
+// التحسين 6: نسخ تقرير يومي للحلقة الحالية عبر واتساب
 function copyWeeklyReportToWhatsapp() {
-  const wr = weekRange();
-  const b = reportBundle();
-  
-  const text = `📊 *تقرير أسبوعي - جمعية القاعد*\n` +
-    `🗓 ${wr.startISO} → ${wr.endISO}\n\n` +
-    `📝 إجمالي السجلات: *${b.totals.entries}*\n` +
-    `📖 إجمالي الآيات: *${b.totals.ayaTotal}*\n` +
-    `📄 إجمالي الأوجه: *${b.totals.faces}*\n` +
-    `✅ حفظ: *${b.totals.hifdh}* | مراجعة: *${b.totals.revision}*\n\n` +
-    `🏆 *أفضل 3 حلقات:*\n` +
-    b.rows.slice(0,3).map((r,i) => `${i+1}. ${r.halaqaName} - ${r.faces} وجه`).join('\n');
+  const halaqaId = state.currentHalaqaId;
+  const halaqa = state.indexes?.halaqaById?.[halaqaId] || null;
+  if (!halaqa) return toast('افتح الحلقة أولاً لنسخ التقرير اليومي', 'err');
+
+  const dateISO = isTeacher() ? getTeacherViewDate() : todayISO();
+  const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
+    .slice()
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+  const dayLogs = sortLogsByRecency((state.db.logs || []).filter((l) => l.halaqaId === halaqa.id && l.date === dateISO));
+  const rollcalls = (state.db.rollcall || []).filter((r) => r.halaqaId === halaqa.id && r.date === dateISO);
+  const byStudent = {};
+  dayLogs.forEach((log) => {
+    if (!byStudent[log.studentId]) byStudent[log.studentId] = { hifdh: null, revision: null };
+    if (log.type === 'hifdh' && !byStudent[log.studentId].hifdh) byStudent[log.studentId].hifdh = log;
+    if (log.type === 'revision' && !byStudent[log.studentId].revision) byStudent[log.studentId].revision = log;
+  });
+
+  const syncLabel = (log) => {
+    if (!log) return 'لا يوجد';
+    return log.syncStatus === 'pending' ? 'معلّق' : 'متزامن';
+  };
+  const fmtEntry = (log) => {
+    if (!log) return 'لا يوجد';
+    return `${log.surahName || '-'} (${log.fromAya || '-'}-${log.toAya || '-'}) [${syncLabel(log)}]`;
+  };
+
+  const lines = students.map((student, idx) => {
+    const row = byStudent[student.id] || {};
+    const hifdh = row.hifdh || null;
+    const revision = row.revision || null;
+    const grades = [hifdh?.grade, revision?.grade].filter(Boolean).join(' / ') || '-';
+    const notes = [hifdh?.notes, revision?.notes].filter((n) => String(n || '').trim()).join(' | ') || '-';
+    const attendance = ATTENDANCE.find((a) => a.key === (rollcalls.find((r) => r.studentId === student.id)?.status || ''))?.label || 'غير محضر';
+    return `${idx + 1}) ${student.name || '-'}\nالحضور: ${attendance}\nالحفظ: ${fmtEntry(hifdh)}\nالمراجعة: ${fmtEntry(revision)}\nالتقدير: ${grades}\nالملاحظات: ${notes}`;
+  });
+
+  const sectionLabel = halaqa.section === 'womens' ? 'قسم البنات' : 'قسم البنين';
+  const text = `📋 *تقرير يومي للحلقة*\n` +
+    `التاريخ: ${dateISO}\n` +
+    `الحلقة: ${halaqa.circleName || '-'}\n` +
+    `المعلم: ${halaqa.teacherName || '-'}\n` +
+    `القسم: ${sectionLabel}\n` +
+    `عدد الطلاب: ${students.length}\n` +
+    `عدد السجلات: ${dayLogs.length}\n\n` +
+    (lines.length ? lines.join('\n\n') : 'لا يوجد طلاب في الحلقة.');
   
   navigator.clipboard.writeText(text).then(() => {
-    toast('تم نسخ التقرير، الصقه في واتساب مباشرة');
+    toast('تم نسخ التقرير اليومي، الصقه في واتساب مباشرة');
   }).catch(() => {
     const textarea = document.createElement('textarea');
     textarea.value = text;
@@ -3738,7 +3782,7 @@ function copyWeeklyReportToWhatsapp() {
     textarea.select();
     document.execCommand('copy');
     document.body.removeChild(textarea);
-    toast('تم نسخ التقرير للواتساب');
+    toast('تم نسخ التقرير اليومي للواتساب');
   });
 }
 
@@ -3932,6 +3976,19 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       };
     }
 
+    function weekRangeFromDate(dateISO) {
+      const ref = new Date(`${normalizeISODate(dateISO)}T00:00:00`);
+      if (Number.isNaN(ref.getTime())) return currentWeekRange(0);
+      const start = new Date(ref);
+      start.setDate(ref.getDate() - ref.getDay());
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      return {
+        startISO: start.toISOString().slice(0, 10),
+        endISO: end.toISOString().slice(0, 10),
+      };
+    }
+
     function monthRange() {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -4040,8 +4097,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
         .sort((a, b) => b.score - a.score);
     }
 
-    function weekProgressForHalaqa(halaqaId) {
-      const wr = weekRange();
+    function weekProgressForHalaqa(halaqaId, referenceDate = todayISO()) {
+      const wr = weekRangeFromDate(referenceDate);
       const h = state.db.halaqas.find(x => x.id === halaqaId);
       const logs = state.db.logs.filter(l => l.halaqaId === halaqaId && l.date >= wr.startISO && l.date <= wr.endISO);
       const totalAya = logs.reduce((s, l) => s + Number(l.ayaCount || 0), 0);
@@ -4555,6 +4612,33 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       renderHalaqaDetail();
     }
 
+    function getTeacherViewDate() {
+      const today = todayISO();
+      const normalized = normalizeISODate(state.teacherViewDate || today, today);
+      return normalized > today ? today : normalized;
+    }
+
+    function isTeacherReadOnlyView() {
+      return isTeacher() && getTeacherViewDate() !== todayISO();
+    }
+
+    function setTeacherViewDate(dateISO) {
+      if (!isTeacher()) return;
+      const today = todayISO();
+      const normalized = normalizeISODate(dateISO, today);
+      state.teacherViewDate = normalized > today ? today : normalized;
+      renderHalaqaDetail();
+    }
+
+    function shiftTeacherViewDate(days) {
+      if (!isTeacher()) return;
+      const today = todayISO();
+      const base = getTeacherViewDate();
+      const shifted = normalizeISODate(addDaysISO(base, Number(days || 0)), base);
+      state.teacherViewDate = shifted > today ? today : shifted;
+      renderHalaqaDetail();
+    }
+
     function setDisplayMode(mode) {
       state.displayMode = mode === 'desktop' ? 'desktop' : 'mobile';
       renderAll();
@@ -4562,6 +4646,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 
     function markAllStudentsAttendance() {
       if (!isTeacher()) return toast('هذه الميزة مخصصة للمعلم', 'err');
+      if (isTeacherReadOnlyView()) return toast('وضع العرض السابق قراءة فقط. اختر "اليوم" للتعديل.', 'err');
       const halaqaId = state.currentHalaqaId;
       const halaqa = state.indexes?.halaqaById?.[halaqaId] || null;
       if (!halaqa) return toast('اختر الحلقة أولاً', 'err');
@@ -4606,15 +4691,15 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     function openHalaqa(id) {
       state.currentHalaqaId = id;
       state.currentStudentId = null;
+      if (isTeacher() && !state.teacherViewDate) state.teacherViewDate = todayISO();
       renderHalaqaDetail();
     }
 
     function closeHalaqa() {
       state.currentHalaqaId = null;
       state.currentStudentId = null;
+      if (isTeacher()) state.teacherViewDate = todayISO();
       renderHalaqaDetail();
-		    // Call closeHalaqaWithSummary before rendering
-		    closeHalaqaWithSummary();
     }
 
     function pickStudentFromMobile() {
@@ -4700,6 +4785,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     }
 
     function saveDailyEntry(studentId, forcedType = '') {
+      if (isTeacherReadOnlyView()) return toast('وضع العرض السابق قراءة فقط. اختر "اليوم" للتعديل.', 'err');
       const h = state.indexes?.halaqaById?.[state.currentHalaqaId] || null;
       const s = state.db.students.find(x => x.id === studentId);
       if (!h || !s) return toast('بيانات غير مكتملة', 'err');
@@ -4767,6 +4853,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     }
 
     function deleteLastLog(studentId, type = '') {
+      if (isTeacherReadOnlyView()) return toast('وضع العرض السابق قراءة فقط. اختر "اليوم" للتعديل.', 'err');
       if (!studentId) return toast('اختر طالباً أولاً', 'err');
       const logs = state.db.logs;
       const idx = logs.findIndex(l => l.studentId === studentId && (!type || l.type === type));
@@ -5095,10 +5182,10 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      toast(syncResult.created ? 'تم إنشاء/تحديث كلمة المرور وربط Firebase' : 'تم تحديث كلمة المرور');
 	    }
 
-    function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId) {
-      const today = todayISO();
-      const rows = logsForStudent(studentId).filter((l) => l.date === today);
-      if (!rows.length) return 'لا يوجد تسجيل اليوم';
+    function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId, dateISO = todayISO()) {
+      const targetDate = normalizeISODate(dateISO, todayISO());
+      const rows = logsForStudent(studentId).filter((l) => l.date === targetDate);
+      if (!rows.length) return targetDate === todayISO() ? 'لا يوجد تسجيل اليوم' : 'لا يوجد تسجيل في هذا اليوم';
       const hifdh = rows.filter((l) => l.type === 'hifdh').length;
       const revision = rows.filter((l) => l.type === 'revision').length;
       const parts = [];
@@ -5673,8 +5760,9 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      setTimeout(() => printWindow.print(), 180);
 	    }
 
-	    function buildHalaqaWeeklyTrackingTable(halaqa, students) {
-      const wr = currentWeekRange();
+	    function buildHalaqaWeeklyTrackingTable(halaqa, students, referenceDate = todayISO()) {
+      const wr = weekRangeFromDate(referenceDate);
+      const rangeLabel = referenceDate === todayISO() ? 'الأسبوع الحالي' : `أسبوع ${wr.startISO} ⟵ ${wr.endISO}`;
       const rows = (students || []).map((s) => {
         const weekLogs = logsForStudent(s.id).filter((l) => l.date >= wr.startISO && l.date <= wr.endISO);
         const hifdhCount = weekLogs.filter((l) => l.type === 'hifdh').length;
@@ -5706,7 +5794,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
               <h3>متابعة الحفظ والمراجعة الأسبوعية</h3>
               <div class="row" style="margin-top:6px;">
                 <span class="badge">الحلقة: ${halaqa?.circleName || '-'}</span>
-                <span class="badge">الأسبوع الحالي</span>
+                <span class="badge">${rangeLabel}</span>
               </div>
             </div>
             <div class="row">
@@ -5767,11 +5855,16 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
       const students = state.indexes?.studentsByHalaqa?.[h.id] || [];
       const selected = students.find(s => s.id === state.currentStudentId) || null;
-      const wp = weekProgressForHalaqa(h.id);
       const teacherMode = isTeacher();
       const today = todayISO();
+      const teacherViewDate = teacherMode ? getTeacherViewDate() : today;
+      const viewDate = teacherMode ? teacherViewDate : today;
+      const isHistoryView = teacherMode && teacherViewDate !== today;
+      const viewDateHijri = toHijriLabelFromISO(viewDate);
+      const wp = weekProgressForHalaqa(h.id, viewDate);
       const pending = pendingLogsCount();
-      const performancePanel = buildHalaqaPerformancePanel(h.id);
+      const dailyLogs = state.db.logs.filter((l) => l.halaqaId === h.id && l.date === viewDate);
+      const performancePanel = teacherMode ? '' : buildHalaqaPerformancePanel(h.id);
 
       const availableToAttach = state.db.students.filter(s => s.section === h.section && s.halaqaId !== h.id);
       const attachPickerOptions = availableToAttach.map(s => ({ id: s.id, label: studentLabel(s) }));
@@ -5784,7 +5877,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         .filter((a) => ['present', 'absent', 'late', 'excused', 'remote'].includes(a.key))
         .map((a) => `<option value="${a.key}">${a.label}</option>`)
         .join('');
-      const dailyRollcalls = students.filter((s) => getRollcall(s.id, h.id, today));
+      const dailyRollcalls = students.filter((s) => getRollcall(s.id, h.id, viewDate));
 
       detail.classList.remove('hidden');
       detail.innerHTML = `
@@ -5798,18 +5891,32 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
         ${teacherMode ? `
           <div class="card" style="margin-bottom:10px; border-color:#d7e2d3; background:#f8fbff;">
-              <div class="row" style="gap:8px;">
-                <span class="badge badge-green">حاضر اليوم: ${dailyRollcalls.length}/${students.length}</span>
-                <span class="badge">سجلات اليوم: ${state.db.logs.filter(l => l.halaqaId === h.id && l.date === today).length}</span>
+              <div class="row between" style="gap:8px; flex-wrap:wrap;">
+                <div class="row" style="gap:8px; flex-wrap:wrap;">
+                <span class="badge badge-green">الحضور ${viewDate}: ${dailyRollcalls.length}/${students.length}</span>
+                <span class="badge">سجلات ${viewDate}: ${dailyLogs.length}</span>
                 ${pending ? `<span class="badge badge-warn">معلّقة: ${pending}</span>` : ''}
-                <span class="badge">${wp.totalAya} آية هذا الأسبوع</span>
+                <span class="badge">${wp.totalAya} آية في أسبوع العرض</span>
               </div>
-              <div class="row" style="gap:8px;">
+                ${isHistoryView ? '<span class="badge badge-warn">عرض سابق: قراءة فقط</span>' : '<span class="badge badge-green">وضع إدخال اليوم</span>'}
+              </div>
+              <div class="row" style="gap:8px; flex-wrap:wrap; margin-top:8px;">
+                <button class="btn btn-light" onclick="shiftTeacherViewDate(-1)">اليوم السابق</button>
+                <input id="teacherViewDate" type="date" max="${today}" value="${teacherViewDate}" onchange="setTeacherViewDate(this.value)" style="max-width:170px;" />
+                <button class="btn btn-light" ${teacherViewDate >= today ? 'disabled' : ''} onclick="shiftTeacherViewDate(1)">اليوم التالي</button>
+                <button class="btn btn-light" onclick="setTeacherViewDate('${today}')">اليوم</button>
+                <span class="badge">${viewDateHijri || 'التاريخ الهجري غير متاح'}</span>
+              </div>
+              ${isHistoryView ? `
+                <p class="muted" style="font-size:12px; margin-top:8px;">هذه البيانات ليوم ${viewDate}. تم تعطيل التعديل للحفاظ على السجلات السابقة.</p>
+              ` : `
+              <div class="row" style="gap:8px; margin-top:8px;">
                 <select id="bulkAttendanceStatus" class="picker-select" style="max-width:170px;">${attendanceOptions}</select>
                 <input id="bulkAttendanceDate" type="date" value="${today}" style="max-width:170px;" />
                 <button class="btn btn-primary" onclick="markAllStudentsAttendance()">تحضير الجميع</button>
                 ${pending ? `<button class="btn btn-light" onclick="syncPendingLogs()">مزامنة السجلات</button>` : ''}
               </div>
+              `}
 	            </div>
 	        ` : `
           <div class="card" style="margin-bottom:10px; border-color:#bbf7d0; background:#f0fdf4;">
@@ -5860,7 +5967,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             ${students.map(student => `
               <button type="button" class="teacher-student-btn ${selected && selected.id === student.id ? 'active' : ''} ${state.teacherStudentView === 'compact' ? 'compact' : ''}" data-student-id="${student.id}">
                 <span class="name">${student.name}</span>
-                <span class="meta">${(ATTENDANCE.find((a) => a.key === (getRollcall(student.id, h.id, today)?.status || ''))?.label || 'غير محضر')} • ${todayEntriesSummary(student.id)}</span>
+                <span class="meta">${(ATTENDANCE.find((a) => a.key === (getRollcall(student.id, h.id, viewDate)?.status || ''))?.label || 'غير محضر')} • ${todayEntriesSummary(student.id, viewDate)}</span>
               </button>
             `).join('') || '<div class="card">لا يوجد طلاب.</div>'}
           </div>
@@ -5902,8 +6009,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	          </div>
         `}
 
-        ${selected ? renderEntryForm(selected, teacherMode) : (teacherMode ? '<div class="card"><p class="muted">اختر طالباً لفتح بطاقة التسجيل.</p></div>' : '')}
-        ${teacherMode ? buildHalaqaWeeklyTrackingTable(h, students) : ''}
+        ${selected ? renderEntryForm(selected, teacherMode, viewDate) : (teacherMode ? '<div class="card"><p class="muted">اختر طالباً لفتح بطاقة التسجيل.</p></div>' : '')}
+        ${teacherMode ? buildHalaqaWeeklyTrackingTable(h, students, viewDate) : ''}
       `;
       if (!teacherMode) {
         mountSmartPicker('attachStudentSmart', 'attachStudentSelect', attachPickerOptions, '', 'ابحث عن طالب للإلحاق');
@@ -5919,7 +6026,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       if (selected) syncEntryCalc();
     }
 
-    function renderEntryForm(s, teacherMode = false) {
+    function renderEntryForm(s, teacherMode = false, viewDateISO = todayISO()) {
       const currentHalaqa = state.db.halaqas.find((h) => h.id === state.currentHalaqaId);
       const remoteMode = currentHalaqa?.deliveryMode === 'remote';
       const defaultAttendance = remoteMode ? 'remote' : 'present';
@@ -5942,7 +6049,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const latestRevision = studentLogs.find(l => l.type === 'revision');
       const fmtLatest = (log) => log ? `${log.date} • ${log.surahName} (${log.fromAya}-${log.toAya}) • تقدير: ${log.grade}` : 'لا يوجد سجل بعد';
       const today = todayISO();
-      const todayHijri = toHijriLabelFromISO(today);
+      const viewDate = normalizeISODate(viewDateISO, today);
+      const todayHijri = toHijriLabelFromISO(viewDate);
+      const historyMode = teacherMode && viewDate !== today;
       const prefill = state.prefillByStudent[s.id] || {};
       const defaults = (type) => {
         const last = studentLogs.find(l => l.type === type);
@@ -5963,8 +6072,45 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const attR = ATTENDANCE.map(a => `<option value="${a.key}" ${a.key === defR.attendance ? 'selected' : ''}>${a.label}</option>`).join('');
       const grH = GRADES.map(g => `<option value="${g}" ${g === defH.grade ? 'selected' : ''}>${g}</option>`).join('');
       const grR = GRADES.map(g => `<option value="${g}" ${g === defR.grade ? 'selected' : ''}>${g}</option>`).join('');
+      const dayLogs = sortLogsByRecency(studentLogs.filter((l) => l.date === viewDate));
+      const dayLatestHifdh = dayLogs.find((l) => l.type === 'hifdh') || null;
+      const dayLatestRevision = dayLogs.find((l) => l.type === 'revision') || null;
 
       if (teacherMode) {
+        if (historyMode) {
+          const historyRows = dayLogs.map((l) => `
+            <tr>
+              <td>${l.type === 'hifdh' ? 'حفظ' : 'مراجعة'}</td>
+              <td>${l.surahName || '-'}</td>
+              <td>${l.fromAya || '-'}-${l.toAya || '-'}</td>
+              <td>${l.grade || '-'}</td>
+              <td>${l.syncStatus === 'pending' ? '<span class="badge badge-warn">معلّق</span>' : '<span class="badge badge-green">متزامن</span>'}</td>
+              <td>${l.notes ? escapeAttr(l.notes) : '-'}</td>
+            </tr>
+          `).join('');
+
+          return `
+            <div class="card" style="border-color:#facc15; background:#fffbeb;">
+              <div class="row between" style="margin-bottom:8px;">
+                <h3>عرض ${s.name} بتاريخ ${viewDate}</h3>
+                <span class="badge badge-warn">قراءة فقط</span>
+              </div>
+              <p class="muted" style="font-size:12px; margin-bottom:8px;">يمكنك استعراض بيانات اليوم السابق بدون تعديل. للكتابة اختر "اليوم".</p>
+              <div class="grid grid-4" style="margin-bottom:8px;">
+                <div class="card" style="padding:8px;"><p class="muted" style="font-size:12px;">آخر حفظ</p><b>${dayLatestHifdh ? `${dayLatestHifdh.surahName} (${dayLatestHifdh.fromAya}-${dayLatestHifdh.toAya})` : 'لا يوجد'}</b></div>
+                <div class="card" style="padding:8px;"><p class="muted" style="font-size:12px;">آخر مراجعة</p><b>${dayLatestRevision ? `${dayLatestRevision.surahName} (${dayLatestRevision.fromAya}-${dayLatestRevision.toAya})` : 'لا يوجد'}</b></div>
+                <div class="card" style="padding:8px;"><p class="muted" style="font-size:12px;">عدد السجلات</p><b>${dayLogs.length}</b></div>
+                <div class="card" style="padding:8px;"><p class="muted" style="font-size:12px;">التاريخ الهجري</p><b>${todayHijri || '-'}</b></div>
+              </div>
+              <div class="card" style="padding:8px; overflow:auto;">
+                <table>
+                  <thead><tr><th>النوع</th><th>السورة</th><th>المدى</th><th>التقدير</th><th>الحالة</th><th>الملاحظات</th></tr></thead>
+                  <tbody>${historyRows || '<tr><td colspan="6" class="muted">لا يوجد تسجيل لهذا الطالب في اليوم المحدد.</td></tr>'}</tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        }
         return `
           <div class="card" style="border-color:#86efac; background:#f8fff9;">
             <div class="row between" style="margin-bottom:8px;">
@@ -5982,7 +6128,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
               </div>
               <div class="field-block">
                 <div class="field-label">التاريخ الميلادي</div>
-                <input id="entryDateGregorian" type="date" value="${today}" />
+                <input id="entryDateGregorian" type="date" value="${viewDate}" />
               </div>
               <div class="field-block">
                 <div class="field-label">التاريخ الهجري</div>
@@ -7761,6 +7907,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.pickStudentFromMobile = pickStudentFromMobile;
     window.setStudentPickerMode = setStudentPickerMode;
     window.setTeacherStudentView = setTeacherStudentView;
+    window.setTeacherViewDate = setTeacherViewDate;
+    window.shiftTeacherViewDate = shiftTeacherViewDate;
     window.setTab = setTab;
     window.addStudentToHalaqa = addStudentToHalaqa;
     window.markAllStudentsAttendance = markAllStudentsAttendance;
@@ -7919,8 +8067,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 // 3. تحسين عرض الطالب المختار
 
 // تعريف دالة getStudentWeeklyAya لحساب آيات الطالب هذا الأسبوع
-function getStudentWeeklyAya(studentId) {
-  const wr = weekRange();
+function getStudentWeeklyAya(studentId, referenceDate = todayISO()) {
+  const wr = weekRangeFromDate(referenceDate);
   return logsForStudent(studentId)
     .filter(l => l.date >= wr.startISO && l.date <= wr.endISO)
     .reduce((s, l) => s + Number(l.ayaCount || 0), 0);
@@ -7950,12 +8098,21 @@ function renderHalaqaDetail_enhanced() {
   // إضافة زر واتساب إذا كان المعلم مسجل دخول والحلقة مفتوحة
   const u = currentUser();
   if (!u || u.role !== 'teacher' || !state.currentHalaqaId) return;
+  const closeBtnArea = document.querySelector('#halaqaDetail .row.between');
+  if (closeBtnArea && !document.getElementById('wa-report-btn')) {
+    const waBtn = document.createElement('button');
+    waBtn.id = 'wa-report-btn';
+    waBtn.className = 'btn btn-ok no-print';
+    waBtn.style.cssText = 'background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-size:13px;';
+    waBtn.textContent = '📋 تقرير اليوم (واتساب)';
+    waBtn.onclick = copyWeeklyReportToWhatsapp;
+    closeBtnArea.insertBefore(waBtn, closeBtnArea.querySelector('.btn-light'));
+  }
   // إضافة معلومات آيات الأسبوع على بطاقات الطلاب
   document.querySelectorAll('.teacher-student-btn').forEach(btn => {
     const sId = btn.dataset.studentId;
     if (!sId) return;
-    const aya = getStudentWeeklyAya(sId);
-    const s = state.db.students.find(x => x.id === sId);
+    const aya = getStudentWeeklyAya(sId, getTeacherViewDate());
     const metaEl = btn.querySelector('.meta');
     if (metaEl && aya > 0) {
       if (!metaEl.querySelector('.aya-badge')) {
@@ -7985,7 +8142,7 @@ function openHalaqa_enhanced(id) {
     waBtn.id = 'wa-report-btn';
     waBtn.className = 'btn btn-ok no-print';
     waBtn.style.cssText = 'background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-size:13px;';
-    waBtn.textContent = '📊 تقرير واتساب';
+    waBtn.textContent = '📋 تقرير اليوم (واتساب)';
     waBtn.onclick = copyWeeklyReportToWhatsapp;
     closeBtnArea.insertBefore(waBtn, closeBtnArea.querySelector('.btn-light'));
   }, 100);
