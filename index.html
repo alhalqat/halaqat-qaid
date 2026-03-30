@@ -573,6 +573,15 @@
     thead th { border-top: 0; background: #f8fafc; color: #475569; font-size: 13px; }
     td { font-size: 14px; }
     td select { max-width: 100%; min-width: 180px; }
+    #studentsRows input { min-width: 140px; }
+    .student-name-editor { min-width: 230px; }
+    .student-name-editor input { min-width: 230px; font-weight: 700; }
+    .student-name-editor .name-preview {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #64748b;
+      white-space: nowrap;
+    }
     .row-danger td { background: #fff7f7; }
     .issue-chip {
       display: inline-block;
@@ -1409,6 +1418,8 @@ tbody tr:hover td { background: #fef9e7; }
       .teacher-student-btn .name { font-size: 13px; line-height: 1.35; }
       .teacher-student-btn .meta { font-size: 11px; line-height: 1.4; max-height: 2.9em; overflow: hidden; }
       .teacher-quick-nav .btn { flex: 1 1 calc(33% - 6px); }
+      .student-name-editor,
+      .student-name-editor input { min-width: 280px; }
       #appView > header h1 { font-size: 24px; }
       .hero h2 { font-size: 28px; }
       .parent-layout, .parent-grid { grid-template-columns: 1fr; }
@@ -6449,13 +6460,14 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       $('studentsRows').innerHTML = list.map(s => {
         const currentH = hs.find(h => h.id === s.halaqaId);
         const issues = studentIssues(s, visible);
+        const safeName = escapeAttr(s.name || '');
         const options = hs
           .filter(h => h.section === s.section && (admin || visibleHalaqas().some(v => v.id === h.id)))
           .map(h => `<option value="${h.id}" ${h.id===s.halaqaId?'selected':''}>${h.circleName}</option>`)
           .join('');
         return `
           <tr class="${issues.length ? 'row-danger' : ''}">
-            <td>${manage ? `<input id="edit_name_${s.id}" value="${escapeAttr(s.name)}" />` : s.name}</td>
+            <td>${manage ? `<div class="student-name-editor"><input id="edit_name_${s.id}" value="${safeName}" title="${safeName}" /><div class="name-preview">${safeName}</div></div>` : s.name}</td>
             <td>${manage ? `<input id="edit_nid_${s.id}" value="${escapeAttr(s.nationalId || '')}" />` : (s.nationalId || '-')}</td>
             <td>${manage ? `<input id="edit_guardian_${s.id}" value="${escapeAttr(s.guardianPhone || '')}" />` : (s.guardianPhone || '-')}</td>
             <td>${manage ? `<input id="edit_grade_${s.id}" value="${escapeAttr(s.grade || '')}" />` : (s.grade || '-')}</td>
