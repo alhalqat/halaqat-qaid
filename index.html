@@ -190,6 +190,10 @@
       gap: 8px;
       margin-bottom: 10px;
     }
+    .teacher-student-grid.compact-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
     .teacher-halaqa-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -361,6 +365,42 @@
       margin-top: 4px;
       font-size: 12px;
       color: #64748b;
+    }
+    .teacher-student-btn.compact {
+      min-height: 58px;
+      padding: 9px 8px;
+    }
+    .teacher-student-btn.compact .meta {
+      display: none;
+    }
+    .teacher-student-btn .selected-flag {
+      display: none;
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #166534;
+    }
+    .teacher-student-btn.active .selected-flag {
+      display: inline-block;
+    }
+    .teacher-current-student {
+      margin-bottom: 10px;
+      border-color: #86efac;
+      background: linear-gradient(145deg, #f0fdf4, #f8fbff);
+    }
+    .teacher-current-student .student-name {
+      font-size: 18px;
+      font-weight: 900;
+      color: #14532d;
+    }
+    .teacher-quick-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .teacher-quick-nav .btn {
+      padding: 7px 10px;
+      font-size: 13px;
     }
     .entry-type-switch {
       display: grid;
@@ -1363,6 +1403,12 @@ tbody tr:hover td { background: #fef9e7; }
       .app-shell { grid-template-columns: 1fr; }
       .ops-sidebar { position: static; }
       #mainTabs.side-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .teacher-current-student { position: sticky; top: 6px; z-index: 4; }
+      .teacher-student-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 46vh; overflow: auto; padding: 4px; }
+      .teacher-student-btn { min-height: 72px; padding: 8px 7px; }
+      .teacher-student-btn .name { font-size: 13px; line-height: 1.35; }
+      .teacher-student-btn .meta { font-size: 11px; line-height: 1.4; max-height: 2.9em; overflow: hidden; }
+      .teacher-quick-nav .btn { flex: 1 1 calc(33% - 6px); }
       #appView > header h1 { font-size: 24px; }
       .hero h2 { font-size: 28px; }
       .parent-layout, .parent-grid { grid-template-columns: 1fr; }
@@ -2347,7 +2393,7 @@ localStorage.setItem = function(key, value) {
       currentStudentId: null,
       currentParentStudentId: null,
 	      studentPickerMode: 'cards',
-	      teacherStudentView: 'cards',
+	      teacherStudentView: 'compact',
 	      teacherViewDate: '',
 	      studentIssueFilter: 'all',
 	      dailyMonitorDate: '',
@@ -4634,7 +4680,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     }
 
     function setTeacherStudentView(mode) {
-      state.teacherStudentView = mode === 'dropdown' ? 'dropdown' : 'cards';
+      state.teacherStudentView = ['cards', 'dropdown', 'compact'].includes(mode) ? mode : 'compact';
       renderHalaqaDetail();
     }
 
@@ -4761,6 +4807,27 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       renderHalaqaDetail();
       // تأجيل حساب الحقول للتأكد من بناء النموذج قبل الربط
       setTimeout(syncEntryCalc, 0);
+    }
+
+    function openAdjacentStudent(step = 1) {
+      if (!isTeacher()) return;
+      const students = state.indexes?.studentsByHalaqa?.[state.currentHalaqaId] || [];
+      if (!students.length) return toast('لا يوجد طلاب في الحلقة', 'err');
+      if (!state.currentStudentId) return openEntry(students[0].id);
+      const idx = students.findIndex((s) => s.id === state.currentStudentId);
+      if (idx === -1) return openEntry(students[0].id);
+      const nextIdx = clamp(idx + Number(step || 0), 0, students.length - 1);
+      openEntry(students[nextIdx].id);
+    }
+
+    function openFirstUnloggedStudent() {
+      if (!isTeacher()) return;
+      const students = state.indexes?.studentsByHalaqa?.[state.currentHalaqaId] || [];
+      if (!students.length) return toast('لا يوجد طلاب في الحلقة', 'err');
+      const targetDate = getTeacherViewDate();
+      const target = students.find((s) => !logsForStudent(s.id).some((l) => l.date === targetDate));
+      if (!target) return toast('تم تسجيل كل الطلاب في اليوم المحدد');
+      openEntry(target.id);
     }
 
     function syncEntryCalc() {
@@ -5879,9 +5946,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         return;
       }
 
-      const students = state.indexes?.studentsByHalaqa?.[h.id] || [];
-      const selected = students.find(s => s.id === state.currentStudentId) || null;
       const teacherMode = isTeacher();
+      const students = state.indexes?.studentsByHalaqa?.[h.id] || [];
+      if (teacherMode && !state.currentStudentId && students.length) {
+        state.currentStudentId = students[0].id;
+      }
+      const selected = students.find(s => s.id === state.currentStudentId) || null;
       const today = todayLocalISO();
       const teacherViewDate = teacherMode ? getTeacherViewDate() : today;
       const viewDate = teacherMode ? teacherViewDate : today;
@@ -5975,17 +6045,27 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         `}
 
         ${teacherMode ? `
-          <div class="card no-print" style="padding:10px; margin-bottom:10px;">
-            <div class="row between" style="gap:10px;">
-              <div class="row" style="gap:8px;">
-                <select onchange="setTeacherStudentView(this.value)" class="picker-select" style="max-width:220px;">
-                  <option value="cards" ${state.teacherStudentView === 'cards' ? 'selected' : ''}>عرض الطلاب كمربعات</option>
-                  <option value="dropdown" ${state.teacherStudentView === 'dropdown' ? 'selected' : ''}>عرض الطلاب كقائمة</option>
-                </select>
+          <div class="card no-print teacher-current-student" style="padding:10px;">
+            <div class="row between" style="gap:10px; align-items:center; flex-wrap:wrap;">
+              <div>
+                <p class="muted" style="font-size:12px; margin-bottom:4px;">الطالب المختار الآن</p>
+                <div class="student-name">${selected ? selected.name : 'لم يتم اختيار طالب بعد'}</div>
               </div>
-              <select id="teacherStudentDropdown" class="picker-select" style="display:none">
-                <option value="">اختر الطالب</option>
+              <div class="teacher-quick-nav">
+                <button class="btn btn-light" onclick="openAdjacentStudent(-1)">السابق</button>
+                <button class="btn btn-light" onclick="openAdjacentStudent(1)">التالي</button>
+                <button class="btn btn-primary" onclick="openFirstUnloggedStudent()">أول غير مسجل</button>
+              </div>
+            </div>
+            <div class="row" style="gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <select class="picker-select" onchange="openEntry(this.value)" style="max-width:320px;">
+                <option value="">اختيار سريع للطالب</option>
                 ${students.map((student) => `<option value="${student.id}" ${selected && selected.id === student.id ? 'selected' : ''}>${student.name}</option>`).join('')}
+              </select>
+              <select onchange="setTeacherStudentView(this.value)" class="picker-select" style="max-width:220px;">
+                <option value="compact" ${state.teacherStudentView === 'compact' ? 'selected' : ''}>عرض سريع للجوال</option>
+                <option value="cards" ${state.teacherStudentView === 'cards' ? 'selected' : ''}>عرض كامل</option>
+                <option value="dropdown" ${state.teacherStudentView === 'dropdown' ? 'selected' : ''}>قائمة منسدلة</option>
               </select>
             </div>
           </div>
@@ -5994,6 +6074,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
               <button type="button" class="teacher-student-btn ${selected && selected.id === student.id ? 'active' : ''} ${state.teacherStudentView === 'compact' ? 'compact' : ''}" data-student-id="${student.id}">
                 <span class="name">${student.name}</span>
                 <span class="meta">${(ATTENDANCE.find((a) => a.key === (getRollcall(student.id, h.id, viewDate)?.status || ''))?.label || 'غير محضر')} • ${todayEntriesSummary(student.id, viewDate)}</span>
+                <span class="selected-flag">✓ الطالب المختار</span>
               </button>
             `).join('') || '<div class="card">لا يوجد طلاب.</div>'}
           </div>
@@ -7930,6 +8011,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.openHalaqa = openHalaqa;
     window.closeHalaqa = closeHalaqa;
     window.openEntry = openEntry;
+    window.openAdjacentStudent = openAdjacentStudent;
+    window.openFirstUnloggedStudent = openFirstUnloggedStudent;
     window.pickStudentFromMobile = pickStudentFromMobile;
     window.setStudentPickerMode = setStudentPickerMode;
     window.setTeacherStudentView = setTeacherStudentView;
