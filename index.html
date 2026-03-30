@@ -4252,34 +4252,52 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       toast(successMsg);
     }
 
-    async function loginByCredentials() {
-      const username = normalizeUsername($('loginUsername')?.value || '');
-      const password = String($('loginPassword')?.value || '').trim();
-      if (!username || !password) return toast('أدخل اسم المستخدم وكلمة المرور', 'err');
-      const localStaff = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username) || null;
+	    async function loginByCredentials() {
+	      const username = normalizeUsername($('loginUsername')?.value || '');
+	      const password = String($('loginPassword')?.value || '').trim();
+	      if (!username || !password) return toast('أدخل اسم المستخدم وكلمة المرور', 'err');
+	      const localStaff = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username) || null;
 
-      if (firebaseAuthEnabled()) {
-        const authResult = await signInOrProvisionStaffAuth(username, password, localStaff);
-        if (!authResult.ok) return toast(authResult.message || 'تعذر تسجيل الدخول بحساب الكادر', 'err');
+	      if (firebaseAuthEnabled()) {
+	        const authResult = await signInOrProvisionStaffAuth(username, password, localStaff);
+	        if (!authResult.ok) return toast(authResult.message || 'تعذر تسجيل الدخول بحساب الكادر', 'err');
 
-        if (database) await pullCloudAndRefresh({ notify: false, waitIfBusy: true });
-        let u = (state.db?.staff || []).find((s) => String(s.authUid || '') && String(s.authUid || '') === String(authResult.uid || '')) || null;
-        if (!u) {
-          u = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username) || null;
-        }
-        if (!u) {
-          await auth.signOut().catch(() => {});
-          return toast('الحساب السحابي غير مربوط بموظف داخل المنصة', 'err');
-        }
-        if (u.authUid && authResult.uid && String(u.authUid) !== String(authResult.uid)) {
-          await auth.signOut().catch(() => {});
-          return toast('هذا الحساب مرتبط بموظف آخر. راجع الإدارة.', 'err');
-        }
-        let changed = false;
-        if (!u.authUid && authResult.uid) {
-          u.authUid = authResult.uid;
-          changed = true;
-        }
+	        if (database) {
+	          // بعض أجهزة أندرويد تتأخر في تثبيت جلسة Firebase بعد نجاح الدخول.
+	          // ننتظر الجلسة ثم نعيد محاولة السحب السحابي قبل التحقق من الربط.
+	          if (firebaseAuthEnabled()) {
+	            const settled = await waitForInitialAuthState(4500);
+	            if (!settled && !auth.currentUser) {
+	              await new Promise((resolve) => setTimeout(resolve, 450));
+	              await waitForInitialAuthState(2500);
+	            }
+	          }
+	          await pullCloudAndRefresh({ notify: false, waitIfBusy: true });
+	        }
+
+	        const resolvedUid = String(authResult.uid || auth?.currentUser?.uid || '');
+	        let u = (state.db?.staff || []).find((s) => String(s.authUid || '') && String(s.authUid || '') === resolvedUid) || null;
+	        if (!u && database) {
+	          await new Promise((resolve) => setTimeout(resolve, 500));
+	          await pullCloudAndRefresh({ notify: false, waitIfBusy: true });
+	          u = (state.db?.staff || []).find((s) => String(s.authUid || '') && String(s.authUid || '') === resolvedUid) || null;
+	        }
+	        if (!u) {
+	          u = (state.db?.staff || []).find((s) => normalizeUsername(s.username || '') === username) || null;
+	        }
+	        if (!u) {
+	          await auth.signOut().catch(() => {});
+	          return toast('تم التحقق من الحساب، لكن لم يتم تحميل ربط الموظف من السحابة. أعد المحاولة بعد ثوانٍ.', 'err');
+	        }
+	        if (u.authUid && resolvedUid && String(u.authUid) !== resolvedUid) {
+	          await auth.signOut().catch(() => {});
+	          return toast('هذا الحساب مرتبط بموظف آخر. راجع الإدارة.', 'err');
+	        }
+	        let changed = false;
+	        if (!u.authUid && resolvedUid) {
+	          u.authUid = resolvedUid;
+	          changed = true;
+	        }
         const expectedEmail = staffAuthEmailFromUsername(u.username || username);
         if (!u.authEmail || u.authEmail !== expectedEmail) {
           u.authEmail = expectedEmail;
