@@ -1953,12 +1953,15 @@ localStorage.setItem = function(key, value) {
               <select id="assignHalaqa"></select>
               <button class="btn btn-gold" id="assignTeacherBtn">ربط المعلم بالحلقة</button>
             </div>
-            <div class="card" style="margin-top:8px;">
-              <p class="muted" style="font-size:12px; margin-bottom:8px;">إذا ظهر تعذر في تهيئة Firebase، فعّل Email/Password ثم أعد المحاولة من الزر التالي.</p>
-              <button class="btn btn-light" onclick="migrateStaffAuthNow()">إعادة تهيئة حسابات Firebase</button>
-            </div>
-          </div>
-        </details>
+	            <div class="card" style="margin-top:8px;">
+	              <p class="muted" style="font-size:12px; margin-bottom:8px;">إذا ظهر تعذر في تهيئة Firebase، فعّل Email/Password ثم أعد المحاولة من الزر التالي.</p>
+	              <div class="row" style="gap:8px;">
+	                <button class="btn btn-light" onclick="migrateStaffAuthNow()">إعادة تهيئة حسابات Firebase</button>
+	                <button class="btn btn-primary" onclick="repairStaffUidIndexNow()">إصلاح ربط دخول الكادر</button>
+	              </div>
+	            </div>
+	          </div>
+	        </details>
 
         <div id="staffCards" class="grid grid-3"></div>
       </section>
@@ -2623,9 +2626,9 @@ localStorage.setItem = function(key, value) {
       }
     }
     let staffAuthMigrationRunning = false;
-    async function migrateMissingStaffAuthAccounts(options = {}) {
-      const { notify = false } = options;
-      if (!firebaseAuthEnabled() || staffAuthMigrationRunning || !isAdmin()) return { created: 0, failed: 0 };
+	    async function migrateMissingStaffAuthAccounts(options = {}) {
+	      const { notify = false } = options;
+	      if (!firebaseAuthEnabled() || staffAuthMigrationRunning || !isAdmin()) return { created: 0, failed: 0 };
       const pending = (state.db?.staff || []).filter((s) => {
         const missingUid = !String(s.authUid || '').trim();
         const hasUser = !!normalizeUsername(s.username || '');
@@ -2651,10 +2654,11 @@ localStorage.setItem = function(key, value) {
             console.error('Staff auth migration failed:', s.id, res.code, res.message);
           }
         }
-        if (created > 0) {
-          saveDB();
-          renderAll();
-        }
+	        if (created > 0) {
+	          saveDB();
+	          await repairStaffUidIndex({ notify: false });
+	          renderAll();
+	        }
         if (notify && (created > 0 || failed > 0)) {
           const suffix = failed && firstError ? ` | أول سبب: ${firstError}` : '';
           toast(`تهيئة حسابات Firebase: نجاح ${created} / تعذر ${failed}${suffix}`, failed ? 'err' : 'ok');
@@ -2662,11 +2666,77 @@ localStorage.setItem = function(key, value) {
         return { created, failed, firstError };
       } finally {
         staffAuthMigrationRunning = false;
-      }
-    }
-    const safeFilePart = (v) => compactName(v)
-      .replace(/[^0-9A-Za-z\u0600-\u06FF _-]/g, '')
-      .replace(/\s+/g, '_')
+	      }
+	    }
+	    function buildStaffUidIndexFromDB() {
+	      const index = {};
+	      (state.db?.staff || []).forEach((s) => {
+	        const uid = String(s.authUid || '').trim();
+	        if (!uid) return;
+	        index[uid] = {
+	          staffId: String(s.id || ''),
+	          role: String(s.role || ''),
+	          section: normalizeSection(s.section || 'mens'),
+	        };
+	      });
+	      return index;
+	    }
+	    async function writeStaffUidIndexRecord(uid, record) {
+	      if (!database || !uid) return { ok: false, code: 'db/not-ready' };
+	      try {
+	        await database.ref(`${STORAGE_KEYS.shared}/staffUidIndex/${uid}`).set({
+	          staffId: String(record?.staffId || ''),
+	          role: String(record?.role || ''),
+	          section: normalizeSection(record?.section || 'mens'),
+	        });
+	        return { ok: true };
+	      } catch (err) {
+	        return { ok: false, code: String(err?.code || ''), message: String(err?.message || '') };
+	      }
+	    }
+	    async function repairStaffUidIndex(options = {}) {
+	      const { notify = false } = options;
+	      if (!isAdmin()) return { fixed: 0, failed: 0, skipped: true };
+	      if (!database || !firebaseAuthEnabled() || !auth?.currentUser) {
+	        if (notify) toast('يلزم دخول الإدارة بالحساب السحابي لإصلاح الفهرس', 'err');
+	        return { fixed: 0, failed: 0, skipped: true };
+	      }
+	      const index = buildStaffUidIndexFromDB();
+	      const entries = Object.entries(index);
+	      if (!entries.length) {
+	        if (notify) toast('لا يوجد موظفون مرتبطون بـ UID لإصلاحهم');
+	        return { fixed: 0, failed: 0 };
+	      }
+	      let fixed = 0;
+	      let failed = 0;
+	      let firstError = '';
+	      for (const [uid, record] of entries) {
+	        const res = await writeStaffUidIndexRecord(uid, record);
+	        if (res.ok) fixed += 1;
+	        else {
+	          failed += 1;
+	          if (!firstError) firstError = res.code || res.message || 'سبب غير معروف';
+	        }
+	      }
+	      if (notify) {
+	        const suffix = failed && firstError ? ` | أول سبب: ${firstError}` : '';
+	        toast(`إصلاح فهرس ربط الكادر: نجاح ${fixed} / تعذر ${failed}${suffix}`, failed ? 'err' : 'ok');
+	      }
+	      return { fixed, failed, firstError };
+	    }
+	    async function ensureOwnStaffUidIndex(staff, uid) {
+	      const targetUid = String(uid || '').trim();
+	      if (!database || !targetUid || !staff) return false;
+	      const res = await writeStaffUidIndexRecord(targetUid, {
+	        staffId: String(staff.id || ''),
+	        role: String(staff.role || ''),
+	        section: normalizeSection(staff.section || 'mens'),
+	      });
+	      return !!res.ok;
+	    }
+	    const safeFilePart = (v) => compactName(v)
+	      .replace(/[^0-9A-Za-z\u0600-\u06FF _-]/g, '')
+	      .replace(/\s+/g, '_')
       .slice(0, 40) || 'student';
 
     function studentLabel(s) {
@@ -4293,8 +4363,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       setTimeout(() => w.print(), 350);
     }
 
-    function loginStaffUser(u, successMsg = 'تم تسجيل الدخول') {
-      state.session = { type: 'staff', userId: u.id, authUid: String(auth?.currentUser?.uid || u.authUid || '') };
+	    function loginStaffUser(u, successMsg = 'تم تسجيل الدخول') {
+	      state.session = { type: 'staff', userId: u.id, authUid: String(auth?.currentUser?.uid || u.authUid || '') };
       if (u.role === 'teacher') {
         state.section = u.section || 'mens';
         const teacherHalaqas = (state.db?.halaqas || []).filter((h) => (u.assignedHalaqaIds || []).includes(h.id));
@@ -4305,12 +4375,13 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       $('appView').classList.remove('hidden');
       saveSession();
       startCloudAutoPull();
-      renderAll();
-      if (u.role === 'admin') {
-        migrateMissingStaffAuthAccounts({ notify: true });
-      }
-      toast(successMsg);
-    }
+	      renderAll();
+	      if (u.role === 'admin') {
+	        migrateMissingStaffAuthAccounts({ notify: true });
+	        repairStaffUidIndex({ notify: false });
+	      }
+	      toast(successMsg);
+	    }
 
 	    async function loginByCredentials() {
 	      const username = normalizeUsername($('loginUsername')?.value || '');
@@ -4321,6 +4392,10 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      if (firebaseAuthEnabled()) {
 	        const authResult = await signInOrProvisionStaffAuth(username, password, localStaff);
 	        if (!authResult.ok) return toast(authResult.message || 'تعذر تسجيل الدخول بحساب الكادر', 'err');
+	        const resolvedUid = String(authResult.uid || auth?.currentUser?.uid || '');
+	        if (database && resolvedUid && localStaff) {
+	          await ensureOwnStaffUidIndex(localStaff, resolvedUid);
+	        }
 
 	        if (database) {
 	          // بعض أجهزة أندرويد تتأخر في تثبيت جلسة Firebase بعد نجاح الدخول.
@@ -4335,7 +4410,6 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	          await pullCloudAndRefresh({ notify: false, waitIfBusy: true });
 	        }
 
-	        const resolvedUid = String(authResult.uid || auth?.currentUser?.uid || '');
 	        let u = (state.db?.staff || []).find((s) => String(s.authUid || '') && String(s.authUid || '') === resolvedUid) || null;
 	        if (!u && database) {
 	          await new Promise((resolve) => setTimeout(resolve, 500));
@@ -4947,7 +5021,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       if (usernameTaken) return toast('اسم المستخدم مستخدم مسبقاً', 'err');
       const authCreated = await createStaffAuthAccountUsingSecondaryApp(username, password);
       if (!authCreated.ok) return toast(authCreated.message || 'تعذر إنشاء حساب Firebase للكادر', 'err');
-      state.db.staff.push({
+	      state.db.staff.push({
         id: uid('u'),
         name,
         role,
@@ -4961,12 +5035,13 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       });
       $('staffName').value = '';
       $('staffPhone').value = '';
-      $('staffUsername').value = '';
-      $('staffPassword').value = '';
-      saveDB();
-      renderAll();
-      toast(`تمت إضافة الموظف وربط حسابه السحابي: ${username}`);
-    }
+	      $('staffUsername').value = '';
+	      $('staffPassword').value = '';
+	      saveDB();
+	      await repairStaffUidIndex({ notify: false });
+	      renderAll();
+	      toast(`تمت إضافة الموظف وربط حسابه السحابي: ${username}`);
+	    }
 
     function removeStaff(id) {
       if (!isAdmin()) return;
@@ -5011,13 +5086,14 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       if (!password || password.length < 6) return toast('كلمة المرور قصيرة (الحد الأدنى 6)', 'err');
       const syncResult = await updateStaffAuthPasswordUsingSecondaryApp(s, password);
       if (!syncResult.ok) return toast(syncResult.message || 'تعذر تحديث كلمة المرور السحابية', 'err');
-      s.password = password;
-      s.authUid = syncResult.uid || s.authUid || '';
-      s.authEmail = syncResult.email || s.authEmail || staffAuthEmailFromUsername(s.username || '');
-      saveDB();
-      renderAll();
-      toast(syncResult.created ? 'تم إنشاء/تحديث كلمة المرور وربط Firebase' : 'تم تحديث كلمة المرور');
-    }
+	      s.password = password;
+	      s.authUid = syncResult.uid || s.authUid || '';
+	      s.authEmail = syncResult.email || s.authEmail || staffAuthEmailFromUsername(s.username || '');
+	      saveDB();
+	      await repairStaffUidIndex({ notify: false });
+	      renderAll();
+	      toast(syncResult.created ? 'تم إنشاء/تحديث كلمة المرور وربط Firebase' : 'تم تحديث كلمة المرور');
+	    }
 
     function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId) {
       const today = todayISO();
@@ -7703,10 +7779,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.exportKnightCard = exportKnightCard;
     window.syncPendingLogs = syncPendingLogs;
     window.copySurahToAll = copySurahToAll;
-    window.filterSurahOptions = filterSurahOptions; window.saveBothEntries = saveBothEntries; window.copyWeeklyReportToWhatsapp = copyWeeklyReportToWhatsapp; window.closeHalaqaWithSummary = closeHalaqaWithSummary;
-    window.migrateStaffAuthNow = () => migrateMissingStaffAuthAccounts({ notify: true });
+	    window.filterSurahOptions = filterSurahOptions; window.saveBothEntries = saveBothEntries; window.copyWeeklyReportToWhatsapp = copyWeeklyReportToWhatsapp; window.closeHalaqaWithSummary = closeHalaqaWithSummary;
+	    window.migrateStaffAuthNow = () => migrateMissingStaffAuthAccounts({ notify: true });
+	    window.repairStaffUidIndexNow = () => repairStaffUidIndex({ notify: true });
 
-    const safe = (id, fn) => { const el = $(id); if (el) fn(el); };
+	    const safe = (id, fn) => { const el = $(id); if (el) fn(el); };
 
     try {
       // events
