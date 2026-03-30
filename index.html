@@ -3715,7 +3715,7 @@ localStorage.setItem = function(key, value) {
               }
             }
             state.session = { type: 'staff', userId: u.id, authUid: String(auth?.currentUser?.uid || u.authUid || '') };
-            if (u.role === 'teacher') {
+            if (u.role === 'teacher' || u.role === 'supervisor') {
               state.section = u.section || 'mens';
               const assigned = (u.assignedHalaqaIds || []).filter(id => state.indexes?.halaqaById?.[id]);
               state.currentHalaqaId = assigned.length === 1 ? assigned[0] : null;
@@ -4306,9 +4306,12 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     function visibleHalaqas() {
       const u = currentUser();
       if (!u) return [];
+      const lockedSection = (u.role === 'teacher' || u.role === 'supervisor')
+        ? (u.section || state.section)
+        : state.section;
       let hs = (u.role === 'board')
         ? [...state.db.halaqas]
-        : state.db.halaqas.filter(h => h.section === state.section);
+        : state.db.halaqas.filter(h => h.section === lockedSection);
       if (u.role === 'teacher') {
         const allowed = new Set(u.assignedHalaqaIds || []);
         hs = hs.filter(h => allowed.has(h.id));
@@ -4525,10 +4528,10 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 
 	    function loginStaffUser(u, successMsg = 'تم تسجيل الدخول') {
 	      state.session = { type: 'staff', userId: u.id, authUid: String(auth?.currentUser?.uid || u.authUid || '') };
-      if (u.role === 'teacher') {
+      if (u.role === 'teacher' || u.role === 'supervisor') {
         state.section = u.section || 'mens';
-        const teacherHalaqas = (state.db?.halaqas || []).filter((h) => (u.assignedHalaqaIds || []).includes(h.id));
-        state.currentHalaqaId = teacherHalaqas.length === 1 ? teacherHalaqas[0].id : null;
+        const ownedHalaqas = (state.db?.halaqas || []).filter((h) => (u.assignedHalaqaIds || []).includes(h.id));
+        state.currentHalaqaId = ownedHalaqas.length === 1 ? ownedHalaqas[0].id : null;
       }
       $('loginView').classList.add('hidden');
       $('parentView').classList.add('hidden');
@@ -4697,6 +4700,10 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	    }
 
 	    function setSection(section) {
+      const u = currentUser();
+      if (u && (u.role === 'teacher' || u.role === 'supervisor')) {
+        section = u.section || state.section;
+      }
 	      state.section = section;
 	      state.currentHalaqaId = null;
 	      state.currentStudentId = null;
@@ -7715,12 +7722,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const u = currentUser();
       if (!u) return;
 
-      if (u.role === 'teacher') {
+      if (u.role === 'teacher' || u.role === 'supervisor') {
         state.section = u.section || state.section;
       }
 
       $('appView').setAttribute('data-role', u.role || '');
-      $('sectionTabs').style.display = (u.role === 'teacher' || u.role === 'board') ? 'none' : 'inline-flex';
+      $('sectionTabs').style.display = (u.role === 'teacher' || u.role === 'supervisor' || u.role === 'board') ? 'none' : 'inline-flex';
       $('appView').setAttribute('data-display-mode', state.displayMode);
       document.querySelectorAll('#displaySwitch button').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.display === state.displayMode);
