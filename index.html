@@ -5497,7 +5497,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 
 	    function renderHalaqas() {
       const u = currentUser();
-      $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role} | الجوال: ${u.phone}` : '';
+      $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role}` : '';
       $('createHalaqaBox').classList.toggle('hidden', !isAdmin());
       const teacherMode = isTeacher();
 
@@ -6577,7 +6577,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         return `
           <div class="card">
             <div class="row between"><b>${s.name}</b><span class="badge">${s.role}</span></div>
-            <p class="muted" style="font-size:12px; margin-top:6px;">${s.phone}</p>
+            ${admin ? `<p class="muted" style="font-size:12px; margin-top:6px;">${s.phone}</p>` : ''}
             <p class="muted" style="font-size:12px;">المستخدم: <span dir="ltr">${escapeAttr(s.username || '-')}</span></p>
             <p class="muted" style="font-size:12px;">توثيق Firebase: ${s.authUid ? 'مفعل' : 'غير مفعل'}</p>
             <p class="muted" style="font-size:12px;">البريد السحابي: <span dir="ltr">${escapeAttr(s.authEmail || '-')}</span></p>
@@ -7749,7 +7749,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === state.section));
 	      ['halaqas','daily','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== state.tab));
 
-      $('sessionLabel').textContent = `المستخدم: ${u.name} | الدور: ${u.role} | الجوال: ${u.phone}`;
+      $('sessionLabel').textContent = `المستخدم: ${u.name} | الدور: ${u.role}`;
       renderWorkflowBanner();
       renderOpsSidebar();
 
