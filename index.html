@@ -560,6 +560,148 @@
       background: #fff;
       padding: 8px;
     }
+    .teacher-page-header {
+      position: sticky;
+      top: 6px;
+      z-index: 7;
+      border: 1px solid #1f6f3b;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255,255,255,0.20), transparent 32%),
+        radial-gradient(circle at 86% 8%, rgba(255,255,255,0.16), transparent 34%),
+        linear-gradient(140deg, #166534, #14532d);
+      color: #ecfdf5;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 10px 20px rgba(20, 83, 45, 0.18);
+    }
+    .teacher-page-header h3 {
+      margin: 0;
+      color: #f0fdf4;
+      font-size: 22px;
+    }
+    .teacher-page-header .muted {
+      color: #d1fae5 !important;
+    }
+    .teacher-page-header .btn-light {
+      background: rgba(255, 255, 255, 0.18);
+      color: #f0fdf4;
+      border: 1px solid rgba(236, 253, 245, 0.40);
+    }
+    .teacher-halaqa-select {
+      max-width: 340px;
+      min-height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(236, 253, 245, 0.50);
+      background: rgba(255, 255, 255, 0.92);
+      color: #14532d;
+      font-weight: 800;
+    }
+    .teacher-stat-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .teacher-stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid rgba(236, 253, 245, 0.40);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #ecfdf5;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .teacher-page-tabs {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .teacher-page-tab {
+      border: 1px solid rgba(236, 253, 245, 0.38);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.10);
+      color: #f0fdf4;
+      min-height: 36px;
+      font-family: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .teacher-page-tab.active {
+      background: #ecfdf5;
+      color: #14532d;
+      border-color: #bbf7d0;
+    }
+    .teacher-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .teacher-summary-card {
+      border: 1px solid #dbe8d5;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #ffffff, #f8fbf7);
+      padding: 10px;
+    }
+    .teacher-summary-card .label {
+      font-size: 12px;
+      color: #475569;
+      font-weight: 700;
+    }
+    .teacher-summary-card .value {
+      margin-top: 6px;
+      font-size: 26px;
+      color: #14532d;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+    .teacher-summary-card .sub {
+      margin-top: 5px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    .teacher-students-panel {
+      border: 1px solid #dbe4ef;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #fff, #f8fbff);
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .teacher-students-filter-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .teacher-students-table-wrap {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: auto;
+      background: #fff;
+    }
+    .teacher-students-table-wrap table th,
+    .teacher-students-table-wrap table td {
+      font-size: 13px;
+      white-space: nowrap;
+      vertical-align: top;
+    }
+    #teacherStudentsRows tr[hidden] {
+      display: none;
+    }
+    .teacher-alerts-panel {
+      border: 1px solid #dbe4ef;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #fff, #f8fbff);
+      padding: 10px;
+      margin-top: 10px;
+    }
     .daily-halaqa-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1740,6 +1882,14 @@ tbody tr:hover td { background: #fef9e7; }
       .teacher-student-btn .name { font-size: 13px; line-height: 1.35; }
       .teacher-student-btn .meta { font-size: 11px; line-height: 1.4; max-height: 2.9em; overflow: hidden; }
       .teacher-quick-nav .btn { flex: 1 1 calc(33% - 6px); }
+      .teacher-page-header { padding: 10px; top: 4px; }
+      .teacher-page-header h3 { font-size: 19px; }
+      .teacher-halaqa-select { max-width: 100%; }
+      .teacher-page-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .teacher-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .teacher-summary-card .value { font-size: 22px; }
+      .teacher-students-filter-row { grid-template-columns: 1fr; }
+      .teacher-students-filter-row .btn { width: 100%; }
       .announcement-panel > summary { padding: 8px 10px; }
       .announcement-summary-meta { font-size: 11px; }
       .announcement-panel-content { padding: 8px; }
@@ -2780,6 +2930,7 @@ localStorage.setItem = function(key, value) {
       currentParentStudentId: null,
 	      studentPickerMode: 'cards',
 	      teacherStudentView: 'compact',
+	      teacherDashboardTab: 'overview',
 	      teacherViewDate: '',
 	      studentIssueFilter: 'all',
 	      studentHalaqaFilter: '__all__',
@@ -5450,6 +5601,54 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       renderHalaqaDetail();
     }
 
+    function getTeacherDashboardTab() {
+      const value = String(state.teacherDashboardTab || 'overview').trim();
+      return ['overview', 'students', 'entry', 'alerts'].includes(value) ? value : 'overview';
+    }
+
+    function setTeacherDashboardTab(tab) {
+      if (!isTeacher()) return;
+      state.teacherDashboardTab = ['overview', 'students', 'entry', 'alerts'].includes(tab) ? tab : 'overview';
+      renderHalaqaDetail();
+    }
+
+    function switchTeacherHalaqa(halaqaId) {
+      if (!isTeacher()) return;
+      const id = String(halaqaId || '').trim();
+      const target = visibleHalaqas().find((h) => h.id === id);
+      if (!target) return toast('هذه الحلقة غير متاحة لك', 'err');
+      state.currentHalaqaId = target.id;
+      state.currentStudentId = null;
+      renderHalaqaDetail();
+    }
+
+    function openTeacherEntry(studentId) {
+      if (!isTeacher()) return;
+      state.teacherDashboardTab = 'entry';
+      openEntry(studentId);
+    }
+
+    function applyTeacherStudentsTableFilters() {
+      const rows = Array.from(document.querySelectorAll('#teacherStudentsRows tr[data-student-id]'));
+      if (!rows.length) return;
+      const searchRaw = String($('teacherStudentsSearch')?.value || '').trim();
+      const search = toEnglishDigits(searchRaw).toLowerCase();
+      const statusFilter = String($('teacherStudentsStatusFilter')?.value || 'all').trim();
+      let visibleCount = 0;
+      rows.forEach((row) => {
+        const name = String(row.dataset.studentName || '').toLowerCase();
+        const nid = toEnglishDigits(String(row.dataset.studentNid || '')).toLowerCase();
+        const filterKey = String(row.dataset.filterKey || 'all');
+        const textMatch = !search || name.includes(search) || nid.includes(search);
+        const statusMatch = statusFilter === 'all' || filterKey === statusFilter;
+        const show = textMatch && statusMatch;
+        row.hidden = !show;
+        if (show) visibleCount += 1;
+      });
+      const hint = $('teacherStudentsFilterHint');
+      if (hint) hint.textContent = `النتائج المعروضة: ${visibleCount} طالب/ـة`;
+    }
+
     function getTeacherViewDate() {
       const today = todayLocalISO();
       const normalized = normalizeISODate(state.teacherViewDate || today, today);
@@ -5569,6 +5768,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       if (!students.find(s => s.id === studentId)) {
         return toast('اختر طالباً من نفس الحلقة', 'err');
       }
+      if (isTeacher()) state.teacherDashboardTab = 'entry';
       state.currentStudentId = studentId;
       renderHalaqaDetail();
       // تأجيل حساب الحقول للتأكد من بناء النموذج قبل الربط
@@ -6925,7 +7125,166 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      `;
 	    }
 
-function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.students); if (!issues.length) return ''; return `<span class="badge badge-warn" style="font-size:10px;">${issues[0]}</span>`; } function getStudentLocation(s) { return s.grade || '-'; } function getStudentLastHifdh(s) { return s.lastHifdhSurah ? `${s.lastHifdhSurah} (${s.lastHifdhAya || ''})` : 'لم يبدأ'; } function getStudentPoints(s) { return Number(s.points || 0); } function getStudentBadgesHTML(s, limit) { const badges = getStudentBadges(s).slice(0, limit || 2); if (!badges.length) return '<span class="muted" style="font-size:11px;">لا يوجد</span>'; return badges.map(b => `<span class="badge badge-gold" style="font-size:10px;">${b}</span>`).join(' '); } function openEntryForm(studentId) { openEntry(studentId); } function renderHalaqaDetail() {
+function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.students); if (!issues.length) return ''; return `<span class="badge badge-warn" style="font-size:10px;">${issues[0]}</span>`; } function getStudentLocation(s) { return s.grade || '-'; } function getStudentLastHifdh(s) { return s.lastHifdhSurah ? `${s.lastHifdhSurah} (${s.lastHifdhAya || ''})` : 'لم يبدأ'; } function getStudentPoints(s) { return Number(s.points || 0); } function getStudentBadgesHTML(s, limit) { const badges = getStudentBadges(s).slice(0, limit || 2); if (!badges.length) return '<span class="muted" style="font-size:11px;">لا يوجد</span>'; return badges.map(b => `<span class="badge badge-gold" style="font-size:10px;">${b}</span>`).join(' '); } function openEntryForm(studentId) { openEntry(studentId); } function buildTeacherDashboardHeader(h, students, viewDate, viewDateHijri, dailyLogs, pendingLogs) {
+  const teacherHalaqas = visibleHalaqas()
+    .slice()
+    .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+  const timeLabel = halaqaTimeLabel(h);
+  const modeLabel = h.deliveryMode === 'remote' ? 'عن بعد' : h.deliveryMode === 'hybrid' ? 'هجين' : 'حضوري';
+  const presentCount = students.filter((s) => {
+    const status = getRollcall(s.id, h.id, viewDate)?.status || '';
+    return ['present', 'late', 'remote', 'excused'].includes(status);
+  }).length;
+  const loggedStudents = new Set(dailyLogs.map((l) => l.studentId)).size;
+  const tabs = [
+    { key: 'overview', label: 'الملخص' },
+    { key: 'students', label: 'الطلاب' },
+    { key: 'entry', label: 'التسجيل' },
+    { key: 'alerts', label: 'التنبيهات' },
+  ];
+  const activeTab = getTeacherDashboardTab();
+  return `
+    <div class="teacher-page-header no-print">
+      <div class="row between teacher-page-header-main" style="gap:10px; align-items:flex-start; flex-wrap:wrap;">
+        <div>
+          <h3>${escapeAttr(h.circleName || 'الحلقة')}</h3>
+          <p class="muted" style="font-size:12px; margin-top:4px;">${escapeAttr(timeLabel)} • ${escapeAttr(modeLabel)} • ${escapeAttr(viewDate)}${viewDateHijri ? ` • ${escapeAttr(viewDateHijri)}` : ''}</p>
+        </div>
+        <button class="btn btn-light" onclick="closeHalaqa()">إغلاق</button>
+      </div>
+      <div class="row" style="gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <select id="teacherHalaqaSelect" class="teacher-halaqa-select" onchange="switchTeacherHalaqa(this.value)">
+          ${teacherHalaqas.map((item) => `<option value="${item.id}" ${item.id === h.id ? 'selected' : ''}>${escapeAttr(item.circleName || '-')}</option>`).join('')}
+        </select>
+      </div>
+      <div class="teacher-stat-pills">
+        <span class="teacher-stat-pill">طلاب: ${students.length}</span>
+        <span class="teacher-stat-pill">حضور ${escapeAttr(viewDate)}: ${presentCount}/${students.length}</span>
+        <span class="teacher-stat-pill">سجل اليوم: ${loggedStudents}</span>
+        ${pendingLogs ? `<span class="teacher-stat-pill">معلّق للمزامنة: ${pendingLogs}</span>` : ''}
+      </div>
+      <div class="teacher-page-tabs">
+        ${tabs.map((tab) => `<button type="button" class="teacher-page-tab ${activeTab === tab.key ? 'active' : ''}" onclick="setTeacherDashboardTab('${tab.key}')">${tab.label}</button>`).join('')}
+      </div>
+    </div>
+  `;
+} function buildTeacherSummaryCards(h, students, viewDate, dailyLogs, weekProgress) {
+  const loggedStudents = new Set(dailyLogs.map((l) => l.studentId)).size;
+  const avgGradeRows = dailyLogs.filter((l) => Number(gradeToScore(l.grade)) > 0);
+  const avgGrade = avgGradeRows.length
+    ? (avgGradeRows.reduce((sum, row) => sum + Number(gradeToScore(row.grade)), 0) / avgGradeRows.length)
+    : null;
+  const absenceAlerts = students.filter((s) => Number(s.absentCount || 0) >= 4).length;
+  const activeDays = weekProgress?.daily?.filter((d) => Number(d.aya || 0) > 0).length || 0;
+  return `
+    <div class="teacher-summary-grid no-print">
+      <div class="teacher-summary-card">
+        <p class="label">عدد الطلاب في الحلقة</p>
+        <div class="value">${students.length}</div>
+        <p class="sub">تنبيه غياب 4+: ${absenceAlerts}</p>
+      </div>
+      <div class="teacher-summary-card">
+        <p class="label">طلاب تم تسجيلهم اليوم</p>
+        <div class="value">${loggedStudents}</div>
+        <p class="sub">التاريخ: ${escapeAttr(viewDate)}</p>
+      </div>
+      <div class="teacher-summary-card">
+        <p class="label">متوسط التقدير اليومي</p>
+        <div class="value">${Number.isFinite(avgGrade) ? avgGrade.toFixed(1) : '-'}</div>
+        <p class="sub">من 10 حسب سجلات اليوم.</p>
+      </div>
+      <div class="teacher-summary-card">
+        <p class="label">إنجاز أسبوع العرض</p>
+        <div class="value">${Number(weekProgress?.totalAya || 0)}</div>
+        <p class="sub">آية • أيام نشطة: ${activeDays}</p>
+      </div>
+    </div>
+  `;
+} function buildTeacherStudentsTablePanel(h, students, viewDate, selectedStudentId) {
+  const rows = students
+    .slice()
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'))
+    .map((student) => {
+      const roll = getRollcall(student.id, h.id, viewDate);
+      const rollLabel = ATTENDANCE.find((item) => item.key === (roll?.status || ''))?.label || 'غير محضر';
+      const dayLogs = logsForStudent(student.id).filter((l) => l.date === viewDate);
+      const hasLog = dayLogs.length > 0;
+      let filterKey = hasLog ? 'logged' : 'unlogged';
+      if (roll?.status === 'absent') filterKey = 'absent';
+      if (Number(student.absentCount || 0) >= 4) filterKey = 'alert';
+      const issues = studentIssues(student, state.db.students);
+      const issuesHtml = issues.length
+        ? issues.map((issue) => `<span class="issue-chip">${escapeAttr(issue)}</span>`).join('')
+        : '<span class="muted">سليم</span>';
+      return `
+        <tr data-student-id="${student.id}" data-student-name="${escapeAttr((student.name || '').toLowerCase())}" data-student-nid="${escapeAttr(student.nationalId || '')}" data-filter-key="${filterKey}">
+          <td><b>${escapeAttr(student.name || '-')}</b>${selectedStudentId === student.id ? '<div class="badge badge-green" style="margin-top:4px;">مختار</div>' : ''}</td>
+          <td>${escapeAttr(rollLabel)}</td>
+          <td>${escapeAttr(todayEntriesSummary(student.id, viewDate))}</td>
+          <td>${escapeAttr(getStudentLastHifdh(student))}</td>
+          <td>${Number(student.absentCount || 0) >= 4 ? `<span class="badge badge-warn">${Number(student.absentCount || 0)}</span>` : Number(student.absentCount || 0)}</td>
+          <td>${issuesHtml}</td>
+          <td class="no-print">
+            <div class="row" style="gap:6px;">
+              <button class="btn btn-primary" type="button" onclick="openTeacherEntry('${student.id}')">فتح التسجيل</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  return `
+    <div class="teacher-students-panel no-print">
+      <div class="teacher-students-filter-row">
+        <input id="teacherStudentsSearch" placeholder="ابحث باسم الطالب أو الهوية" oninput="applyTeacherStudentsTableFilters()" />
+        <select id="teacherStudentsStatusFilter" onchange="applyTeacherStudentsTableFilters()">
+          <option value="all">كل الحالات</option>
+          <option value="logged">تم تسجيله</option>
+          <option value="unlogged">غير مسجل</option>
+          <option value="absent">غائب</option>
+          <option value="alert">تنبيه</option>
+        </select>
+        <button class="btn btn-light" type="button" onclick="openFirstUnloggedStudent()">أول غير مسجل</button>
+      </div>
+      <p id="teacherStudentsFilterHint" class="muted" style="font-size:12px; margin-bottom:8px;"></p>
+      <div class="teacher-students-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الطالب</th>
+              <th>الحضور</th>
+              <th>تسجيل اليوم</th>
+              <th>آخر حفظ</th>
+              <th>الغياب</th>
+              <th>تنبيهات</th>
+              <th class="no-print">تنفيذ</th>
+            </tr>
+          </thead>
+          <tbody id="teacherStudentsRows">
+            ${rows || '<tr><td colspan="7" class="muted">لا يوجد طلاب في هذه الحلقة.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+} function buildTeacherAlertsPanel(h, students, viewDate) {
+  const dayLogs = (state.db.logs || []).filter((l) => l.halaqaId === h.id && l.date === viewDate);
+  const dayLogged = new Set(dayLogs.map((l) => l.studentId));
+  const noLogStudents = students.filter((s) => !dayLogged.has(s.id));
+  const absenceAlert = students.filter((s) => Number(s.absentCount || 0) >= 4);
+  const pending = (state.db.logs || []).filter((l) => l.halaqaId === h.id && l.syncStatus === 'pending').length;
+  const dayNote = getHalaqaDayNote(h.id, viewDate);
+  const dayNoteLabel = dayNote ? halaqaDayStatusMeta(dayNote.status).label : '';
+  const noteJustified = dayNote && isHalaqaDayNoteJustified(dayNote);
+  return `
+    <div class="teacher-alerts-panel no-print">
+      <h3 style="margin-bottom:8px;">تنبيهات المعلم</h3>
+      ${noteJustified ? `<div class="ops-task info">حالة اليوم مبررة: <b>${escapeAttr(dayNoteLabel)}</b>${dayNote?.reason ? ` • السبب: ${escapeAttr(dayNote.reason)}` : ''}</div>` : ''}
+      ${pending ? `<div class="ops-task warn">هناك <b>${pending}</b> سجلات بانتظار المزامنة للسحابة.</div>` : '<div class="ops-task ok">لا توجد سجلات معلقة للمزامنة.</div>'}
+      ${absenceAlert.length ? `<div class="ops-task warn">طلاب تجاوزوا 4 غيابات: <b>${absenceAlert.map((s) => escapeAttr(s.name || '-')).join('، ')}</b></div>` : '<div class="ops-task ok">لا توجد تنبيهات غياب مرتفعة في الحلقة.</div>'}
+      ${noLogStudents.length && !noteJustified ? `<div class="ops-task info">طلاب بدون تسجيل في ${escapeAttr(viewDate)}: <b>${noLogStudents.map((s) => escapeAttr(s.name || '-')).join('، ')}</b></div>` : ''}
+    </div>
+  `;
+} function renderHalaqaDetail() {
       const detail = $('halaqaDetail');
       if (!state.currentHalaqaId) {
         detail.classList.add('hidden');
@@ -6978,16 +7337,23 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         .map((a) => `<option value="${a.key}">${a.label}</option>`)
         .join('');
       const dailyRollcalls = students.filter((s) => getRollcall(s.id, h.id, viewDate));
+      const teacherTab = teacherMode ? getTeacherDashboardTab() : 'overview';
+      const teacherHeader = teacherMode ? buildTeacherDashboardHeader(h, students, viewDate, viewDateHijri, dailyLogs, pending) : '';
+      const teacherSummaryCards = teacherMode ? buildTeacherSummaryCards(h, students, viewDate, dailyLogs, wp) : '';
+      const teacherStudentsPanel = teacherMode ? buildTeacherStudentsTablePanel(h, students, viewDate, selected?.id || '') : '';
+      const teacherAlertsPanel = teacherMode ? buildTeacherAlertsPanel(h, students, viewDate) : '';
 
       detail.classList.remove('hidden');
       detail.innerHTML = `
-        <div class="row between" style="margin-bottom:10px;">
-          <div>
-            <h3>${h.circleName}</h3>
-            <p class="muted" style="font-size:12px; margin-top:4px;">${teacherMode ? `${timeLabel} • ${modeLabel}` : `${h.teacherName} • ${modeLabel}`}</p>
+        ${teacherMode ? teacherHeader : `
+          <div class="row between" style="margin-bottom:10px;">
+            <div>
+              <h3>${h.circleName}</h3>
+              <p class="muted" style="font-size:12px; margin-top:4px;">${h.teacherName} • ${modeLabel}</p>
+            </div>
+            <button class="btn btn-light" onclick="closeHalaqa()">إغلاق</button>
           </div>
-          <button class="btn btn-light" onclick="closeHalaqa()">إغلاق</button>
-        </div>
+        `}
 
         ${teacherMode ? `
           <div class="card" style="margin-bottom:10px; border-color:#d7e2d3; background:#f8fbff;">
@@ -7032,9 +7398,13 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           </div>
         `}
 
+	        ${teacherMode ? teacherSummaryCards : ''}
+
 	        ${dayStatusCard}
 
 	        ${performancePanel}
+
+	        ${teacherMode && teacherTab === 'students' ? teacherStudentsPanel : ''}
 
         ${teacherMode ? '' : `
           <div class="card no-print" style="padding:10px; margin-bottom:10px;">
@@ -7050,7 +7420,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           </div>
         `}
 
-        ${teacherMode ? `
+        ${teacherMode ? (teacherTab === 'entry' ? `
           <div class="card no-print teacher-current-student" style="padding:10px;">
             <div class="row between" style="gap:10px; align-items:center; flex-wrap:wrap;">
               <div>
@@ -7091,7 +7461,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
               ${students.map((student) => `<option value="${student.id}" ${selected && selected.id === student.id ? 'selected' : ''}>${student.name}</option>`).join('')}
             </select>
           </div>
-        ` : `
+        ` : '') : `
           <div class="${state.studentPickerMode === 'dropdown' ? '' : 'hidden'} card" style="padding:10px; margin-bottom:10px; border-color:${selected ? palette.selectedBorder : palette.cardBorder}; background:${selected ? palette.selectedBg : '#fff'};">
             <p class="muted" style="font-size:12px; margin-bottom:6px;">اختيار الطالب (الجوال)</p>
             <div id="mobileStudentSmart"></div>
@@ -7122,8 +7492,16 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	          </div>
         `}
 
-        ${selected ? renderEntryForm(selected, teacherMode, viewDate) : (teacherMode ? '<div class="card"><p class="muted">اختر طالباً لفتح بطاقة التسجيل.</p></div>' : '')}
-        ${teacherMode ? buildHalaqaWeeklyTrackingTable(h, students, viewDate) : ''}
+        ${teacherMode
+          ? (teacherTab === 'entry'
+            ? (selected
+              ? renderEntryForm(selected, teacherMode, viewDate)
+              : '<div class="card"><p class="muted">اختر طالباً لفتح بطاقة التسجيل.</p></div>')
+            : '')
+          : (selected ? renderEntryForm(selected, teacherMode, viewDate) : '')
+        }
+        ${teacherMode && teacherTab === 'overview' ? buildHalaqaWeeklyTrackingTable(h, students, viewDate) : ''}
+        ${teacherMode ? teacherAlertsPanel : ''}
       `;
       if (!teacherMode) {
         mountSmartPicker('attachStudentSmart', 'attachStudentSelect', attachPickerOptions, '', 'ابحث عن طالب للإلحاق');
@@ -7137,6 +7515,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         );
       }
       if (selected) syncEntryCalc();
+      if (teacherMode) applyTeacherStudentsTableFilters();
     }
 
     function renderEntryForm(s, teacherMode = false, viewDateISO = todayISO()) {
@@ -9458,6 +9837,10 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.setTeacherStudentView = setTeacherStudentView;
     window.setTeacherViewDate = setTeacherViewDate;
     window.shiftTeacherViewDate = shiftTeacherViewDate;
+    window.setTeacherDashboardTab = setTeacherDashboardTab;
+    window.switchTeacherHalaqa = switchTeacherHalaqa;
+    window.openTeacherEntry = openTeacherEntry;
+    window.applyTeacherStudentsTableFilters = applyTeacherStudentsTableFilters;
     window.setTab = setTab;
     window.dismissAnnouncementForCurrentUser = dismissAnnouncementForCurrentUser;
     window.restoreAnnouncementsForCurrentUser = restoreAnnouncementsForCurrentUser;
