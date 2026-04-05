@@ -5412,14 +5412,14 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 
     function reportBundle(sectionFilter = null) {
       const wr = weekRange();
-      let logs = state.db.logs.filter(l => l.date >= wr.startISO && l.date <= wr.endISO);
+      const scopedHalaqas = sectionFilter
+        ? state.db.halaqas.filter((h) => h.section === sectionFilter)
+        : visibleHalaqas();
+      const allowedHalaqaIds = new Set(scopedHalaqas.map((h) => h.id));
 
-      if (sectionFilter) {
-        logs = logs.filter(l => l.section === sectionFilter);
-      } else {
-        const allowed = new Set(visibleHalaqas().map(h => h.id));
-        logs = logs.filter(l => allowed.has(l.halaqaId));
-      }
+      const logs = state.db.logs.filter(
+        (l) => l.date >= wr.startISO && l.date <= wr.endISO && allowedHalaqaIds.has(l.halaqaId)
+      );
 
       const grouped = {};
       logs.forEach(l => {
@@ -5427,8 +5427,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
         grouped[l.halaqaId].push(l);
       });
 
-      const rows = Object.entries(grouped).map(([hId, items]) => {
-        const h = state.db.halaqas.find(x => x.id === hId);
+      const rows = scopedHalaqas.map((h) => {
+        const items = grouped[h.id] || [];
         let faces=0, hifdh=0, revision=0, gSum=0, gN=0, ayaTotal=0;
         items.forEach(it => {
           faces += Number(it.pages?.faces || 0);
@@ -5439,7 +5439,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
           if (gradeValue) { gSum += gradeValue; gN++; }
         });
         return {
-          halaqaId:hId,
+          halaqaId:h.id,
           halaqaName:h?.circleName || '-',
           teacherName:h?.teacherName || '-',
           schedule: h?.scheduleType === 'full-week' ? 'كامل الأسبوع' : 'الأحد - الأربعاء',
@@ -5451,7 +5451,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
           avg: gN ? (gSum/gN).toFixed(2) : '-',
           entries:items.length,
         };
-      }).sort((a,b) => b.faces - a.faces);
+      }).sort((a,b) => b.faces - a.faces || String(a.halaqaName || '').localeCompare(String(b.halaqaName || ''), 'ar'));
 
       const totals = {
         entries: logs.length,
