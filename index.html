@@ -6475,9 +6475,16 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role}` : '';
 	      $('createHalaqaBox').classList.toggle('hidden', !isAdmin());
 	      renderHalaqaAnnouncements();
-	      const teacherMode = isTeacher();
+      const teacherMode = isTeacher();
 
       const hs = visibleHalaqas();
+      if (teacherMode) {
+        const activeExists = hs.some((item) => item.id === state.currentHalaqaId);
+        if (!activeExists) {
+          state.currentHalaqaId = hs.length ? hs[0].id : null;
+          state.currentStudentId = null;
+        }
+      }
       const today = todayISO();
       const cardsHtml = hs.map(h => {
         const count = (state.indexes?.studentsByHalaqa?.[h.id] || []).length;
