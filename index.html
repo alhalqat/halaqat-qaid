@@ -6793,7 +6793,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
       const q = $('studentSearch').value.trim();
       const hs = state.db.halaqas;
-      const visible = admin ? state.db.students : visibleStudents();
+      const visible = admin
+        ? state.db.students.filter((s) => normalizeSection(s.section) === normalizeSection(state.section))
+        : visibleStudents();
       renderStudentsQualityBox(visible);
       const issueFilter = state.studentIssueFilter || 'all';
       const list = visible
