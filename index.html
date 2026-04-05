@@ -910,6 +910,12 @@
       background: #fef2f2;
       color: #b91c1c;
     }
+    .students-group-row td {
+      background: linear-gradient(120deg, #f8fafc, #f1f5f9);
+      font-weight: 800;
+      color: #334155;
+      border-top: 2px solid #d7e2d3;
+    }
     .filter-chip {
       border: 1px solid #d1d5db;
       border-radius: 999px;
@@ -2308,7 +2314,15 @@ localStorage.setItem = function(key, value) {
           </div>
         </details>
 
-        <div class="card no-print"><input id="studentSearch" placeholder="بحث بالاسم أو الهوية" /></div>
+        <div class="card no-print">
+          <div class="row" style="gap:8px; flex-wrap:wrap;">
+            <input id="studentSearch" placeholder="بحث بالاسم أو الهوية" style="flex:1; min-width:240px;" />
+            <select id="studentHalaqaFilter" style="max-width:320px;">
+              <option value="__all__">كل الحلقات</option>
+            </select>
+          </div>
+          <p id="studentsResultHint" class="muted" style="font-size:12px; margin-top:6px;"></p>
+        </div>
         <div class="card no-print" id="studentsDataQuality"></div>
 
         <div class="card" style="overflow:auto;">
@@ -2768,6 +2782,7 @@ localStorage.setItem = function(key, value) {
 	      teacherStudentView: 'compact',
 	      teacherViewDate: '',
 	      studentIssueFilter: 'all',
+	      studentHalaqaFilter: '__all__',
 	      dailyMonitorDate: '',
 	      reportDate: '',
 	      reportPeriod: 'weekly',
@@ -5121,6 +5136,16 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       renderStudents();
     }
 
+    function getStudentHalaqaFilter() {
+      const value = String(state.studentHalaqaFilter || '__all__').trim();
+      return value || '__all__';
+    }
+
+    function setStudentHalaqaFilter(filterValue) {
+      state.studentHalaqaFilter = String(filterValue || '__all__').trim() || '__all__';
+      renderStudents();
+    }
+
     function renderStudentsQualityBox(baseList) {
       const withNoId = baseList.filter(s => !compactName(s.nationalId));
       const withNoGuardian = baseList.filter(s => !compactName(s.guardianPhone));
@@ -7390,11 +7415,33 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
       const q = $('studentSearch').value.trim();
       const hs = state.db.halaqas;
+      const halaqaById = state.indexes?.halaqaById || {};
       const visible = admin
         ? state.db.students.filter((s) => normalizeSection(s.section) === normalizeSection(state.section))
         : visibleStudents();
       renderStudentsQualityBox(visible);
+
+      const scopeHalaqas = admin
+        ? hs.filter((h) => normalizeSection(h.section) === normalizeSection(state.section))
+        : visibleHalaqas();
+      const moveAllowedHalaqaIds = admin ? null : new Set(scopeHalaqas.map((h) => h.id));
+      const sortedScopeHalaqas = scopeHalaqas
+        .slice()
+        .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+      const studentHalaqaFilter = $('studentHalaqaFilter');
+      if (studentHalaqaFilter) {
+        studentHalaqaFilter.innerHTML = `
+          <option value="__all__">كل الحلقات</option>
+          <option value="__none__">بدون حلقة</option>
+          ${sortedScopeHalaqas.map((h) => `<option value="${h.id}">${escapeAttr(h.circleName)} (${h.section === 'mens' ? 'بنين' : 'بنات'})</option>`).join('')}
+        `;
+        const validValues = new Set(['__all__', '__none__', ...sortedScopeHalaqas.map((h) => h.id)]);
+        const selected = validValues.has(getStudentHalaqaFilter()) ? getStudentHalaqaFilter() : '__all__';
+        state.studentHalaqaFilter = selected;
+        studentHalaqaFilter.value = selected;
+      }
       const issueFilter = state.studentIssueFilter || 'all';
+      const halaqaFilter = getStudentHalaqaFilter();
       const list = visible
         .filter(s => !q || (s.name || '').includes(q) || (s.nationalId || '').includes(q))
         .filter((s) => {
@@ -7407,17 +7454,51 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             return visible.some((x) => x.id !== s.id && x.section === s.section && compactName(x.name) === key);
           }
           return true;
+        })
+        .filter((s) => {
+          if (halaqaFilter === '__all__') return true;
+          if (halaqaFilter === '__none__') return !s.halaqaId;
+          return String(s.halaqaId || '') === halaqaFilter;
+        })
+        .sort((a, b) => {
+          const hA = halaqaById[a.halaqaId]?.circleName || 'بدون حلقة';
+          const hB = halaqaById[b.halaqaId]?.circleName || 'بدون حلقة';
+          return String(hA).localeCompare(String(hB), 'ar')
+            || String(a.name || '').localeCompare(String(b.name || ''), 'ar');
         });
 
-      $('studentsRows').innerHTML = list.map(s => {
+      const byGroupCount = {};
+      list.forEach((s) => {
+        const key = String(s.halaqaId || '__none__');
+        byGroupCount[key] = (byGroupCount[key] || 0) + 1;
+      });
+
+      const rowsHtml = [];
+      let lastGroupKey = null;
+      list.forEach((s) => {
         const currentH = hs.find(h => h.id === s.halaqaId);
         const issues = studentIssues(s, visible);
         const safeName = escapeAttr(s.name || '');
         const options = hs
-          .filter(h => h.section === s.section && (admin || visibleHalaqas().some(v => v.id === h.id)))
+          .filter(h => h.section === s.section && (admin || moveAllowedHalaqaIds.has(h.id)))
           .map(h => `<option value="${h.id}" ${h.id===s.halaqaId?'selected':''}>${h.circleName}</option>`)
           .join('');
-        return `
+        const groupKey = String(s.halaqaId || '__none__');
+        if (groupKey !== lastGroupKey) {
+          const groupName = currentH?.circleName || 'بدون حلقة';
+          rowsHtml.push(`
+            <tr class="students-group-row">
+              <td colspan="13">
+                <div class="row between" style="gap:8px;">
+                  <span>الحلقة: ${escapeAttr(groupName)}</span>
+                  <span class="badge">عدد الطلاب: ${byGroupCount[groupKey] || 0}</span>
+                </div>
+              </td>
+            </tr>
+          `);
+          lastGroupKey = groupKey;
+        }
+        rowsHtml.push(`
           <tr class="${issues.length ? 'row-danger' : ''}">
             <td>${manage ? `<div class="student-name-editor"><input id="edit_name_${s.id}" value="${safeName}" title="${safeName}" /><div class="name-preview">${safeName}</div></div>` : s.name}</td>
             <td>${manage ? `<input id="edit_nid_${s.id}" value="${escapeAttr(s.nationalId || '')}" />` : (s.nationalId || '-')}</td>
@@ -7440,8 +7521,19 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
               ` : '-'}
             </td>
           </tr>
-        `;
-      }).join('') || '<tr><td colspan="13" class="muted">لا توجد نتائج.</td></tr>';
+        `);
+      });
+
+      $('studentsRows').innerHTML = rowsHtml.join('') || '<tr><td colspan="13" class="muted">لا توجد نتائج.</td></tr>';
+      if ($('studentsResultHint')) {
+        const filterLabel = halaqaFilter === '__all__'
+          ? 'كل الحلقات'
+          : halaqaFilter === '__none__'
+            ? 'بدون حلقة'
+            : (halaqaById[halaqaFilter]?.circleName || 'حلقة محددة');
+        const groupsCount = Object.keys(byGroupCount).length;
+        $('studentsResultHint').textContent = `النتائج: ${list.length} طالب/ـة • المجموعات: ${groupsCount} • الفلتر: ${filterLabel}`;
+      }
       renderStudentsWeeklyPanel(list);
 
       if (u?.role === 'supervisor') {
@@ -9420,6 +9512,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      safe('newStudentSection', el => el.onchange = refreshNewStudentHalaqaOptions);
 	      safe('examSessionSelect', el => el.onchange = syncExamStudentSelect);
 	      safe('studentSearch', el => el.oninput = renderStudents);
+	      safe('studentHalaqaFilter', el => el.onchange = () => setStudentHalaqaFilter(el.value));
 	      safe('dailyMonitorDate', el => el.onchange = () => setDailyMonitorDate(el.value));
 	      safe('dailyMonitorPrevBtn', el => el.onclick = () => shiftDailyMonitorDate(-1));
 	      safe('dailyMonitorNextBtn', el => el.onclick = () => shiftDailyMonitorDate(1));
