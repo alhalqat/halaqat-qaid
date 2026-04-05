@@ -259,6 +259,224 @@
       padding: 6px 10px;
       font-size: 12px;
     }
+    .reports-shell {
+      gap: 12px;
+    }
+    .report-header-card {
+      border: 1px solid #d6c9a9;
+      background:
+        radial-gradient(circle at 8% 16%, rgba(184, 131, 94, 0.10), transparent 34%),
+        radial-gradient(circle at 90% 10%, rgba(95, 111, 58, 0.10), transparent 34%),
+        linear-gradient(130deg, #fffef9, #f8fbf6);
+    }
+    .report-eyebrow {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      color: #5f6f3a;
+    }
+    .report-main-title {
+      margin-top: 4px;
+      font-size: 24px;
+      color: #1f2937;
+    }
+    .report-range-label {
+      margin-top: 6px;
+      font-size: 15px;
+      color: #334155;
+    }
+    .report-control-grid {
+      margin-top: 10px;
+      align-items: end;
+    }
+    .report-control-grid .field-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #334155;
+      margin-bottom: 5px;
+    }
+    .report-control-grid input,
+    .report-control-grid select {
+      min-height: 43px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .report-nav-row {
+      margin-top: 10px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .report-nav-row .btn {
+      min-height: 40px;
+      font-size: 14px;
+    }
+    .reports-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .report-kpi-card {
+      border: 1px solid #dbe4ef;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #ffffff, #f8fbff);
+      padding: 12px;
+    }
+    .report-kpi-label {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: #334155;
+    }
+    .report-kpi-value {
+      margin-top: 8px;
+      font-size: 33px;
+      font-weight: 900;
+      color: #14532d;
+      line-height: 1.1;
+    }
+    .report-kpi-help {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+    .report-narrative-text {
+      font-size: 16px;
+      line-height: 1.9;
+      color: #1f2937;
+      font-weight: 700;
+    }
+    .report-level-grid {
+      gap: 10px;
+    }
+    .report-level-list {
+      display: grid;
+      gap: 8px;
+      max-height: 48vh;
+      overflow: auto;
+      padding-left: 2px;
+    }
+    .report-level-card {
+      border: 1px solid #dce5d9;
+      border-radius: 12px;
+      padding: 10px;
+      background: linear-gradient(145deg, #fff, #f8fbf8);
+    }
+    .report-level-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .report-level-name {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 900;
+      color: #1f2937;
+      line-height: 1.35;
+    }
+    .report-level-meta {
+      margin-top: 6px;
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.65;
+    }
+    .report-level-score {
+      font-size: 13px;
+      font-weight: 800;
+      color: #334155;
+      margin-top: 4px;
+    }
+    .report-chart-list {
+      display: grid;
+      gap: 10px;
+      max-height: 48vh;
+      overflow: auto;
+      padding-left: 2px;
+    }
+    .report-chart-item {
+      border: 1px solid #dbe4ef;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+    }
+    .report-chart-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+    .report-chart-name {
+      font-size: 15px;
+      font-weight: 900;
+      color: #1f2937;
+    }
+    .report-chart-value {
+      font-size: 13px;
+      font-weight: 800;
+      color: #334155;
+    }
+    .report-chart-track {
+      height: 14px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+      border: 1px solid #d2dbe6;
+    }
+    .report-chart-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(120deg, #9aa968, #5f6f3a);
+      transition: width 0.24s ease;
+    }
+    .report-chart-caption {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+    .report-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .report-detail-card {
+      border: 1px solid #dbe4ef;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #fff, #f8fbff);
+      padding: 10px;
+    }
+    .report-detail-card h4 {
+      margin: 0;
+      font-size: 15px;
+      color: #334155;
+    }
+    .report-detail-card p {
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: 900;
+      color: #14532d;
+    }
+    .report-table-wrap {
+      overflow: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+    }
+    .report-table-wrap table th,
+    .report-table-wrap table td {
+      font-size: 14px;
+      white-space: nowrap;
+      vertical-align: top;
+    }
+    .report-empty {
+      font-size: 15px;
+      color: #64748b;
+      font-weight: 700;
+      line-height: 1.8;
+    }
     .app-content > section { margin-top: 0; }
     .display-switch {
       display: inline-flex;
@@ -1527,6 +1745,16 @@ tbody tr:hover td { background: #fef9e7; }
       .announcement-body { padding: 7px 8px 0; font-size: 12px; line-height: 1.55; }
       .announcement-actions { padding: 7px 8px 8px; }
       .announcement-actions .btn { flex: 1 1 120px; min-height: 32px; font-size: 11px; padding: 5px 8px; }
+      .report-main-title { font-size: 21px; }
+      .report-range-label { font-size: 14px; }
+      .report-control-grid { grid-template-columns: 1fr; }
+      .report-nav-row .btn { flex: 1 1 calc(50% - 6px); }
+      .reports-kpi-grid { grid-template-columns: 1fr; }
+      .report-kpi-value { font-size: 30px; }
+      .report-level-list,
+      .report-chart-list { max-height: 38vh; }
+      .report-table-wrap table th,
+      .report-table-wrap table td { font-size: 13px; }
       .student-name-editor,
       .student-name-editor input { min-width: 280px; }
       #appView > header h1 { font-size: 24px; }
@@ -2155,77 +2383,63 @@ localStorage.setItem = function(key, value) {
         <div id="staffCards" class="grid grid-3"></div>
       </section>
 
-      <section id="view-reports" class="hidden grid">
-        <div class="card row between no-print">
-          <button class="btn btn-light" id="prevWeekBtn">الأسبوع السابق</button>
-          <div>
-            <p class="muted" style="font-size:12px">التقارير حسب التاريخ المحدد</p>
-            <h3 id="weekRangeLabel"></h3>
-            <p class="muted" style="font-size:12px; margin-top:4px;" id="reportDateHint"></p>
+      <section id="view-reports" class="hidden grid reports-shell">
+        <div class="card report-header-card no-print">
+          <p class="report-eyebrow">تقارير الإدارة</p>
+          <h2 id="reportMainTitle" class="report-main-title">تقرير أداء الحلقات</h2>
+          <p id="reportRangeLabel" class="report-range-label"></p>
+
+          <div class="grid grid-4 report-control-grid">
+            <div class="field-block">
+              <div class="field-label">نوع التقرير</div>
+              <select id="reportPeriodSelect">
+                <option value="daily">يومي</option>
+                <option value="weekly">أسبوعي</option>
+                <option value="monthly">شهري</option>
+              </select>
+            </div>
+            <div class="field-block">
+              <div class="field-label">التاريخ المرجعي</div>
+              <input id="reportDateInput" type="date" />
+            </div>
+            <div class="field-block">
+              <div class="field-label">نطاق الحلقات</div>
+              <select id="reportScopeSelect"></select>
+            </div>
+            <div class="field-block">
+              <div class="field-label">الحلقة</div>
+              <select id="reportHalaqaSelect"></select>
+            </div>
           </div>
-          <div class="row" style="gap:8px; flex-wrap:wrap;">
-            <input id="reportDateInput" type="date" style="max-width:170px;" />
+
+          <div class="row report-nav-row">
+            <button class="btn btn-light" id="prevWeekBtn">السابق</button>
             <button class="btn btn-light" id="reportDateTodayBtn">اليوم</button>
-            <button class="btn btn-light" id="nextWeekBtn">الأسبوع التالي</button>
-            <button class="btn btn-primary" id="printBtn">طباعة PDF</button>
+            <button class="btn btn-light" id="nextWeekBtn">التالي</button>
+            <button class="btn btn-primary" id="printBtn">طباعة التقرير</button>
           </div>
         </div>
 
-        <div id="kpiGrid" class="grid grid-4"></div>
-
         <div class="card">
-          <h3>إحصائيات أسبوعية وشهرية</h3>
-          <div id="periodStats" class="grid grid-2" style="margin-top:8px;"></div>
+          <div id="reportNarrative" class="report-narrative-text"></div>
         </div>
 
-        <div class="card">
-          <h3>تقرير شامل للقسمين</h3>
-          <div id="sectionsSummary" class="grid grid-2" style="margin-top:8px;"></div>
-        </div>
+        <div id="reportKpiGrid" class="reports-kpi-grid"></div>
 
-        <div class="card" style="overflow:auto;">
-          <h3 style="margin-bottom:8px">تقرير الحلقات</h3>
-          <table>
-            <thead>
-	              <tr>
-	                <th>الحلقة</th>
-	                <th>المعلم</th>
-	                <th>الجدول</th>
-	                <th>نوع الحلقة</th>
-	                <th>الأوجه</th>
-                <th>حفظ/مراجعة</th>
-                <th>متوسط التقدير</th>
-                <th>مؤشر الجودة</th>
-                <th>السجلات</th>
-              </tr>
-            </thead>
-            <tbody id="halaqaReportRows"></tbody>
-          </table>
-        </div>
-
-        <div class="card">
-          <h3 style="margin-bottom:8px">أفضل الحفّاظ لكل حلقة</h3>
-          <div id="halaqaTopMemorizers" class="grid grid-2"></div>
-        </div>
-
-        <div class="card">
-          <h3 style="margin-bottom:8px">لوحة التعثر المبكر</h3>
-          <div id="earlyRiskPanel"></div>
-        </div>
-
-        <div class="card">
-          <h3 style="margin-bottom:8px">تنبيه السجل اليومي الناقص</h3>
-          <div id="missingDailyPanel"></div>
-        </div>
-
-        <div class="card">
-          <h3 style="margin-bottom:8px">تقرير طالب</h3>
-          <div class="row no-print">
-            <div id="studentReportSmart" style="flex:1; min-width:260px;"></div>
-            <input id="studentReportSelect" type="hidden" />
-            <button class="btn btn-ok" id="showStudentReportBtn">عرض التقرير</button>
+        <div class="grid grid-2 report-level-grid">
+          <div class="card">
+            <h3 style="margin-bottom:8px">مستوى الحلقات</h3>
+            <div id="reportLevelCards" class="report-level-list"></div>
           </div>
-          <div id="studentReportPanel" style="margin-top:10px;"></div>
+          <div class="card">
+            <h3 style="margin-bottom:8px">الرسم البياني لمستوى الحلقات</h3>
+            <div id="reportLevelChart" class="report-chart-list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 id="reportDetailTitle" style="margin-bottom:8px">تفاصيل التقرير</h3>
+          <div id="reportDetailPanel"></div>
         </div>
       </section>
 
@@ -2556,6 +2770,9 @@ localStorage.setItem = function(key, value) {
 	      studentIssueFilter: 'all',
 	      dailyMonitorDate: '',
 	      reportDate: '',
+	      reportPeriod: 'weekly',
+	      reportScope: 'current',
+	      reportHalaqaId: '__all__',
 	      currentDailyHalaqaId: null,
 	      smartPickers: {},
 	      prefillByStudent: {},
@@ -2594,6 +2811,15 @@ localStorage.setItem = function(key, value) {
     const addDaysISO = (iso,d) => {
       const base = parseISODate(iso) || parseISODate(todayISO()) || new Date();
       base.setDate(base.getDate() + Number(d || 0));
+      return dateToISO(base);
+    };
+    const addMonthsISO = (iso, months) => {
+      const base = parseISODate(iso) || parseISODate(todayISO()) || new Date();
+      const day = base.getDate();
+      base.setDate(1);
+      base.setMonth(base.getMonth() + Number(months || 0));
+      const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+      base.setDate(Math.min(day, lastDay));
       return dateToISO(base);
     };
 	    const normalizeISODate = (value, fallback = todayISO()) => {
@@ -5978,6 +6204,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 
     function renderStudentReport(studentId) {
       const panel = $('studentReportPanel');
+      if (!panel) return;
       if (!studentId) { panel.innerHTML = '<p class="muted">اختر طالباً لعرض التقرير.</p>'; return; }
       const s = state.db.students.find(x => x.id === studentId);
       if (!s) { panel.innerHTML = '<p class="muted">الطالب غير موجود.</p>'; return; }
@@ -6133,6 +6360,26 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      return value || todayISO();
 	    }
 
+	    function normalizeReportPeriod(value) {
+	      const raw = String(value || '').trim();
+	      return (raw === 'daily' || raw === 'weekly' || raw === 'monthly') ? raw : 'weekly';
+	    }
+
+	    function getReportPeriod() {
+	      return normalizeReportPeriod(state.reportPeriod || 'weekly');
+	    }
+
+	    function setReportPeriod(period) {
+	      state.reportPeriod = normalizeReportPeriod(period);
+	      renderReports();
+	    }
+
+	    function reportPeriodLabel(period = getReportPeriod()) {
+	      if (period === 'daily') return 'اليومي';
+	      if (period === 'monthly') return 'الشهري';
+	      return 'الأسبوعي';
+	    }
+
 	    function setReportDate(dateISO) {
 	      state.reportDate = normalizeISODate(dateISO || todayISO(), todayISO());
 	      renderReports();
@@ -6141,6 +6388,72 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	    function shiftReportDate(days) {
 	      const base = getReportDate();
 	      setReportDate(addDaysISO(base, Number(days || 0)));
+	    }
+
+	    function shiftReportDateByPeriod(step) {
+	      const base = getReportDate();
+	      const period = getReportPeriod();
+	      if (period === 'daily') return setReportDate(addDaysISO(base, Number(step || 0)));
+	      if (period === 'weekly') return setReportDate(addDaysISO(base, Number(step || 0) * 7));
+	      return setReportDate(addMonthsISO(base, Number(step || 0)));
+	    }
+
+	    function normalizeReportScope(value, user = currentUser()) {
+	      const raw = String(value || '').trim();
+	      const allowed = new Set(['current']);
+	      if (user && (user.role === 'admin' || user.role === 'board')) {
+	        allowed.add('all');
+	        allowed.add('mens');
+	        allowed.add('womens');
+	      }
+	      return allowed.has(raw) ? raw : 'current';
+	    }
+
+	    function getReportScope() {
+	      return normalizeReportScope(state.reportScope, currentUser());
+	    }
+
+	    function setReportScope(scope) {
+	      state.reportScope = normalizeReportScope(scope, currentUser());
+	      state.reportHalaqaId = '__all__';
+	      renderReports();
+	    }
+
+	    function getReportHalaqaId() {
+	      const raw = String(state.reportHalaqaId || '__all__').trim();
+	      return raw || '__all__';
+	    }
+
+	    function setReportHalaqaId(halaqaId) {
+	      state.reportHalaqaId = String(halaqaId || '__all__').trim() || '__all__';
+	      renderReports();
+	    }
+
+	    function reportScopeOptions(user = currentUser()) {
+	      const options = [{ value: 'current', label: 'الحلقات الحالية' }];
+	      if (user && (user.role === 'admin' || user.role === 'board')) {
+	        options.push({ value: 'all', label: 'كل الحلقات (بنين + بنات)' });
+	        options.push({ value: 'mens', label: 'البنين فقط' });
+	        options.push({ value: 'womens', label: 'البنات فقط' });
+	      }
+	      return options;
+	    }
+
+	    function reportHalaqasByScope(scope = getReportScope(), user = currentUser()) {
+	      if (!user) return [];
+	      const allHalaqas = Array.isArray(state.db?.halaqas) ? state.db.halaqas : [];
+	      if (scope === 'all' && (user.role === 'admin' || user.role === 'board')) return [...allHalaqas];
+	      if ((scope === 'mens' || scope === 'womens') && (user.role === 'admin' || user.role === 'board')) {
+	        return allHalaqas.filter((h) => h.section === scope);
+	      }
+	      return visibleHalaqas();
+	    }
+
+	    function reportRangeFor(period = getReportPeriod(), referenceDateISO = '') {
+	      const dateISO = normalizeISODate(referenceDateISO || getReportDate(), todayISO());
+	      if (period === 'daily') return { startISO: dateISO, endISO: dateISO };
+	      if (period === 'monthly') return monthRangeFromDate(dateISO);
+	      return weekRangeFromDate(dateISO);
 	    }
 
 	    function openDailyHalaqa(halaqaId) {
@@ -7280,129 +7593,435 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       $('assignHalaqa').innerHTML = halaqaOpts;
     }
 
-    function renderReports() {
-      const reportDate = getReportDate();
-      const b = reportBundle(null, reportDate);
-      $('weekRangeLabel').textContent = `${b.wr.startISO} ⇐ ${b.wr.endISO}`;
-      if ($('reportDateInput')) $('reportDateInput').value = reportDate;
-      if ($('reportDateHint')) $('reportDateHint').textContent = `التاريخ المعتمد: ${reportDate}`;
-      $('kpiGrid').innerHTML = `
-        <div class="card"><p class="muted">إجمالي السجلات</p><div class="kpi">${b.totals.entries}</div></div>
-        <div class="card"><p class="muted">إجمالي الآيات</p><div class="kpi">${b.totals.ayaTotal}</div></div>
-        <div class="card"><p class="muted">إجمالي الأوجه</p><div class="kpi">${b.totals.faces}</div></div>
-        <div class="card"><p class="muted">حفظ / مراجعة</p><div class="kpi">${b.totals.hifdh} / ${b.totals.revision}</div></div>
-      `;
+    function reportDayName(jsDay) {
+      return ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][jsDay] || '';
+    }
 
-      const wAll = aggregatePeriodStats('weekly', null, reportDate);
-      const mAll = aggregatePeriodStats('monthly', null, reportDate);
-      $('periodStats').innerHTML = `
-        <div class="card">
-          <h3>أسبوعي (${wAll.range.startISO} → ${wAll.range.endISO})</h3>
-          <p class="muted" style="margin-top:6px">عدد المعلمين: ${wAll.teacherCount} | الملتحقين: ${wAll.studentCount}</p>
-          <p class="muted">أوجه الحفظ: ${wAll.hifdhFaces} | أوجه المراجعة: ${wAll.revisionFaces}</p>
-          <p class="muted">الختمات: ${wAll.khatmat} | الأجزاء: ${wAll.ajzaa}</p>
-        </div>
-        <div class="card">
-          <h3>شهري (${mAll.range.startISO} → ${mAll.range.endISO})</h3>
-          <p class="muted" style="margin-top:6px">عدد المعلمين: ${mAll.teacherCount} | الملتحقين: ${mAll.studentCount}</p>
-          <p class="muted">أوجه الحفظ: ${mAll.hifdhFaces} | أوجه المراجعة: ${mAll.revisionFaces}</p>
-          <p class="muted">الختمات: ${mAll.khatmat} | الأجزاء: ${mAll.ajzaa}</p>
-        </div>
-      `;
+    function formatReportRangeLabel(range, period = getReportPeriod()) {
+      if (!range) return '-';
+      if (period === 'daily' || range.startISO === range.endISO) return range.startISO;
+      return `${range.startISO} ← ${range.endISO}`;
+    }
 
-      $('halaqaReportRows').innerHTML = b.rows.map(r => {
-        const q = halaqaQuality(r.halaqaId, reportDate);
-        return `
-        <tr>
-          <td>${r.halaqaName}</td>
-          <td>${r.teacherName}</td>
-          <td>${r.schedule}</td>
-          <td>${r.deliveryMode}</td>
-          <td>${r.faces} (آيات: ${r.ayaTotal})</td>
-          <td>${r.hifdh} / ${r.revision}</td>
-          <td>${r.avg}</td>
-          <td><span class="badge ${q.score >= 80 ? 'badge-green' : q.score >= 60 ? 'badge-gold' : 'badge-warn'}">${q.score}% - ${q.level}</span></td>
-          <td>${r.entries}</td>
-        </tr>
-      `;
-      }).join('') || '<tr><td colspan="9" class="muted">لا توجد سجلات.</td></tr>';
+    function reportAttendanceWeight(status) {
+      if (status === 'present') return 1;
+      if (status === 'late') return 0.75;
+      if (status === 'remote') return 0.8;
+      if (status === 'excused') return 0.6;
+      return 0;
+    }
 
-      const tops = topMemorizersPerHalaqa(2, reportDate);
-      $('halaqaTopMemorizers').innerHTML = tops.map(({ halaqa, ranked }) => `
-        <div class="card">
-          <h3>${halaqa.circleName}</h3>
-          <p class="muted" style="font-size:12px; margin:6px 0;">أفضل الحفظين هذا الأسبوع</p>
-          ${ranked.length
-            ? ranked.map((r, i) => `<p>${i + 1}. <b>${r.name}</b> — ${r.aya} آية</p>`).join('')
-            : '<p class="muted">لا يوجد بيانات حفظ في هذا الأسبوع.</p>'
-          }
-        </div>
-      `).join('');
+    function reportLevelMeta(score, hasData = true) {
+      if (!hasData) return { label: 'لا بيانات', badgeClass: 'badge' };
+      if (score >= 85) return { label: 'ممتاز', badgeClass: 'badge-green' };
+      if (score >= 70) return { label: 'جيد جداً', badgeClass: 'badge-gold' };
+      if (score >= 55) return { label: 'جيد', badgeClass: 'badge-gold' };
+      if (score >= 40) return { label: 'مقبول', badgeClass: 'badge-warn' };
+      return { label: 'ضعيف', badgeClass: 'badge-warn' };
+    }
 
-      const mens = reportBundle('mens', reportDate).totals;
-      const womens = reportBundle('womens', reportDate).totals;
-      $('sectionsSummary').innerHTML = `
-        <div class="card">
-          <h3>قسم البنين</h3>
-          <p class="muted" style="margin-top:6px">سجلات: ${mens.entries} | آيات: ${mens.ayaTotal} | أوجه: ${mens.faces}</p>
-        </div>
-        <div class="card">
-          <h3>قسم البنات</h3>
-          <p class="muted" style="margin-top:6px">سجلات: ${womens.entries} | آيات: ${womens.ayaTotal} | أوجه: ${womens.faces}</p>
-        </div>
-      `;
+    function expectedSessionDaysInRange(halaqa, range) {
+      const days = Array.isArray(halaqa?.scheduleDays) && halaqa.scheduleDays.length
+        ? halaqa.scheduleDays
+        : (SCHEDULE_PRESETS[halaqa?.scheduleType || 'sun-wed'] || []);
+      if (!days.length) return 0;
+      const allowed = new Set(days);
+      const start = parseISODate(range?.startISO || '');
+      const end = parseISODate(range?.endISO || '');
+      if (!start || !end) return 0;
+      let count = 0;
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        if (allowed.has(reportDayName(cursor.getDay()))) count += 1;
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return count;
+    }
 
-      const reportStudents = (isAdmin() ? state.db.students : visibleStudents());
-      mountSmartPicker(
-        'studentReportSmart',
-        'studentReportSelect',
-        reportStudents.map(s => ({ id: s.id, label: studentLabel(s) })),
-        $('studentReportSelect').value || '',
-        'ابحث باسم الطالب أو الهوية'
+    function computeHalaqaMetricsForRange(halaqa, range) {
+      const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || []);
+      const logs = (state.db.logs || []).filter(
+        (l) => l.halaqaId === halaqa.id && l.date >= range.startISO && l.date <= range.endISO
       );
+      let faces = 0;
+      let hifdhAya = 0;
+      let revisionAya = 0;
+      let hifdhEntries = 0;
+      let revisionEntries = 0;
+      let gradeSum = 0;
+      let gradeCount = 0;
+      let attendanceScore = 0;
+      const activeStudents = new Set();
+      const activeDays = new Set();
 
-      const alerts = (isAdmin() ? state.db.students : visibleStudents())
-        .filter(s => Number(s.absentCount || 0) >= 4)
-        .sort((a,b) => Number(b.absentCount || 0) - Number(a.absentCount || 0));
+      logs.forEach((log) => {
+        const aya = Number(log.ayaCount || 0);
+        faces += Number(log.pages?.faces || 0);
+        if (log.type === 'hifdh') {
+          hifdhAya += aya;
+          hifdhEntries += 1;
+        } else {
+          revisionAya += aya;
+          revisionEntries += 1;
+        }
+        activeStudents.add(log.studentId);
+        if (log.date) activeDays.add(log.date);
+        attendanceScore += reportAttendanceWeight(log.attendance);
+        const grade = gradeToScore(log.grade);
+        if (grade) {
+          gradeSum += grade;
+          gradeCount += 1;
+        }
+      });
 
-      const alertHtml = alerts.map(s => `<span class="badge badge-warn" style="margin-left:6px; margin-bottom:6px; display:inline-block;">${s.name} (${s.absentCount})</span>`).join('') || '<span class="muted">لا توجد تنبيهات غياب.</span>';
+      const expectedDays = expectedSessionDaysInRange(halaqa, range);
+      const studentCoverage = students.length ? (activeStudents.size / students.length) : 0;
+      const attendanceRatio = logs.length ? (attendanceScore / logs.length) : 0;
+      const gradeRatio = gradeCount ? ((gradeSum / gradeCount) / 10) : 0;
+      const dayCoverage = expectedDays > 0 ? clamp(activeDays.size / expectedDays, 0, 1) : (activeDays.size ? 1 : 0);
+      const hasData = logs.length > 0;
+      const score = hasData
+        ? Math.round((attendanceRatio * 35) + (gradeRatio * 35) + (studentCoverage * 20) + (dayCoverage * 10))
+        : 0;
+      const level = reportLevelMeta(score, hasData);
+      return {
+        halaqaId: halaqa.id,
+        section: halaqa.section,
+        halaqaName: halaqa.circleName || '-',
+        teacherName: halaqa.teacherName || '-',
+        studentsCount: students.length,
+        activeStudents: activeStudents.size,
+        expectedDays,
+        activeDays: activeDays.size,
+        entries: logs.length,
+        faces,
+        hifdhAya,
+        revisionAya,
+        hifdhEntries,
+        revisionEntries,
+        gradeSum,
+        gradeCount,
+        avgGrade: gradeCount ? (gradeSum / gradeCount) : null,
+        score,
+        levelLabel: level.label,
+        levelBadgeClass: level.badgeClass,
+      };
+    }
 
-      if (!$('studentReportPanel').dataset.alertRendered) {
-        $('studentReportPanel').innerHTML = `<div class="card" style="margin-bottom:8px;"><h3 style="margin-bottom:6px;">تنبيهات الغياب 4+</h3>${alertHtml}</div><p class="muted">اختر طالباً ثم اضغط عرض التقرير.</p>`;
-        $('studentReportPanel').dataset.alertRendered = '1';
+    function studentPeriodRowsForHalaqa(halaqaId, range) {
+      const students = (state.indexes?.studentsByHalaqa?.[halaqaId] || [])
+        .slice()
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+      const logs = (state.db.logs || []).filter(
+        (l) => l.halaqaId === halaqaId && l.date >= range.startISO && l.date <= range.endISO
+      );
+      const map = {};
+      logs.forEach((log) => {
+        if (!map[log.studentId]) {
+          map[log.studentId] = {
+            hifdhAya: 0,
+            revisionAya: 0,
+            gradeSum: 0,
+            gradeCount: 0,
+            attendanceCount: 0,
+            entries: 0,
+            lastDate: '',
+          };
+        }
+        const row = map[log.studentId];
+        const aya = Number(log.ayaCount || 0);
+        if (log.type === 'hifdh') row.hifdhAya += aya;
+        else row.revisionAya += aya;
+        const grade = gradeToScore(log.grade);
+        if (grade) {
+          row.gradeSum += grade;
+          row.gradeCount += 1;
+        }
+        if (reportAttendanceWeight(log.attendance) > 0) row.attendanceCount += 1;
+        row.entries += 1;
+        if (!row.lastDate || String(log.date) > String(row.lastDate)) row.lastDate = String(log.date || '');
+      });
+      return students.map((student) => {
+        const row = map[student.id] || {
+          hifdhAya: 0,
+          revisionAya: 0,
+          gradeSum: 0,
+          gradeCount: 0,
+          attendanceCount: 0,
+          entries: 0,
+          lastDate: '',
+        };
+        const totalAya = Number(row.hifdhAya || 0) + Number(row.revisionAya || 0);
+        return {
+          studentId: student.id,
+          name: student.name || '-',
+          hifdhAya: Number(row.hifdhAya || 0),
+          revisionAya: Number(row.revisionAya || 0),
+          totalAya,
+          avgGrade: row.gradeCount ? (row.gradeSum / row.gradeCount) : null,
+          attendanceCount: Number(row.attendanceCount || 0),
+          entries: Number(row.entries || 0),
+          lastDate: row.lastDate || '-',
+        };
+      }).sort((a, b) =>
+        Number(b.totalAya || 0) - Number(a.totalAya || 0)
+        || Number(b.entries || 0) - Number(a.entries || 0)
+        || String(a.name || '').localeCompare(String(b.name || ''), 'ar')
+      );
+    }
+
+    function renderReportDetailPanel(metricsList, selectedHalaqaId, range, period) {
+      const panel = $('reportDetailPanel');
+      const title = $('reportDetailTitle');
+      if (!panel || !title) return;
+      if (!metricsList.length) {
+        title.textContent = 'تفاصيل التقرير';
+        panel.innerHTML = '<p class="report-empty">لا توجد حلقات مطابقة للنطاق الحالي.</p>';
+        return;
+      }
+      if (selectedHalaqaId === '__all__') {
+        title.textContent = 'تفاصيل جميع الحلقات';
+        panel.innerHTML = `
+          <div class="report-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>الحلقة</th>
+                  <th>المعلم/ة</th>
+                  <th>القسم</th>
+                  <th>مستوى الحلقة</th>
+                  <th>تغطية الطلاب</th>
+                  <th>متوسط التقدير</th>
+                  <th>الحفظ (آية)</th>
+                  <th>المراجعة (آية)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${metricsList.map((m) => `
+                  <tr>
+                    <td><b>${escapeAttr(m.halaqaName)}</b></td>
+                    <td>${escapeAttr(m.teacherName)}</td>
+                    <td>${m.section === 'mens' ? 'بنين' : 'بنات'}</td>
+                    <td><span class="badge ${m.levelBadgeClass}">${m.levelLabel} (${m.score}%)</span></td>
+                    <td>${m.studentsCount ? `${Math.round((m.activeStudents / m.studentsCount) * 100)}%` : '0%'}</td>
+                    <td>${Number.isFinite(m.avgGrade) ? `${m.avgGrade.toFixed(1)} / 10` : 'لا يوجد'}</td>
+                    <td>${m.hifdhAya}</td>
+                    <td>${m.revisionAya}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+      const selected = metricsList.find((m) => m.halaqaId === selectedHalaqaId);
+      if (!selected) {
+        title.textContent = 'تفاصيل الحلقة';
+        panel.innerHTML = '<p class="report-empty">اختر حلقة لعرض تقريرها المفصل.</p>';
+        return;
+      }
+      const studentsRows = studentPeriodRowsForHalaqa(selected.halaqaId, range);
+      const activityRate = selected.studentsCount ? Math.round((selected.activeStudents / selected.studentsCount) * 100) : 0;
+      title.textContent = `تقرير الحلقة: ${selected.halaqaName}`;
+      panel.innerHTML = `
+        <div class="report-detail-grid">
+          <div class="report-detail-card"><h4>مستوى الحلقة</h4><p>${selected.levelLabel} (${selected.score}%)</p></div>
+          <div class="report-detail-card"><h4>تغطية الطلاب</h4><p>${activityRate}%</p></div>
+          <div class="report-detail-card"><h4>متوسط التقدير</h4><p>${Number.isFinite(selected.avgGrade) ? `${selected.avgGrade.toFixed(1)} / 10` : 'لا يوجد'}</p></div>
+          <div class="report-detail-card"><h4>سجلات ${reportPeriodLabel(period)}</h4><p>${selected.entries}</p></div>
+        </div>
+        <div class="report-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الطالب</th>
+                <th>الحفظ (آية)</th>
+                <th>المراجعة (آية)</th>
+                <th>متوسط التقدير</th>
+                <th>مرات الحضور</th>
+                <th>عدد السجلات</th>
+                <th>آخر تسجيل</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${studentsRows.length
+                ? studentsRows.map((row) => `
+                  <tr>
+                    <td><b>${escapeAttr(row.name)}</b></td>
+                    <td>${row.hifdhAya}</td>
+                    <td>${row.revisionAya}</td>
+                    <td>${Number.isFinite(row.avgGrade) ? `${row.avgGrade.toFixed(1)} / 10` : 'لا يوجد'}</td>
+                    <td>${row.attendanceCount}</td>
+                    <td>${row.entries}</td>
+                    <td>${escapeAttr(row.lastDate)}</td>
+                  </tr>
+                `).join('')
+                : '<tr><td colspan="7" class="report-empty">لا توجد بيانات طلاب لهذه الحلقة في الفترة المحددة.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderReports() {
+      const u = currentUser();
+      if (!u) return;
+      const period = getReportPeriod();
+      const reportDate = getReportDate();
+      const range = reportRangeFor(period, reportDate);
+      const scopeOptions = reportScopeOptions(u);
+      const scopeSelect = $('reportScopeSelect');
+      const periodSelect = $('reportPeriodSelect');
+      const halaqaSelect = $('reportHalaqaSelect');
+      if (periodSelect) periodSelect.value = period;
+      if ($('reportDateInput')) $('reportDateInput').value = reportDate;
+
+      const normalizedScope = normalizeReportScope(state.reportScope, u);
+      state.reportScope = normalizedScope;
+      if (scopeSelect) {
+        scopeSelect.innerHTML = scopeOptions.map((opt) => `<option value="${opt.value}">${opt.label}</option>`).join('');
+        scopeSelect.value = normalizedScope;
       }
 
-      const risks = earlyRiskStudents();
-      $('earlyRiskPanel').innerHTML = risks.length
-        ? risks.slice(0, 20).map((r) => `
-          <div class="ops-task warn">
-            <div class="row between">
-              <b>${r.name}</b>
-              <span class="badge badge-warn">درجة تعثر: ${r.risk}</span>
-            </div>
-            <p class="muted" style="font-size:12px; margin-top:4px;">الحلقة: ${r.halaqaName} - ${r.section === 'mens' ? 'بنين' : 'بنات'}</p>
-            <p style="margin-top:4px;">${r.reasons.join('، ')}</p>
-          </div>
-        `).join('')
-        : '<p class="muted">لا توجد حالات تعثر مبكر حالياً.</p>';
+      const halaqas = reportHalaqasByScope(normalizedScope, u)
+        .slice()
+        .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+      const selectedIdRaw = getReportHalaqaId();
+      const validIds = new Set(['__all__', ...halaqas.map((h) => h.id)]);
+      const selectedHalaqaId = validIds.has(selectedIdRaw) ? selectedIdRaw : '__all__';
+      state.reportHalaqaId = selectedHalaqaId;
+      if (halaqaSelect) {
+        halaqaSelect.innerHTML = `<option value="__all__">كل الحلقات</option>${halaqas.map((h) => `<option value="${h.id}">${escapeAttr(h.circleName)} (${h.section === 'mens' ? 'بنين' : 'بنات'})</option>`).join('')}`;
+        halaqaSelect.value = selectedHalaqaId;
+      }
 
-	      const dailyLogAudit = halaqasMissingDailyLog(reportDate, { includeAll: true });
-	      const missingDaily = dailyLogAudit.filter((m) => m.missing > 0);
-	      const justifiedDaily = dailyLogAudit.filter((m) => m.justified && m.rawMissing > 0);
-	      $('missingDailyPanel').innerHTML = missingDaily.length
-	        ? missingDaily.map((m) => `
-	          <div class="ops-task info">
-	            <div class="row between">
-	              <b>${m.halaqaName}</b>
-	              <span class="badge badge-gold">ناقص: ${m.missing}</span>
-	            </div>
-	            <p class="muted" style="font-size:12px; margin-top:4px;">المعلم: ${m.teacherName}</p>
-	            <p style="margin-top:4px;">المسجل في التاريخ المحدد: ${m.logged} / ${m.students}</p>
-	          </div>
-	        `).join('')
-	        : (justifiedDaily.length
-	          ? `<p class="muted">لا يوجد نقص غير مبرر في التاريخ المحدد. الحلقات المبررة: ${justifiedDaily.map((m) => `${escapeAttr(m.halaqaName)} (${escapeAttr(m.dayNoteLabel || 'مبرر')})`).join('، ')}</p>`
-	          : '<p class="muted">جميع الحلقات مكتمل سجلها اليومي في التاريخ المحدد.</p>');
+      const metricsList = halaqas.map((halaqa) => computeHalaqaMetricsForRange(halaqa, range))
+        .sort((a, b) =>
+          Number(b.score || 0) - Number(a.score || 0)
+          || Number(b.entries || 0) - Number(a.entries || 0)
+          || String(a.halaqaName || '').localeCompare(String(b.halaqaName || ''), 'ar')
+        );
+
+      const title = $('reportMainTitle');
+      if (title) title.textContent = `تقرير أداء الحلقات (${reportPeriodLabel(period)})`;
+      const scopeText = normalizedScope === 'all'
+        ? 'كل الحلقات'
+        : normalizedScope === 'mens'
+          ? 'البنين'
+          : normalizedScope === 'womens'
+            ? 'البنات'
+            : (u.role === 'admin' ? (state.section === 'mens' ? 'قسم البنين' : 'قسم البنات') : 'الحلقات المتاحة');
+      if ($('reportRangeLabel')) {
+        $('reportRangeLabel').textContent = `الفترة: ${formatReportRangeLabel(range, period)} • النطاق: ${scopeText}`;
+      }
+
+      if (!metricsList.length) {
+        if ($('reportNarrative')) $('reportNarrative').innerHTML = 'لا توجد حلقات ضمن النطاق المختار حالياً.';
+        if ($('reportKpiGrid')) $('reportKpiGrid').innerHTML = '';
+        if ($('reportLevelCards')) $('reportLevelCards').innerHTML = '<p class="report-empty">لا توجد بيانات.</p>';
+        if ($('reportLevelChart')) $('reportLevelChart').innerHTML = '<p class="report-empty">لا يوجد رسم بياني لعدم وجود بيانات.</p>';
+        renderReportDetailPanel([], selectedHalaqaId, range, period);
+        return;
+      }
+
+      const totals = metricsList.reduce((acc, m) => {
+        acc.students += Number(m.studentsCount || 0);
+        acc.activeStudents += Number(m.activeStudents || 0);
+        acc.hifdhAya += Number(m.hifdhAya || 0);
+        acc.revisionAya += Number(m.revisionAya || 0);
+        acc.entries += Number(m.entries || 0);
+        acc.score += Number(m.score || 0);
+        acc.gradeSum += Number(m.gradeSum || 0);
+        acc.gradeCount += Number(m.gradeCount || 0);
+        return acc;
+      }, { students: 0, activeStudents: 0, hifdhAya: 0, revisionAya: 0, entries: 0, score: 0, gradeSum: 0, gradeCount: 0 });
+      const avgScore = metricsList.length ? (totals.score / metricsList.length) : 0;
+      const avgGrade = totals.gradeCount ? (totals.gradeSum / totals.gradeCount) : null;
+      const goodCount = metricsList.filter((m) => Number(m.score || 0) >= 70).length;
+      const weakCount = metricsList.filter((m) => Number(m.score || 0) < 55 && Number(m.entries || 0) > 0).length;
+      const coverageRate = totals.students ? Math.round((totals.activeStudents / totals.students) * 100) : 0;
+
+      if ($('reportNarrative')) {
+        $('reportNarrative').innerHTML = `
+          يعرض التقرير ${reportPeriodLabel(period)} للفترة <b>${formatReportRangeLabel(range, period)}</b> ويشمل <b>${metricsList.length}</b> حلقة.
+          متوسط مستوى الحلقات حالياً <b>${Math.round(avgScore)}%</b>، والحلقات ذات المستوى الجيد فأعلى <b>${goodCount}</b>.
+          نسبة نشاط الطلاب في الفترة نفسها <b>${coverageRate}%</b>${weakCount ? `، ويوجد <b>${weakCount}</b> حلقات تحتاج متابعة أقرب.` : '، ولا توجد حلقات منخفضة بشكل حرج.'}
+        `;
+      }
+
+      if ($('reportKpiGrid')) {
+        $('reportKpiGrid').innerHTML = `
+          <div class="report-kpi-card">
+            <p class="report-kpi-label">عدد الحلقات في التقرير</p>
+            <div class="report-kpi-value">${metricsList.length}</div>
+            <p class="report-kpi-help">حسب النطاق المختار (${scopeText}).</p>
+          </div>
+          <div class="report-kpi-card">
+            <p class="report-kpi-label">متوسط مستوى الحلقات</p>
+            <div class="report-kpi-value">${Math.round(avgScore)}%</div>
+            <p class="report-kpi-help">كلما ارتفع المؤشر كانت الحلقة أكثر انتظامًا.</p>
+          </div>
+          <div class="report-kpi-card">
+            <p class="report-kpi-label">إجمالي آيات الحفظ</p>
+            <div class="report-kpi-value">${totals.hifdhAya}</div>
+            <p class="report-kpi-help">المنجز في الفترة ${reportPeriodLabel(period)}.</p>
+          </div>
+          <div class="report-kpi-card">
+            <p class="report-kpi-label">إجمالي آيات المراجعة</p>
+            <div class="report-kpi-value">${totals.revisionAya}</div>
+            <p class="report-kpi-help">توازن المراجعة مهم لاستقرار الحفظ.</p>
+          </div>
+          <div class="report-kpi-card">
+            <p class="report-kpi-label">متوسط التقدير العام</p>
+            <div class="report-kpi-value">${Number.isFinite(avgGrade) ? avgGrade.toFixed(1) : '-'}</div>
+            <p class="report-kpi-help">من 10 لقياس جودة الأداء اليومي.</p>
+          </div>
+          <div class="report-kpi-card">
+            <p class="report-kpi-label">نشاط الطلاب</p>
+            <div class="report-kpi-value">${coverageRate}%</div>
+            <p class="report-kpi-help">${totals.activeStudents} طالب/ـة نشط من أصل ${totals.students}.</p>
+          </div>
+        `;
+      }
+
+      if ($('reportLevelCards')) {
+        $('reportLevelCards').innerHTML = metricsList.map((m) => {
+          const coverage = m.studentsCount ? Math.round((m.activeStudents / m.studentsCount) * 100) : 0;
+          return `
+            <div class="report-level-card">
+              <div class="report-level-head">
+                <h4 class="report-level-name">${escapeAttr(m.halaqaName)}</h4>
+                <span class="badge ${m.levelBadgeClass}">${m.levelLabel}</span>
+              </div>
+              <div class="report-level-score">مؤشر المستوى: ${m.score}%</div>
+              <p class="report-level-meta">المعلم/ة: ${escapeAttr(m.teacherName)} • الطلاب النشطون: ${m.activeStudents}/${m.studentsCount} (${coverage}%)</p>
+              <p class="report-level-meta">الحفظ: ${m.hifdhAya} آية • المراجعة: ${m.revisionAya} آية • متوسط التقدير: ${Number.isFinite(m.avgGrade) ? `${m.avgGrade.toFixed(1)} / 10` : 'لا يوجد'}</p>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if ($('reportLevelChart')) {
+        const maxScore = Math.max(1, ...metricsList.map((m) => Number(m.score || 0)));
+        $('reportLevelChart').innerHTML = metricsList.map((m) => {
+          const width = Math.round((Number(m.score || 0) / maxScore) * 100);
+          return `
+            <div class="report-chart-item">
+              <div class="report-chart-head">
+                <span class="report-chart-name">${escapeAttr(m.halaqaName)}</span>
+                <span class="report-chart-value">${m.score}%</span>
+              </div>
+              <div class="report-chart-track">
+                <div class="report-chart-fill" style="width:${width}%;"></div>
+              </div>
+              <p class="report-chart-caption">مستوى: ${m.levelLabel} • سجلات الفترة: ${m.entries} • متوسط التقدير: ${Number.isFinite(m.avgGrade) ? m.avgGrade.toFixed(1) : '-'}</p>
+            </div>
+          `;
+        }).join('');
+      }
+
+      renderReportDetailPanel(metricsList, selectedHalaqaId, range, period);
     }
 
     function getBoardSnapshot() {
@@ -8808,17 +9427,13 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      safe('dailyMonitorRefreshBtn', el => el.onclick = () => renderDailyMonitor());
 	      safe('reportDateInput', el => el.onchange = () => setReportDate(el.value));
 	      safe('reportDateTodayBtn', el => el.onclick = () => setReportDate(todayISO()));
-
-	      safe('prevWeekBtn', el => el.onclick = () => shiftReportDate(-7));
-      safe('nextWeekBtn', el => el.onclick = () => shiftReportDate(7));
+	      safe('reportPeriodSelect', el => el.onchange = () => setReportPeriod(el.value));
+	      safe('reportScopeSelect', el => el.onchange = () => setReportScope(el.value));
+	      safe('reportHalaqaSelect', el => el.onchange = () => setReportHalaqaId(el.value));
+	      safe('prevWeekBtn', el => el.onclick = () => shiftReportDateByPeriod(-1));
+      safe('nextWeekBtn', el => el.onclick = () => shiftReportDateByPeriod(1));
       safe('printBtn', el => el.onclick = printReport);
       safe('printBoardReportBtn', el => el.onclick = printBoardReport);
-
-      safe('showStudentReportBtn', el => el.onclick = () => {
-        const panel = $('studentReportPanel');
-        if (panel) panel.dataset.alertRendered = '0';
-        renderStudentReport($('studentReportSelect')?.value);
-      });
 
       safe('saveKnightPhotoBtn', el => el.onclick = saveKnightPhoto);
       safe('saveLogoBtn', el => el.onclick = saveLogo);
