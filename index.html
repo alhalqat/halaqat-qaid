@@ -1912,7 +1912,9 @@ localStorage.setItem = function(key, value) {
             <h3 id="dailyMonitorSectionLabel">قسم البنين</h3>
           </div>
           <div class="row" style="gap:8px;">
+            <button class="btn btn-light" id="dailyMonitorPrevBtn">اليوم السابق</button>
             <input id="dailyMonitorDate" type="date" style="max-width:170px;" />
+            <button class="btn btn-light" id="dailyMonitorNextBtn">اليوم التالي</button>
             <button class="btn btn-light" id="dailyMonitorTodayBtn">اليوم</button>
             <button class="btn btn-primary" id="dailyMonitorRefreshBtn">تحديث</button>
           </div>
@@ -2047,10 +2049,13 @@ localStorage.setItem = function(key, value) {
         <div class="card row between no-print">
           <button class="btn btn-light" id="prevWeekBtn">الأسبوع السابق</button>
           <div>
-            <p class="muted" style="font-size:12px">التقارير الأسبوعية</p>
+            <p class="muted" style="font-size:12px">التقارير حسب التاريخ المحدد</p>
             <h3 id="weekRangeLabel"></h3>
+            <p class="muted" style="font-size:12px; margin-top:4px;" id="reportDateHint"></p>
           </div>
-          <div class="row">
+          <div class="row" style="gap:8px; flex-wrap:wrap;">
+            <input id="reportDateInput" type="date" style="max-width:170px;" />
+            <button class="btn btn-light" id="reportDateTodayBtn">اليوم</button>
             <button class="btn btn-light" id="nextWeekBtn">الأسبوع التالي</button>
             <button class="btn btn-primary" id="printBtn">طباعة PDF</button>
           </div>
@@ -2428,6 +2433,7 @@ localStorage.setItem = function(key, value) {
 	      teacherViewDate: '',
 	      studentIssueFilter: 'all',
 	      dailyMonitorDate: '',
+	      reportDate: '',
 	      currentDailyHalaqaId: null,
 	      smartPickers: {},
 	      prefillByStudent: {},
@@ -4092,6 +4098,13 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       };
     }
 
+    function monthRangeFromDate(dateISO) {
+      const ref = parseISODate(normalizeISODate(dateISO, todayISO())) || new Date();
+      const start = new Date(ref.getFullYear(), ref.getMonth(), 1);
+      const end = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+      return { startISO: dateToISO(start), endISO: dateToISO(end) };
+    }
+
     function monthRange() {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -4149,8 +4162,10 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       toast('تمت إزالة الشعار');
     }
 
-    function aggregatePeriodStats(period, section = null) {
-      const range = period === 'monthly' ? monthRange() : weekRange();
+    function aggregatePeriodStats(period, section = null, referenceDateISO = '') {
+      const range = period === 'monthly'
+        ? (referenceDateISO ? monthRangeFromDate(referenceDateISO) : monthRange())
+        : (referenceDateISO ? weekRangeFromDate(referenceDateISO) : weekRange());
       let logs = state.db.logs.filter(l => l.date >= range.startISO && l.date <= range.endISO);
       if (section) logs = logs.filter(l => l.section === section);
       const teacherCount = section
@@ -4168,8 +4183,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       return { range, teacherCount, studentCount, hifdhFaces, revisionFaces, khatmat, ajzaa };
     }
 
-    function topMemorizersPerHalaqa(limit = 2) {
-      const wr = weekRange();
+    function topMemorizersPerHalaqa(limit = 2, referenceDateISO = '') {
+      const wr = referenceDateISO ? weekRangeFromDate(referenceDateISO) : weekRange();
       return visibleHalaqas().map((h) => {
         const logs = state.db.logs.filter(l => l.halaqaId === h.id && l.type === 'hifdh' && l.date >= wr.startISO && l.date <= wr.endISO);
         const sums = {};
@@ -5410,8 +5425,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       toast('تم حذف الحلقة');
     }
 
-    function reportBundle(sectionFilter = null) {
-      const wr = weekRange();
+    function reportBundle(sectionFilter = null, referenceDateISO = '') {
+      const wr = referenceDateISO ? weekRangeFromDate(referenceDateISO) : weekRange();
       const scopedHalaqas = sectionFilter
         ? state.db.halaqas.filter((h) => h.section === sectionFilter)
         : visibleHalaqas();
@@ -5464,8 +5479,8 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       return { wr, rows, totals };
     }
 
-    function halaqaQuality(halaqaId) {
-      const wr = weekRange();
+    function halaqaQuality(halaqaId, referenceDateISO = '') {
+      const wr = referenceDateISO ? weekRangeFromDate(referenceDateISO) : weekRange();
       const h = state.indexes?.halaqaById?.[halaqaId] || null;
       const logs = state.db.logs.filter(l => l.halaqaId === halaqaId && l.date >= wr.startISO && l.date <= wr.endISO);
       if (!h || !logs.length) return { score: 0, level: 'لا بيانات' };
@@ -5635,6 +5650,26 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	    function setDailyMonitorDate(dateISO) {
 	      state.dailyMonitorDate = (dateISO || todayISO());
 	      renderDailyMonitor();
+	    }
+
+	    function shiftDailyMonitorDate(days) {
+	      const base = getDailyMonitorDate();
+	      setDailyMonitorDate(addDaysISO(base, Number(days || 0)));
+	    }
+
+	    function getReportDate() {
+	      const value = String(state.reportDate || '').trim();
+	      return value || todayISO();
+	    }
+
+	    function setReportDate(dateISO) {
+	      state.reportDate = normalizeISODate(dateISO || todayISO(), todayISO());
+	      renderReports();
+	    }
+
+	    function shiftReportDate(days) {
+	      const base = getReportDate();
+	      setReportDate(addDaysISO(base, Number(days || 0)));
 	    }
 
 	    function openDailyHalaqa(halaqaId) {
@@ -6649,8 +6684,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     }
 
     function renderReports() {
-      const b = reportBundle();
+      const reportDate = getReportDate();
+      const b = reportBundle(null, reportDate);
       $('weekRangeLabel').textContent = `${b.wr.startISO} ⇐ ${b.wr.endISO}`;
+      if ($('reportDateInput')) $('reportDateInput').value = reportDate;
+      if ($('reportDateHint')) $('reportDateHint').textContent = `التاريخ المعتمد: ${reportDate}`;
       $('kpiGrid').innerHTML = `
         <div class="card"><p class="muted">إجمالي السجلات</p><div class="kpi">${b.totals.entries}</div></div>
         <div class="card"><p class="muted">إجمالي الآيات</p><div class="kpi">${b.totals.ayaTotal}</div></div>
@@ -6658,8 +6696,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         <div class="card"><p class="muted">حفظ / مراجعة</p><div class="kpi">${b.totals.hifdh} / ${b.totals.revision}</div></div>
       `;
 
-      const wAll = aggregatePeriodStats('weekly', null);
-      const mAll = aggregatePeriodStats('monthly', null);
+      const wAll = aggregatePeriodStats('weekly', null, reportDate);
+      const mAll = aggregatePeriodStats('monthly', null, reportDate);
       $('periodStats').innerHTML = `
         <div class="card">
           <h3>أسبوعي (${wAll.range.startISO} → ${wAll.range.endISO})</h3>
@@ -6676,7 +6714,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       `;
 
       $('halaqaReportRows').innerHTML = b.rows.map(r => {
-        const q = halaqaQuality(r.halaqaId);
+        const q = halaqaQuality(r.halaqaId, reportDate);
         return `
         <tr>
           <td>${r.halaqaName}</td>
@@ -6692,7 +6730,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       `;
       }).join('') || '<tr><td colspan="9" class="muted">لا توجد سجلات.</td></tr>';
 
-      const tops = topMemorizersPerHalaqa(2);
+      const tops = topMemorizersPerHalaqa(2, reportDate);
       $('halaqaTopMemorizers').innerHTML = tops.map(({ halaqa, ranked }) => `
         <div class="card">
           <h3>${halaqa.circleName}</h3>
@@ -6704,8 +6742,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         </div>
       `).join('');
 
-      const mens = reportBundle('mens').totals;
-      const womens = reportBundle('womens').totals;
+      const mens = reportBundle('mens', reportDate).totals;
+      const womens = reportBundle('womens', reportDate).totals;
       $('sectionsSummary').innerHTML = `
         <div class="card">
           <h3>قسم البنين</h3>
@@ -8107,11 +8145,15 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      safe('examSessionSelect', el => el.onchange = syncExamStudentSelect);
 	      safe('studentSearch', el => el.oninput = renderStudents);
 	      safe('dailyMonitorDate', el => el.onchange = () => setDailyMonitorDate(el.value));
+	      safe('dailyMonitorPrevBtn', el => el.onclick = () => shiftDailyMonitorDate(-1));
+	      safe('dailyMonitorNextBtn', el => el.onclick = () => shiftDailyMonitorDate(1));
 	      safe('dailyMonitorTodayBtn', el => el.onclick = () => setDailyMonitorDate(todayISO()));
 	      safe('dailyMonitorRefreshBtn', el => el.onclick = () => renderDailyMonitor());
+	      safe('reportDateInput', el => el.onchange = () => setReportDate(el.value));
+	      safe('reportDateTodayBtn', el => el.onclick = () => setReportDate(todayISO()));
 
-	      safe('prevWeekBtn', el => el.onclick = () => { state.weekOffset -= 1; renderReports(); });
-      safe('nextWeekBtn', el => el.onclick = () => { state.weekOffset += 1; renderReports(); });
+	      safe('prevWeekBtn', el => el.onclick = () => shiftReportDate(-7));
+      safe('nextWeekBtn', el => el.onclick = () => shiftReportDate(7));
       safe('printBtn', el => el.onclick = printReport);
       safe('printBoardReportBtn', el => el.onclick = printBoardReport);
 
