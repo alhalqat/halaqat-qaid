@@ -1874,9 +1874,9 @@ localStorage.setItem = function(key, value) {
           <div class="ops-card" id="opsSidebarTasks"></div>
         </aside>
         <div class="app-content">
-      <section id="view-halaqas" class="grid">
-        <details class="toolbox no-print" id="createHalaqaBox" open>
-          <summary>إدارة الحلقات</summary>
+	      <section id="view-halaqas" class="grid">
+	        <details class="toolbox no-print" id="createHalaqaBox" open>
+	          <summary>إدارة الحلقات</summary>
           <div class="toolbox-content">
             <div class="card grid grid-4">
               <input id="newHalaqaName" placeholder="اسم الحلقة" />
@@ -1899,11 +1899,12 @@ localStorage.setItem = function(key, value) {
               <button class="btn btn-primary" id="createHalaqaBtn">إضافة حلقة</button>
             </div>
           </div>
-        </details>
+	        </details>
+	        <div id="halaqaAnnouncements" class="card"></div>
 
-        <div id="halaqaCards" class="grid grid-3"></div>
-        <div id="halaqaDetail" class="card hidden"></div>
-      </section>
+	        <div id="halaqaCards" class="grid grid-3"></div>
+	        <div id="halaqaDetail" class="card hidden"></div>
+	      </section>
 
       <section id="view-daily" class="hidden grid">
         <div class="card row between no-print">
@@ -2138,8 +2139,8 @@ localStorage.setItem = function(key, value) {
           <h3 style="margin-bottom:8px;">سجل ملاحظات الإشراف</h3>
           <div id="supervisionNotesList"></div>
         </div>
-        <details class="toolbox no-print" id="announcementCreateBox" open>
-          <summary>تعميم من الإدارة للمعلمين</summary>
+	        <details class="toolbox no-print" id="announcementCreateBox" open>
+	          <summary>تعميم للكادر</summary>
           <div class="toolbox-content">
             <div class="card">
               <div class="grid grid-4">
@@ -5739,6 +5740,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      const u = currentUser();
 	      $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role}` : '';
 	      $('createHalaqaBox').classList.toggle('hidden', !isAdmin());
+	      renderHalaqaAnnouncements();
 	      const teacherMode = isTeacher();
 
       const hs = visibleHalaqas();
@@ -7344,12 +7346,13 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       toast('تم حفظ ملاحظة الإشراف');
     }
 
-    function saveAnnouncement() {
-      const u = currentUser();
-      if (!u || u.role !== 'admin') return toast('إرسال التعميم متاح للإدارة فقط', 'err');
-      const title = ($('announcementTitle').value || '').trim();
-      const body = ($('announcementBody').value || '').trim();
-      const section = $('announcementSection').value || 'all';
+	    function saveAnnouncement() {
+	      const u = currentUser();
+	      if (!u || (u.role !== 'admin' && u.role !== 'supervisor')) return toast('إرسال التعميم متاح للإدارة والمشرف', 'err');
+	      const title = ($('announcementTitle').value || '').trim();
+	      const body = ($('announcementBody').value || '').trim();
+	      let section = $('announcementSection').value || 'all';
+	      if (u.role === 'supervisor') section = u.section || section;
       const date = $('announcementDate').value || todayISO();
       if (!title || !body) return toast('أدخل عنوان ونص التعميم', 'err');
       state.db.announcements.unshift({
@@ -7368,10 +7371,10 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       toast('تم إرسال التعميم');
     }
 
-    function renderAnnouncementFeed() {
-      const u = currentUser();
-      if (!u || !$('announcementFeed')) return;
-      const list = visibleAnnouncementsForUser(u).slice(0, 20);
+	    function renderAnnouncementFeed() {
+	      const u = currentUser();
+	      if (!u || !$('announcementFeed')) return;
+	      const list = visibleAnnouncementsForUser(u).slice(0, 20);
       $('announcementFeed').innerHTML = list.length
         ? list.map((a) => {
           const author = state.db.staff.find(s => s.id === a.createdBy)?.name || 'الإدارة';
@@ -7386,25 +7389,70 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
               <p style="margin-top:4px;">${a.body}</p>
             </div>
           `;
-        }).join('')
-        : '<p class="muted">لا توجد تعميمات حالياً.</p>';
-    }
+	        }).join('')
+	        : '<p class="muted">لا توجد تعميمات حالياً.</p>';
+	    }
 
-    function renderSupervision() {
-      const u = currentUser();
-      const allowed = !!u && (u.role === 'admin' || u.role === 'supervisor');
-      $('supervisionCreateBox').classList.toggle('hidden', !allowed);
-      $('announcementCreateBox').classList.toggle('hidden', !(u && u.role === 'admin'));
-      if (!allowed) {
-        $('supervisionNotesList').innerHTML = '<p class="muted">هذه الصفحة متاحة للإدارة والمشرفين فقط.</p>';
-        renderAnnouncementFeed();
-        return;
+	    function renderHalaqaAnnouncements() {
+	      const u = currentUser();
+	      const panel = $('halaqaAnnouncements');
+	      if (!panel) return;
+	      if (!u) {
+	        panel.classList.add('hidden');
+	        panel.innerHTML = '';
+	        return;
+	      }
+	      const list = visibleAnnouncementsForUser(u).slice(0, 6);
+	      const canSend = u.role === 'admin' || u.role === 'supervisor';
+	      panel.classList.remove('hidden');
+	      panel.innerHTML = `
+	        <div class="row between" style="margin-bottom:8px; gap:8px;">
+	          <div>
+	            <h3>مركز التعميمات</h3>
+	            <p class="muted" style="font-size:12px; margin-top:4px;">تصل التعاميم هنا مباشرة للمعلمين والمشرفين.</p>
+	          </div>
+	          ${canSend ? '<button class="btn btn-primary no-print" onclick="setTab(\'supervision\')">إرسال تعميم</button>' : '<span class="badge badge-green">عرض فقط</span>'}
+	        </div>
+	        ${list.length ? list.map((a) => {
+	          const author = state.db.staff.find((s) => s.id === a.createdBy)?.name || 'الإدارة';
+	          const secLabel = a.section === 'all' ? 'كل الأقسام' : (a.section === 'mens' ? 'البنين' : 'البنات');
+	          return `
+	            <div class="ops-task info" style="margin-bottom:8px;">
+	              <div class="row between">
+	                <b>${escapeAttr(a.title || 'تعميم')}</b>
+	                <span class="badge">${escapeAttr(a.date || '-')}</span>
+	              </div>
+	              <p class="muted" style="font-size:12px; margin-top:4px;">القسم: ${secLabel} • بواسطة: ${escapeAttr(author)}</p>
+	              <p style="margin-top:4px;">${escapeAttr(a.body || '')}</p>
+	            </div>
+	          `;
+	        }).join('') : '<p class="muted">لا توجد تعميمات حالياً.</p>'}
+	      `;
+	    }
+
+	    function renderSupervision() {
+	      const u = currentUser();
+	      const allowed = !!u && (u.role === 'admin' || u.role === 'supervisor');
+	      $('supervisionCreateBox').classList.toggle('hidden', !allowed);
+	      $('announcementCreateBox').classList.toggle('hidden', !allowed);
+	      if (!allowed) {
+	        $('supervisionNotesList').innerHTML = '<p class="muted">هذه الصفحة متاحة للإدارة والمشرفين فقط.</p>';
+	        renderAnnouncementFeed();
+	        return;
       }
       const hs = visibleHalaqas();
       $('supervisionHalaqaSelect').innerHTML = '<option value=\"\">اختر الحلقة</option>' + hs.map(h => `<option value="${h.id}">${h.circleName}</option>`).join('');
-      if (!$('supervisionDate').value) $('supervisionDate').value = todayISO();
-      if (!$('announcementDate').value) $('announcementDate').value = todayISO();
-      const allowedH = new Set(hs.map(h => h.id));
+	      if (!$('supervisionDate').value) $('supervisionDate').value = todayISO();
+	      if (!$('announcementDate').value) $('announcementDate').value = todayISO();
+	      if ($('announcementSection')) {
+	        if (u.role === 'supervisor') {
+	          $('announcementSection').value = u.section || 'mens';
+	          $('announcementSection').disabled = true;
+	        } else {
+	          $('announcementSection').disabled = false;
+	        }
+	      }
+	      const allowedH = new Set(hs.map(h => h.id));
       const notes = state.db.supervisorNotes.filter(n => allowedH.has(n.halaqaId));
       $('supervisionNotesList').innerHTML = notes.length ? notes.map((n) => {
         const h = state.indexes?.halaqaById?.[n.halaqaId];
