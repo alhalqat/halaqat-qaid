@@ -161,6 +161,104 @@
     .ops-task.warn { border-color: #fecaca; background: #fef2f2; }
     .ops-task.info { border-color: #bae6fd; background: #f0f9ff; }
     .ops-task.ok { border-color: #bbf7d0; background: #f0fdf4; }
+    .announcement-panel {
+      margin-bottom: 10px;
+      border: 1px solid #d9e2d5;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #ffffff, #fdfbf6);
+    }
+    .announcement-panel > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 10px 12px;
+      font-weight: 800;
+      color: #14532d;
+      border-bottom: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .announcement-panel > summary::-webkit-details-marker {
+      display: none;
+    }
+    .announcement-panel[open] > summary {
+      border-bottom-color: #e2e8f0;
+      background: linear-gradient(180deg, #fffdf8, #f8fafc);
+      border-radius: 14px 14px 0 0;
+    }
+    .announcement-summary-meta {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 700;
+    }
+    .announcement-panel-content {
+      padding: 10px;
+    }
+    .announcement-list {
+      display: grid;
+      gap: 8px;
+      max-height: 45vh;
+      overflow: auto;
+      padding-left: 2px;
+    }
+    .announcement-item {
+      border: 1px solid #dbe4ef;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .announcement-item > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 8px 10px;
+    }
+    .announcement-item > summary::-webkit-details-marker {
+      display: none;
+    }
+    .announcement-item[open] > summary {
+      border-bottom: 1px solid #e5e7eb;
+      background: #f8fbff;
+      border-radius: 12px 12px 0 0;
+    }
+    .announcement-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1f2937;
+      margin: 0;
+      line-height: 1.45;
+    }
+    .announcement-meta {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .announcement-preview {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.5;
+    }
+    .announcement-body {
+      padding: 8px 10px 0;
+      font-size: 13px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      color: #1f2937;
+    }
+    .announcement-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 8px 10px 10px;
+      align-items: center;
+    }
+    .announcement-actions .btn {
+      min-height: 34px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
     .app-content > section { margin-top: 0; }
     .display-switch {
       display: inline-flex;
@@ -1418,6 +1516,17 @@ tbody tr:hover td { background: #fef9e7; }
       .teacher-student-btn .name { font-size: 13px; line-height: 1.35; }
       .teacher-student-btn .meta { font-size: 11px; line-height: 1.4; max-height: 2.9em; overflow: hidden; }
       .teacher-quick-nav .btn { flex: 1 1 calc(33% - 6px); }
+      .announcement-panel > summary { padding: 8px 10px; }
+      .announcement-summary-meta { font-size: 11px; }
+      .announcement-panel-content { padding: 8px; }
+      .announcement-list { max-height: 34vh; gap: 6px; }
+      .announcement-item > summary { padding: 7px 8px; }
+      .announcement-title { font-size: 13px; }
+      .announcement-meta { font-size: 10px; }
+      .announcement-preview { font-size: 11px; }
+      .announcement-body { padding: 7px 8px 0; font-size: 12px; line-height: 1.55; }
+      .announcement-actions { padding: 7px 8px 8px; }
+      .announcement-actions .btn { flex: 1 1 120px; min-height: 32px; font-size: 11px; padding: 5px 8px; }
       .student-name-editor,
       .student-name-editor input { min-width: 280px; }
       #appView > header h1 { font-size: 24px; }
@@ -2368,6 +2477,7 @@ localStorage.setItem = function(key, value) {
     const DEV_MODE = new URLSearchParams(window.location.search).get('dev') === '1'
       || localStorage.getItem('quran_dev_mode') === '1';
     const SESSION_KEY = 'quran_platform_session_v1';
+    const ANNOUNCEMENT_DISMISSED_KEY = 'quran_announcements_dismissed_v1';
 
     const ATTENDANCE = [
       { key: 'present', label: 'حاضر' },
@@ -4146,8 +4256,179 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       return !!u && (u.role === 'admin' || u.role === 'supervisor' || u.role === 'teacher');
     }
 
+    function announcementViewerKey(user = currentUser()) {
+      if (!user) return '';
+      const identity = String(user.id || user.username || user.phone || '').trim();
+      return identity ? `staff:${identity}` : '';
+    }
+
+    function loadDismissedAnnouncementsMap() {
+      const raw = localStorage.getItem(ANNOUNCEMENT_DISMISSED_KEY);
+      if (!raw) return {};
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        return parsed;
+      } catch (_e) {
+        localStorage.removeItem(ANNOUNCEMENT_DISMISSED_KEY);
+        return {};
+      }
+    }
+
+    function saveDismissedAnnouncementsMap(map) {
+      const normalized = {};
+      Object.entries(map || {}).forEach(([key, value]) => {
+        const cleaned = [...new Set((Array.isArray(value) ? value : [])
+          .map((item) => String(item || '').trim())
+          .filter(Boolean))];
+        if (cleaned.length) normalized[key] = cleaned;
+      });
+      localStorage.setItem(ANNOUNCEMENT_DISMISSED_KEY, JSON.stringify(normalized));
+    }
+
+    function dismissedAnnouncementSetForUser(user = currentUser()) {
+      const key = announcementViewerKey(user);
+      if (!key) return new Set();
+      const map = loadDismissedAnnouncementsMap();
+      const list = Array.isArray(map[key]) ? map[key] : [];
+      return new Set(list.map((item) => String(item || '').trim()).filter(Boolean));
+    }
+
+    function dismissedAnnouncementCountForUser(user = currentUser()) {
+      const hidden = dismissedAnnouncementSetForUser(user);
+      if (!hidden.size) return 0;
+      const allIds = new Set((state.db.announcements || []).map((a) => String(a.id || '')).filter(Boolean));
+      let count = 0;
+      hidden.forEach((id) => {
+        if (allIds.has(id)) count += 1;
+      });
+      return count;
+    }
+
+    function announcementSectionLabel(section) {
+      if (section === 'mens') return 'البنين';
+      if (section === 'womens') return 'البنات';
+      return 'كل الأقسام';
+    }
+
+    function announcementAuthorName(announcement) {
+      return state.db.staff.find((s) => s.id === announcement?.createdBy)?.name || 'الإدارة';
+    }
+
+    function canDeleteAnnouncement(announcement, user = currentUser()) {
+      if (!user || !announcement) return false;
+      if (user.role === 'admin') return true;
+      if (user.role !== 'supervisor') return false;
+      const section = String(announcement.section || 'all');
+      return String(announcement.createdBy || '') === String(user.id || '')
+        || section === 'all'
+        || section === String(user.section || '');
+    }
+
+    function announcementPreviewText(body, maxLength = 84) {
+      const compact = String(body || '').replace(/\s+/g, ' ').trim();
+      if (!compact) return '';
+      if (compact.length <= maxLength) return compact;
+      return `${compact.slice(0, maxLength)}...`;
+    }
+
+    function shouldOpenAnnouncementPanelsByDefault() {
+      if (!window.matchMedia) return true;
+      return !window.matchMedia('(max-width: 760px)').matches;
+    }
+
+    function announcementCardHTML(announcement, options = {}) {
+      const user = options.user || currentUser();
+      const canDelete = canDeleteAnnouncement(announcement, user);
+      const id = escapeAttr(String(announcement?.id || ''));
+      const author = announcementAuthorName(announcement);
+      const secLabel = announcementSectionLabel(announcement?.section);
+      const preview = announcementPreviewText(announcement?.body, options.previewLength || 84);
+      return `
+        <details class="announcement-item"${options.open ? ' open' : ''}>
+          <summary>
+            <div class="row between" style="gap:8px; align-items:flex-start;">
+              <p class="announcement-title">${escapeAttr(announcement?.title || 'تعميم')}</p>
+              <span class="badge">${escapeAttr(announcement?.date || '-')}</span>
+            </div>
+            <p class="announcement-meta">القسم: ${escapeAttr(secLabel)} • بواسطة: ${escapeAttr(author)}</p>
+            ${preview ? `<p class="announcement-preview">${escapeAttr(preview)}</p>` : ''}
+          </summary>
+          <div class="announcement-body">${escapeAttr(announcement?.body || '')}</div>
+          <div class="announcement-actions no-print">
+            <button type="button" class="btn btn-light" onclick="dismissAnnouncementForCurrentUser('${id}')">تم الاطلاع</button>
+            ${canDelete ? `<button type="button" class="btn btn-danger" onclick="deleteAnnouncement('${id}')">حذف نهائي</button>` : ''}
+          </div>
+        </details>
+      `;
+    }
+
+    function dismissAnnouncementForCurrentUser(announcementId) {
+      const u = currentUser();
+      if (!u) return toast('يلزم تسجيل الدخول أولاً', 'err');
+      const id = String(announcementId || '').trim();
+      if (!id) return;
+      const exists = (state.db.announcements || []).some((a) => String(a.id || '') === id);
+      if (!exists) return toast('التعميم غير موجود', 'err');
+      const key = announcementViewerKey(u);
+      if (!key) return toast('تعذر تحديد المستخدم الحالي', 'err');
+      const map = loadDismissedAnnouncementsMap();
+      const hidden = new Set(Array.isArray(map[key]) ? map[key].map((x) => String(x || '').trim()).filter(Boolean) : []);
+      hidden.add(id);
+      map[key] = [...hidden];
+      saveDismissedAnnouncementsMap(map);
+      renderHalaqaAnnouncements();
+      renderAnnouncementFeed();
+      renderOpsSidebar();
+      toast('تم إخفاء التعميم');
+    }
+
+    function restoreAnnouncementsForCurrentUser() {
+      const u = currentUser();
+      if (!u) return toast('يلزم تسجيل الدخول أولاً', 'err');
+      const key = announcementViewerKey(u);
+      if (!key) return toast('تعذر تحديد المستخدم الحالي', 'err');
+      const map = loadDismissedAnnouncementsMap();
+      if (!Array.isArray(map[key]) || !map[key].length) {
+        return toast('لا توجد تعميمات مخفية');
+      }
+      delete map[key];
+      saveDismissedAnnouncementsMap(map);
+      renderHalaqaAnnouncements();
+      renderAnnouncementFeed();
+      renderOpsSidebar();
+      toast('تمت إعادة إظهار التعميمات');
+    }
+
+    function deleteAnnouncement(announcementId) {
+      const u = currentUser();
+      if (!u) return toast('يلزم تسجيل الدخول أولاً', 'err');
+      const id = String(announcementId || '').trim();
+      if (!id) return;
+      const idx = (state.db.announcements || []).findIndex((a) => String(a.id || '') === id);
+      if (idx < 0) return toast('التعميم غير موجود', 'err');
+      const ann = state.db.announcements[idx];
+      if (!canDeleteAnnouncement(ann, u)) return toast('غير مسموح بحذف هذا التعميم', 'err');
+      const title = ann?.title || 'التعميم';
+      if (!confirm(`سيتم حذف "${title}" نهائياً للجميع. متابعة؟`)) return;
+      state.db.announcements.splice(idx, 1);
+      const map = loadDismissedAnnouncementsMap();
+      Object.keys(map).forEach((key) => {
+        const kept = (Array.isArray(map[key]) ? map[key] : [])
+          .map((item) => String(item || '').trim())
+          .filter((item) => item && item !== id);
+        if (kept.length) map[key] = kept;
+        else delete map[key];
+      });
+      saveDismissedAnnouncementsMap(map);
+      saveDB();
+      renderAll();
+      toast('تم حذف التعميم نهائياً');
+    }
+
     function visibleAnnouncementsForUser(user = currentUser()) {
       if (!user) return [];
+      const hidden = dismissedAnnouncementSetForUser(user);
       return (state.db.announcements || [])
         .filter((a) => {
           const sectionMatch = a.section === 'all' || a.section === user.section || user.role === 'admin' || user.role === 'supervisor' || user.role === 'board';
@@ -4157,6 +4438,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
             (a.audience === 'board' && (user.role === 'board' || user.role === 'admin'));
           return sectionMatch && audienceMatch;
         })
+        .filter((a) => !hidden.has(String(a.id || '').trim()))
         .sort((a, b) => String(b.date).localeCompare(String(a.date)));
     }
 
@@ -7373,24 +7655,29 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
 	    function renderAnnouncementFeed() {
 	      const u = currentUser();
-	      if (!u || !$('announcementFeed')) return;
+	      const host = $('announcementFeed');
+	      if (!u || !host) return;
 	      const list = visibleAnnouncementsForUser(u).slice(0, 20);
-      $('announcementFeed').innerHTML = list.length
-        ? list.map((a) => {
-          const author = state.db.staff.find(s => s.id === a.createdBy)?.name || 'الإدارة';
-          const secLabel = a.section === 'all' ? 'كل الأقسام' : (a.section === 'mens' ? 'البنين' : 'البنات');
-          return `
-            <div class="ops-task info">
-              <div class="row between">
-                <b>${a.title}</b>
-                <span class="badge">${a.date}</span>
-              </div>
-              <p class="muted" style="font-size:12px; margin-top:4px;">القسم: ${secLabel} - بواسطة: ${author}</p>
-              <p style="margin-top:4px;">${a.body}</p>
-            </div>
-          `;
-	        }).join('')
-	        : '<p class="muted">لا توجد تعميمات حالياً.</p>';
+	      const hiddenCount = dismissedAnnouncementCountForUser(u);
+	      const openByDefault = shouldOpenAnnouncementPanelsByDefault();
+	      host.innerHTML = `
+	        <details class="announcement-panel"${openByDefault ? ' open' : ''}>
+	          <summary>
+	            <span>أحدث التعميمات</span>
+	            <span class="announcement-summary-meta">ظاهرة: ${list.length}${hiddenCount ? ` • مخفية: ${hiddenCount}` : ''}</span>
+	          </summary>
+	          <div class="announcement-panel-content">
+	            <div class="announcement-actions no-print" style="padding:0 0 8px;">
+	              ${hiddenCount ? '<button type="button" class="btn btn-light" onclick="restoreAnnouncementsForCurrentUser()">إظهار المخفية</button>' : '<span class="muted" style="font-size:12px;">اضغط "تم الاطلاع" لإخفاء التعميم من قائمتك.</span>'}
+	            </div>
+	            <div class="announcement-list">
+	              ${list.length
+	                ? list.map((a, idx) => announcementCardHTML(a, { user: u, open: openByDefault && idx === 0, previewLength: 90 })).join('')
+	                : '<p class="muted">لا توجد تعميمات حالياً.</p>'}
+	            </div>
+	          </div>
+	        </details>
+	      `;
 	    }
 
 	    function renderHalaqaAnnouncements() {
@@ -7403,30 +7690,31 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	        return;
 	      }
 	      const list = visibleAnnouncementsForUser(u).slice(0, 6);
+	      const hiddenCount = dismissedAnnouncementCountForUser(u);
 	      const canSend = u.role === 'admin' || u.role === 'supervisor';
+	      const openByDefault = shouldOpenAnnouncementPanelsByDefault();
 	      panel.classList.remove('hidden');
 	      panel.innerHTML = `
-	        <div class="row between" style="margin-bottom:8px; gap:8px;">
-	          <div>
-	            <h3>مركز التعميمات</h3>
-	            <p class="muted" style="font-size:12px; margin-top:4px;">تصل التعاميم هنا مباشرة للمعلمين والمشرفين.</p>
-	          </div>
-	          ${canSend ? '<button class="btn btn-primary no-print" onclick="setTab(\'supervision\')">إرسال تعميم</button>' : '<span class="badge badge-green">عرض فقط</span>'}
-	        </div>
-	        ${list.length ? list.map((a) => {
-	          const author = state.db.staff.find((s) => s.id === a.createdBy)?.name || 'الإدارة';
-	          const secLabel = a.section === 'all' ? 'كل الأقسام' : (a.section === 'mens' ? 'البنين' : 'البنات');
-	          return `
-	            <div class="ops-task info" style="margin-bottom:8px;">
-	              <div class="row between">
-	                <b>${escapeAttr(a.title || 'تعميم')}</b>
-	                <span class="badge">${escapeAttr(a.date || '-')}</span>
+	        <details class="announcement-panel"${openByDefault ? ' open' : ''}>
+	          <summary>
+	            <span>مركز التعميمات</span>
+	            <span class="announcement-summary-meta">ظاهرة: ${list.length}${hiddenCount ? ` • مخفية: ${hiddenCount}` : ''}</span>
+	          </summary>
+	          <div class="announcement-panel-content">
+	            <div class="row between no-print" style="gap:8px; margin-bottom:8px;">
+	              <p class="muted" style="font-size:12px;">تصل التعاميم مباشرة للكادر. يمكنك طيّها بعد الاطلاع.</p>
+	              <div class="row" style="gap:6px;">
+	                ${hiddenCount ? '<button type="button" class="btn btn-light" onclick="restoreAnnouncementsForCurrentUser()">إظهار المخفية</button>' : ''}
+	                ${canSend ? '<button class="btn btn-primary" onclick="setTab(\'supervision\')">إرسال تعميم</button>' : '<span class="badge badge-green">عرض فقط</span>'}
 	              </div>
-	              <p class="muted" style="font-size:12px; margin-top:4px;">القسم: ${secLabel} • بواسطة: ${escapeAttr(author)}</p>
-	              <p style="margin-top:4px;">${escapeAttr(a.body || '')}</p>
 	            </div>
-	          `;
-	        }).join('') : '<p class="muted">لا توجد تعميمات حالياً.</p>'}
+	            <div class="announcement-list">
+	              ${list.length
+	                ? list.map((a, idx) => announcementCardHTML(a, { user: u, open: openByDefault && idx === 0 })).join('')
+	                : '<p class="muted">لا توجد تعميمات حالياً.</p>'}
+	            </div>
+	          </div>
+	        </details>
 	      `;
 	    }
 
@@ -8460,6 +8748,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.setTeacherViewDate = setTeacherViewDate;
     window.shiftTeacherViewDate = shiftTeacherViewDate;
     window.setTab = setTab;
+    window.dismissAnnouncementForCurrentUser = dismissAnnouncementForCurrentUser;
+    window.restoreAnnouncementsForCurrentUser = restoreAnnouncementsForCurrentUser;
+    window.deleteAnnouncement = deleteAnnouncement;
 	    window.addStudentToHalaqa = addStudentToHalaqa;
 	    window.markAllStudentsAttendance = markAllStudentsAttendance;
 	    window.saveDailyEntry = saveDailyEntry;
