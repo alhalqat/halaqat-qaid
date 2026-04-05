@@ -2377,7 +2377,18 @@ localStorage.setItem = function(key, value) {
       { key: 'dropped', label: 'منقطع' },
     ];
 
-    const GRADES = Array.from({ length: 10 }, (_, i) => String(i + 1));
+	    const GRADES = Array.from({ length: 10 }, (_, i) => String(i + 1));
+
+	    const HALAQA_DAY_STATUS_OPTIONS = [
+	      { key: 'normal', label: 'يوم دراسي عادي', justified: false, badgeClass: 'badge-green' },
+	      { key: 'teacher_excused', label: 'المعلم/ة مستأذن/ة', justified: true, badgeClass: 'badge-warn' },
+	      { key: 'holiday', label: 'إجازة رسمية', justified: true, badgeClass: 'badge-gold' },
+	      { key: 'no_session', label: 'لا يوجد دوام للحلقة', justified: true, badgeClass: 'badge-gold' },
+	      { key: 'other', label: 'سبب آخر', justified: true, badgeClass: 'badge-gold' },
+	    ];
+	    const HALAQA_DAY_STATUS_MAP = Object.fromEntries(
+	      HALAQA_DAY_STATUS_OPTIONS.map((item) => [item.key, item])
+	    );
 
     const SCHEDULE_PRESETS = {
       'sun-wed': ['الأحد','الاثنين','الثلاثاء','الأربعاء'],
@@ -2474,11 +2485,19 @@ localStorage.setItem = function(key, value) {
       base.setDate(base.getDate() + Number(d || 0));
       return dateToISO(base);
     };
-    const normalizeISODate = (value, fallback = todayISO()) => {
-      const parsed = parseISODate(value);
-      return parsed ? dateToISO(parsed) : fallback;
-    };
-    const clamp = (n,min,max) => Math.max(min, Math.min(max,n));
+	    const normalizeISODate = (value, fallback = todayISO()) => {
+	      const parsed = parseISODate(value);
+	      return parsed ? dateToISO(parsed) : fallback;
+	    };
+	    const normalizeHalaqaDayStatus = (value) => {
+	      const raw = String(value || '').trim();
+	      return HALAQA_DAY_STATUS_MAP[raw] ? raw : 'normal';
+	    };
+	    const halaqaDayStatusMeta = (statusKey) => {
+	      const key = normalizeHalaqaDayStatus(statusKey);
+	      return HALAQA_DAY_STATUS_MAP[key] || HALAQA_DAY_STATUS_MAP.normal;
+	    };
+	    const clamp = (n,min,max) => Math.max(min, Math.min(max,n));
     const escapeAttr = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const compactName = (v) => String(v || '').replace(/\s+/g, ' ').trim();
     const toEnglishDigits = (v) => String(v || '')
@@ -2907,11 +2926,11 @@ localStorage.setItem = function(key, value) {
       ) || null;
     }
 
-    function upsertRollcall(studentId, halaqaId, dateISO, status) {
-      if (!state.db.rollcall) state.db.rollcall = [];
-      const found = getRollcall(studentId, halaqaId, dateISO);
-      if (found) {
-        found.status = status;
+	    function upsertRollcall(studentId, halaqaId, dateISO, status) {
+	      if (!state.db.rollcall) state.db.rollcall = [];
+	      const found = getRollcall(studentId, halaqaId, dateISO);
+	      if (found) {
+	        found.status = status;
         found.createdAt = new Date().toISOString();
         return;
       }
@@ -2921,9 +2940,103 @@ localStorage.setItem = function(key, value) {
         halaqaId,
         date: dateISO,
         status,
-        createdAt: new Date().toISOString(),
-      });
-    }
+	        createdAt: new Date().toISOString(),
+	      });
+	    }
+
+	    function getHalaqaDayNote(halaqaId, dateISO = todayISO()) {
+	      if (!halaqaId) return null;
+	      const targetDate = normalizeISODate(dateISO, todayISO());
+	      const key = `${halaqaId}__${targetDate}`;
+	      if (state.indexes?.dayNotesByHalaqaDate?.[key]) return state.indexes.dayNotesByHalaqaDate[key];
+	      return (state.db.dayNotes || []).find((note) => note.halaqaId === halaqaId && note.date === targetDate) || null;
+	    }
+
+	    function isHalaqaDayNoteJustified(note) {
+	      if (!note) return false;
+	      return Boolean(halaqaDayStatusMeta(note.status).justified);
+	    }
+
+	    function halaqaDayNoteLabel(note) {
+	      if (!note) return '';
+	      const meta = halaqaDayStatusMeta(note.status);
+	      const parts = [meta.label];
+	      if (note.studentsPresent) parts.push('الطلاب حاضرون');
+	      if (note.reason) parts.push(note.reason);
+	      return parts.join(' - ');
+	    }
+
+	    function upsertHalaqaDayNote(halaqaId, dateISO, payload = {}) {
+	      const halaqa = state.indexes?.halaqaById?.[halaqaId] || state.db.halaqas.find((h) => h.id === halaqaId);
+	      if (!halaqa) return { changed: false, removed: false };
+	      if (!state.db.dayNotes) state.db.dayNotes = [];
+	      const targetDate = normalizeISODate(dateISO || todayISO(), todayISO());
+	      const reason = String(payload.reason || '').trim();
+	      let normalizedStatus = normalizeHalaqaDayStatus(payload.status);
+	      if (normalizedStatus === 'normal' && reason) normalizedStatus = 'other';
+	      const studentsPresent = Boolean(payload.studentsPresent);
+	      const shouldRemove = normalizedStatus === 'normal' && !reason && !studentsPresent;
+	      const existingIndex = (state.db.dayNotes || []).findIndex(
+	        (note) => note.halaqaId === halaqaId && note.date === targetDate
+	      );
+	      if (shouldRemove) {
+	        if (existingIndex === -1) return { changed: false, removed: false };
+	        state.db.dayNotes.splice(existingIndex, 1);
+	        return { changed: true, removed: true };
+	      }
+	      const nowISO = new Date().toISOString();
+	      const user = currentUser();
+	      const existing = existingIndex >= 0 ? state.db.dayNotes[existingIndex] : null;
+	      const next = {
+	        id: existing?.id || uid('dnote'),
+	        halaqaId,
+	        section: halaqa.section,
+	        date: targetDate,
+	        status: normalizedStatus,
+	        reason,
+	        studentsPresent,
+	        createdBy: user?.id || existing?.createdBy || '',
+	        createdAt: existing?.createdAt || nowISO,
+	        updatedAt: nowISO,
+	      };
+	      if (existingIndex >= 0) state.db.dayNotes[existingIndex] = next;
+	      else state.db.dayNotes.unshift(next);
+	      return { changed: true, removed: false };
+	    }
+
+	    function saveHalaqaDayStatus() {
+	      const user = currentUser();
+	      if (!user) return toast('يلزم تسجيل الدخول أولاً', 'err');
+	      if (!(user.role === 'teacher' || user.role === 'admin' || user.role === 'supervisor')) return toast('غير مسموح', 'err');
+	      const halaqaId = state.currentHalaqaId;
+	      const halaqa = state.indexes?.halaqaById?.[halaqaId] || null;
+	      if (!halaqa) return toast('اختر الحلقة أولاً', 'err');
+	      const targetDate = $('halaqaDayDate')?.value || (isTeacher() ? getTeacherViewDate() : todayISO());
+	      const status = normalizeHalaqaDayStatus($('halaqaDayStatusSelect')?.value || 'normal');
+	      const studentsPresent = Boolean($('halaqaDayStudentsPresent')?.checked);
+	      const reason = ($('halaqaDayReason')?.value || '').trim();
+	      const result = upsertHalaqaDayNote(halaqaId, targetDate, { status, reason, studentsPresent });
+	      if (!result.changed) return toast('لا يوجد تغيير للحفظ');
+	      saveDB();
+	      rebuildIndexes();
+	      renderAll();
+	      toast(result.removed ? 'تم إلغاء حالة اليوم' : 'تم حفظ حالة يوم الحلقة');
+	    }
+
+	    function clearHalaqaDayStatus() {
+	      const user = currentUser();
+	      if (!user) return toast('يلزم تسجيل الدخول أولاً', 'err');
+	      if (!(user.role === 'teacher' || user.role === 'admin' || user.role === 'supervisor')) return toast('غير مسموح', 'err');
+	      const halaqaId = state.currentHalaqaId;
+	      if (!halaqaId) return toast('اختر الحلقة أولاً', 'err');
+	      const targetDate = $('halaqaDayDate')?.value || (isTeacher() ? getTeacherViewDate() : todayISO());
+	      const result = upsertHalaqaDayNote(halaqaId, targetDate, { status: 'normal', reason: '', studentsPresent: false });
+	      if (!result.changed) return toast('لا توجد حالة محفوظة لهذا اليوم');
+	      saveDB();
+	      rebuildIndexes();
+	      renderAll();
+	      toast('تم حذف حالة اليوم');
+	    }
 
     function mountSmartPicker(rootId, hiddenId, options, selectedId = '', placeholder = 'ابحث...', onPickFn = '') {
       const root = $(rootId);
@@ -3190,13 +3303,14 @@ localStorage.setItem = function(key, value) {
           { id:'s2', name:'سلمان خالد', nationalId:'1021xxxxxx', guardianPhone:'0550000002', grade:'متوسط', section:'mens', halaqaId:'h2', absentCount:4, points:95, badges:[], certificates:[], lastHifdhSurah:'الملك', lastHifdhAya:9, plan:{targetSurah:'الواقعة',targetAya:30,targetDate:addDaysISO(t,21)} },
           { id:'s3', name:'رهف سعيد', nationalId:'1080xxxxxx', guardianPhone:'0550000003', grade:'ابتدائي', section:'womens', halaqaId:'h3', absentCount:0, points:220, badges:['منضبط'], certificates:[], lastHifdhSurah:'الفاتحة', lastHifdhAya:7, plan:{targetSurah:'البقرة',targetAya:30,targetDate:addDaysISO(t,30)} },
         ],
-        logs: [
-          { id:'l1', date:addDaysISO(t,-1), section:'mens', halaqaId:'h1', studentId:'s1', attendance:'present', grade:'9', type:'hifdh', surahIdx:77, surahName:'النبأ', fromAya:9, toAya:12, ayaCount:4, pages:{faces:1}, hifdhScore:92, tajweedScore:4, performanceScore:5, notes:'تحسن ملحوظ', adminNote:'', knightScore: 15 },
-          { id:'l2', date:addDaysISO(t,-2), section:'mens', halaqaId:'h2', studentId:'s2', attendance:'absent', grade:'6', type:'revision', surahIdx:66, surahName:'الملك', fromAya:1, toAya:9, ayaCount:9, pages:{faces:2}, hifdhScore:70, tajweedScore:3, performanceScore:3, notes:'غياب', adminNote:'متابعة ولي الأمر', knightScore: 5 },
-        ],
-        rollcall: [],
-        supervisorNotes: [],
-        examSessions: [],
+	        logs: [
+	          { id:'l1', date:addDaysISO(t,-1), section:'mens', halaqaId:'h1', studentId:'s1', attendance:'present', grade:'9', type:'hifdh', surahIdx:77, surahName:'النبأ', fromAya:9, toAya:12, ayaCount:4, pages:{faces:1}, hifdhScore:92, tajweedScore:4, performanceScore:5, notes:'تحسن ملحوظ', adminNote:'', knightScore: 15 },
+	          { id:'l2', date:addDaysISO(t,-2), section:'mens', halaqaId:'h2', studentId:'s2', attendance:'absent', grade:'6', type:'revision', surahIdx:66, surahName:'الملك', fromAya:1, toAya:9, ayaCount:9, pages:{faces:2}, hifdhScore:70, tajweedScore:3, performanceScore:3, notes:'غياب', adminNote:'متابعة ولي الأمر', knightScore: 5 },
+	        ],
+	        rollcall: [],
+	        dayNotes: [],
+	        supervisorNotes: [],
+	        examSessions: [],
         announcements: [
           { id:'a1', title:'تعميم: مسابقة حفظ', body:'تقام مسابقة الحفظ الأسبوع القادم، يرجى ترشيح طالبين من كل حلقة.', date:addDaysISO(t,-1), section:'all', audience:'teachers', createdBy:'u_admin' },
         ],
@@ -3213,10 +3327,11 @@ localStorage.setItem = function(key, value) {
       }
       if (!db.students) db.students = [];
       if (!db.staff) db.staff = [];
-      if (!db.halaqas) db.halaqas = [];
-      if (!db.logs) db.logs = [];
-      if (!db.rollcall) db.rollcall = [];
-      if (!db.supervisorNotes) db.supervisorNotes = [];
+	      if (!db.halaqas) db.halaqas = [];
+	      if (!db.logs) db.logs = [];
+	      if (!db.rollcall) db.rollcall = [];
+	      if (!db.dayNotes) db.dayNotes = [];
+	      if (!db.supervisorNotes) db.supervisorNotes = [];
       if (!db.examSessions) db.examSessions = [];
       if (!db.announcements) db.announcements = [];
       if (!db.settings) db.settings = { logoDataUrl: '', allowTeacherExams: false, lockTodayEntries: true };
@@ -3319,22 +3434,48 @@ localStorage.setItem = function(key, value) {
         };
       });
 
-      db.rollcall = (db.rollcall || []).map((r) => ({
-        id: r.id || uid('att'),
-        studentId: r.studentId,
-        halaqaId: r.halaqaId,
-        date: r.date || todayISO(),
+	      db.rollcall = (db.rollcall || []).map((r) => ({
+	        id: r.id || uid('att'),
+	        studentId: r.studentId,
+	        halaqaId: r.halaqaId,
+	        date: r.date || todayISO(),
         status: ATTENDANCE.some((a) => a.key === r.status) ? r.status : 'present',
         createdAt: r.createdAt || new Date().toISOString(),
       })).filter((r) => {
         const st = studentById[r.studentId];
-        const h = halaqaById[r.halaqaId];
-        return Boolean(st && h && st.section === h.section);
-      });
+	        const h = halaqaById[r.halaqaId];
+	        return Boolean(st && h && st.section === h.section);
+	      });
 
-      db.logs = db.logs.filter((l) => {
-        const st = studentById[l.studentId];
-        const h = halaqaById[l.halaqaId];
+	      db.dayNotes = (db.dayNotes || []).map((note) => {
+	        const date = normalizeISODate(note.date || '', '');
+	        const reason = String(note.reason || '').trim();
+	        let normalizedStatus = normalizeHalaqaDayStatus(note.status);
+	        if (normalizedStatus === 'normal' && reason) normalizedStatus = 'other';
+	        return {
+	          id: note.id || uid('dnote'),
+	          halaqaId: note.halaqaId,
+	          section: normalizeSection(note.section),
+	          date,
+	          status: normalizedStatus,
+	          reason,
+	          studentsPresent: Boolean(note.studentsPresent),
+	          createdBy: String(note.createdBy || ''),
+	          createdAt: note.createdAt || new Date().toISOString(),
+	          updatedAt: note.updatedAt || note.createdAt || new Date().toISOString(),
+	        };
+	      }).filter((note) => {
+	        if (!note.halaqaId || !note.date) return false;
+	        const halaqa = halaqaById[note.halaqaId];
+	        return Boolean(halaqa);
+	      }).map((note) => {
+	        const halaqa = halaqaById[note.halaqaId];
+	        return { ...note, section: halaqa.section };
+	      });
+
+	      db.logs = db.logs.filter((l) => {
+	        const st = studentById[l.studentId];
+	        const h = halaqaById[l.halaqaId];
         return Boolean(st && h && st.section === h.section);
       }).map((l) => ({
         ...l,
@@ -3373,10 +3514,11 @@ localStorage.setItem = function(key, value) {
       return {
         staff: [],
         halaqas: [],
-        students: [],
-        logs: [],
-        rollcall: [],
-        supervisorNotes: [],
+	        students: [],
+	        logs: [],
+	        rollcall: [],
+	        dayNotes: [],
+	        supervisorNotes: [],
         examSessions: [],
         announcements: [],
       };
@@ -3408,11 +3550,15 @@ localStorage.setItem = function(key, value) {
           ...(Array.isArray(mens.logs) ? mens.logs : []).map((l) => ({ ...l, section: 'mens' })),
           ...(Array.isArray(womens.logs) ? womens.logs : []).map((l) => ({ ...l, section: 'womens' })),
         ],
-        rollcall: [
-          ...(Array.isArray(mens.rollcall) ? mens.rollcall : []),
-          ...(Array.isArray(womens.rollcall) ? womens.rollcall : []),
-        ],
-        supervisorNotes: [
+	        rollcall: [
+	          ...(Array.isArray(mens.rollcall) ? mens.rollcall : []),
+	          ...(Array.isArray(womens.rollcall) ? womens.rollcall : []),
+	        ],
+	        dayNotes: [
+	          ...(Array.isArray(mens.dayNotes) ? mens.dayNotes : []).map((note) => ({ ...note, section: 'mens' })),
+	          ...(Array.isArray(womens.dayNotes) ? womens.dayNotes : []).map((note) => ({ ...note, section: 'womens' })),
+	        ],
+	        supervisorNotes: [
           ...(Array.isArray(mens.supervisorNotes) ? mens.supervisorNotes : []).map((n) => ({ ...n, section: 'mens' })),
           ...(Array.isArray(womens.supervisorNotes) ? womens.supervisorNotes : []).map((n) => ({ ...n, section: 'womens' })),
         ],
@@ -3485,13 +3631,19 @@ localStorage.setItem = function(key, value) {
         buckets[section].logs.push({ ...l, section });
       });
 
-      (source.rollcall || []).forEach((r) => {
-        const section = halaqaSectionById[r.halaqaId] || studentSectionById[r.studentId];
-        if (!section) return;
-        buckets[section].rollcall.push({ ...r });
-      });
+	      (source.rollcall || []).forEach((r) => {
+	        const section = halaqaSectionById[r.halaqaId] || studentSectionById[r.studentId];
+	        if (!section) return;
+	        buckets[section].rollcall.push({ ...r });
+	      });
 
-      (source.supervisorNotes || []).forEach((n) => {
+	      (source.dayNotes || []).forEach((note) => {
+	        const section = halaqaSectionById[note.halaqaId] || normalizeSection(note.section);
+	        if (!buckets[section]) return;
+	        buckets[section].dayNotes.push({ ...note, section });
+	      });
+
+	      (source.supervisorNotes || []).forEach((n) => {
         const section = halaqaSectionById[n.halaqaId] || normalizeSection(n.section);
         buckets[section].supervisorNotes.push({ ...n, section });
       });
@@ -3840,8 +3992,10 @@ function copyWeeklyReportToWhatsapp() {
   const halaqa = state.indexes?.halaqaById?.[halaqaId] || null;
   if (!halaqa) return toast('افتح الحلقة أولاً لنسخ التقرير اليومي', 'err');
 
-  const dateISO = isTeacher() ? getTeacherViewDate() : todayISO();
-  const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
+	  const dateISO = isTeacher() ? getTeacherViewDate() : todayISO();
+	  const dayNote = getHalaqaDayNote(halaqa.id, dateISO);
+	  const dayNoteLabel = halaqaDayNoteLabel(dayNote);
+	  const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
     .slice()
     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
   const dayLogs = sortLogsByRecency((state.db.logs || []).filter((l) => l.halaqaId === halaqa.id && l.date === dateISO));
@@ -3873,13 +4027,14 @@ function copyWeeklyReportToWhatsapp() {
   });
 
   const sectionLabel = halaqa.section === 'womens' ? 'قسم البنات' : 'قسم البنين';
-  const text = `📋 *تقرير يومي للحلقة*\n` +
-    `التاريخ: ${dateISO}\n` +
-    `الحلقة: ${halaqa.circleName || '-'}\n` +
-    `المعلم: ${halaqa.teacherName || '-'}\n` +
-    `القسم: ${sectionLabel}\n` +
-    `عدد الطلاب: ${students.length}\n` +
-    `عدد السجلات: ${dayLogs.length}\n\n` +
+	  const text = `📋 *تقرير يومي للحلقة*\n` +
+	    `التاريخ: ${dateISO}\n` +
+	    `الحلقة: ${halaqa.circleName || '-'}\n` +
+	    `المعلم: ${halaqa.teacherName || '-'}\n` +
+	    `القسم: ${sectionLabel}\n` +
+	    (dayNoteLabel ? `حالة اليوم: ${dayNoteLabel}\n` : '') +
+	    `عدد الطلاب: ${students.length}\n` +
+	    `عدد السجلات: ${dayLogs.length}\n\n` +
     (lines.length ? lines.join('\n\n') : 'لا يوجد طلاب في الحلقة.');
   
   navigator.clipboard.writeText(text).then(() => {
@@ -3935,25 +4090,34 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 }
 
 	  
-    function rebuildIndexes() {
-      const idx = {
-    halaqaById: {},
-    staffByPhone: {},
-        parentStudentsByPhone: {},
-        studentsByHalaqa: {},
-        logsByStudent: {},
-      };
-      (state.db.halaqas || []).forEach((h) => { idx.halaqaById[h.id] = h; });
-      (state.db.staff || []).forEach((s) => { idx.staffByPhone[s.phone] = s; });
+	    function rebuildIndexes() {
+	      const idx = {
+	    halaqaById: {},
+	    staffByPhone: {},
+	        parentStudentsByPhone: {},
+	        studentsByHalaqa: {},
+	        logsByStudent: {},
+	        dayNotesByHalaqaDate: {},
+	      };
+	      (state.db.halaqas || []).forEach((h) => { idx.halaqaById[h.id] = h; });
+	      (state.db.staff || []).forEach((s) => { idx.staffByPhone[s.phone] = s; });
       (state.db.students || []).forEach((s) => {
         (idx.studentsByHalaqa[s.halaqaId] = idx.studentsByHalaqa[s.halaqaId] || []).push(s);
         if (s.guardianPhone) (idx.parentStudentsByPhone[s.guardianPhone] = idx.parentStudentsByPhone[s.guardianPhone] || []).push(s);
       });
-      (state.db.logs || []).forEach((l) => {
-        (idx.logsByStudent[l.studentId] = idx.logsByStudent[l.studentId] || []).push(l);
-      });
-      state.indexes = idx;
-    }
+	      (state.db.logs || []).forEach((l) => {
+	        (idx.logsByStudent[l.studentId] = idx.logsByStudent[l.studentId] || []).push(l);
+	      });
+	      const sortedDayNotes = [...(state.db.dayNotes || [])].sort((a, b) =>
+	        String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || ''))
+	      );
+	      sortedDayNotes.forEach((note) => {
+	        if (!note?.halaqaId || !note?.date) return;
+	        const key = `${note.halaqaId}__${note.date}`;
+	        if (!idx.dayNotesByHalaqaDate[key]) idx.dayNotesByHalaqaDate[key] = note;
+	      });
+	      state.indexes = idx;
+	    }
 
     function currentUser() {
       if (!state.session || state.session.type !== 'staff') return null;
@@ -3995,23 +4159,38 @@ function getConsecutiveAbsences(studentId, halaqaId) {
         .sort((a, b) => String(b.date).localeCompare(String(a.date)));
     }
 
-    function halaqasMissingDailyLog(date = todayISO()) {
-      const hs = visibleHalaqas();
-      return hs.map((h) => {
-        const students = state.db.students.filter(s => s.halaqaId === h.id);
-        const logs = state.db.logs.filter(l => l.halaqaId === h.id && l.date === date);
-        const loggedStudentIds = new Set(logs.map(l => l.studentId));
-        const missing = Math.max(0, students.length - loggedStudentIds.size);
-        return {
-          halaqaId: h.id,
-          halaqaName: h.circleName,
-          teacherName: h.teacherName,
-          students: students.length,
-          logged: loggedStudentIds.size,
-          missing,
-        };
-      }).filter(x => x.missing > 0).sort((a, b) => b.missing - a.missing);
-    }
+	    function halaqasMissingDailyLog(date = todayISO(), options = {}) {
+	      const includeAll = Boolean(options.includeAll);
+	      const allSections = Boolean(options.allSections);
+	      const targetDate = normalizeISODate(date, todayISO());
+	      const hs = allSections ? [...(state.db.halaqas || [])] : visibleHalaqas();
+	      const rows = hs.map((h) => {
+	        const students = state.db.students.filter((s) => s.halaqaId === h.id);
+	        const logs = state.db.logs.filter((l) => l.halaqaId === h.id && l.date === targetDate);
+	        const loggedStudentIds = new Set(logs.map((l) => l.studentId));
+	        const rawMissing = Math.max(0, students.length - loggedStudentIds.size);
+	        const dayNote = getHalaqaDayNote(h.id, targetDate);
+	        const justified = rawMissing > 0 && isHalaqaDayNoteJustified(dayNote);
+	        const missing = justified ? 0 : rawMissing;
+	        return {
+	          halaqaId: h.id,
+	          halaqaName: h.circleName,
+	          teacherName: h.teacherName,
+	          students: students.length,
+	          logged: loggedStudentIds.size,
+	          rawMissing,
+	          missing,
+	          justified,
+	          dayNote,
+	          dayNoteLabel: halaqaDayNoteLabel(dayNote),
+	        };
+	      });
+	      const filtered = includeAll ? rows : rows.filter((x) => x.missing > 0);
+	      return filtered.sort((a, b) =>
+	        Number(b.missing || 0) - Number(a.missing || 0)
+	        || Number(b.rawMissing || 0) - Number(a.rawMissing || 0)
+	      );
+	    }
 
     function earlyRiskStudents() {
       const now = new Date();
@@ -5328,11 +5507,18 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      toast(syncResult.created ? 'تم إنشاء/تحديث كلمة المرور وربط Firebase' : 'تم تحديث كلمة المرور');
 	    }
 
-    function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId, dateISO = todayISO()) {
-      const targetDate = normalizeISODate(dateISO, todayISO());
-      const rows = logsForStudent(studentId).filter((l) => l.date === targetDate);
-      if (!rows.length) return targetDate === todayISO() ? 'لا يوجد تسجيل اليوم' : 'لا يوجد تسجيل في هذا اليوم';
-      const hifdh = rows.filter((l) => l.type === 'hifdh').length;
+	    function deleteStudent(id) {   if (!canManageStudents()) return toast('غير مسموح', 'err');   const s = state.db.students.find(x => x.id === id);   if (!s) return toast('الطالب غير موجود', 'err');   if (!confirm('حذف الطالب "' + s.name + '" نهائياً؟')) return;   state.db.students = state.db.students.filter(x => x.id !== id);   state.db.logs = state.db.logs.filter(l => l.studentId !== id);   state.db.rollcall = (state.db.rollcall || []).filter(r => r.studentId !== id);   saveDB();   renderAll();   toast('تم حذف الطالب'); } function todayEntriesSummary(studentId, dateISO = todayISO()) {
+	      const targetDate = normalizeISODate(dateISO, todayISO());
+	      const rows = logsForStudent(studentId).filter((l) => l.date === targetDate);
+	      if (!rows.length) {
+	        const student = state.db.students.find((item) => item.id === studentId);
+	        const dayNote = student?.halaqaId ? getHalaqaDayNote(student.halaqaId, targetDate) : null;
+	        if (dayNote && isHalaqaDayNoteJustified(dayNote)) {
+	          return `اليوم مبرر: ${halaqaDayStatusMeta(dayNote.status).label}`;
+	        }
+	        return targetDate === todayISO() ? 'لا يوجد تسجيل اليوم' : 'لا يوجد تسجيل في هذا اليوم';
+	      }
+	      const hifdh = rows.filter((l) => l.type === 'hifdh').length;
       const revision = rows.filter((l) => l.type === 'revision').length;
       const parts = [];
       if (hifdh) parts.push(`حفظ ${hifdh}`);
@@ -5413,10 +5599,11 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       if (!confirm(`سيتم حذف الحلقة "${h.circleName}" مع سجلاتها. متابعة؟`)) return;
       // إزالة الطلاب من هذه الحلقة (إبقاؤهم دون حلقة)
       state.db.students = state.db.students.map((s) => s.halaqaId === halaqaId ? { ...s, halaqaId: '' } : s);
-      // حذف سجلات الحفظ/المراجعة والغياب المتعلقة بالحلقه
-      state.db.logs = state.db.logs.filter((l) => l.halaqaId !== halaqaId);
-      state.db.rollcall = (state.db.rollcall || []).filter((r) => r.halaqaId !== halaqaId);
-      // فك ربط المعلمين
+	      // حذف سجلات الحفظ/المراجعة والغياب المتعلقة بالحلقه
+	      state.db.logs = state.db.logs.filter((l) => l.halaqaId !== halaqaId);
+	      state.db.rollcall = (state.db.rollcall || []).filter((r) => r.halaqaId !== halaqaId);
+	      state.db.dayNotes = (state.db.dayNotes || []).filter((note) => note.halaqaId !== halaqaId);
+	      // فك ربط المعلمين
       unlinkHalaqaFromTeachers(halaqaId);
       // حذف الحلقة
       state.db.halaqas = state.db.halaqas.filter((x) => x.id !== halaqaId);
@@ -5549,10 +5736,10 @@ function getConsecutiveAbsences(studentId, halaqaId) {
     }
 
 	    function renderHalaqas() {
-      const u = currentUser();
-      $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role}` : '';
-      $('createHalaqaBox').classList.toggle('hidden', !isAdmin());
-      const teacherMode = isTeacher();
+	      const u = currentUser();
+	      $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role}` : '';
+	      $('createHalaqaBox').classList.toggle('hidden', !isAdmin());
+	      const teacherMode = isTeacher();
 
       const hs = visibleHalaqas();
       const today = todayISO();
@@ -5697,15 +5884,26 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      const loggedStudents = rows.filter((r) => r.hifdh || r.revision).length;
 	      const hifdhStudents = rows.filter((r) => r.hifdh).length;
 	      const revisionStudents = rows.filter((r) => r.revision).length;
+	      const dayNote = getHalaqaDayNote(halaqa.id, dateISO);
+	      const noteMeta = halaqaDayStatusMeta(dayNote?.status || 'normal');
+	      const rawMissingStudents = Math.max(0, students.length - loggedStudents);
+	      const noteHasExcuse = isHalaqaDayNoteJustified(dayNote);
+	      const noteJustified = rawMissingStudents > 0 && noteHasExcuse;
 	      return {
 	        halaqa,
 	        dateISO,
 	        studentsCount: students.length,
 	        dayLogsCount: dayLogs.length,
 	        loggedStudents,
-	        missingStudents: Math.max(0, students.length - loggedStudents),
+	        missingStudents: noteJustified ? 0 : rawMissingStudents,
+	        rawMissingStudents,
 	        hifdhStudents,
 	        revisionStudents,
+	        dayNote,
+	        noteMeta,
+	        noteHasExcuse,
+	        noteJustified,
+	        noteSummary: halaqaDayNoteLabel(dayNote),
 	        rows,
 	      };
 	    }
@@ -5755,6 +5953,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      const totalStudents = snapshots.reduce((sum, s) => sum + s.studentsCount, 0);
 	      const totalLogged = snapshots.reduce((sum, s) => sum + s.loggedStudents, 0);
 	      const totalMissing = snapshots.reduce((sum, s) => sum + s.missingStudents, 0);
+	      const justifiedHalaqas = snapshots.filter((s) => s.noteHasExcuse).length;
 	      const totalHifdh = snapshots.reduce((sum, s) => sum + s.hifdhStudents, 0);
 	      const totalRevision = snapshots.reduce((sum, s) => sum + s.revisionStudents, 0);
 
@@ -5762,7 +5961,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	        <div class="card"><p class="muted">الحلقات</p><div class="kpi">${snapshots.length}</div></div>
 	        <div class="card"><p class="muted">طلاب القسم</p><div class="kpi">${totalStudents}</div></div>
 	        <div class="card"><p class="muted">طلاب مسجل لهم اليوم</p><div class="kpi">${totalLogged}</div></div>
-	        <div class="card"><p class="muted">طلاب ناقص تسجيلهم</p><div class="kpi">${totalMissing}</div><p class="muted" style="margin-top:4px; font-size:12px;">حفظ: ${totalHifdh} • مراجعة: ${totalRevision}</p></div>
+	        <div class="card"><p class="muted">طلاب ناقص تسجيلهم</p><div class="kpi">${totalMissing}</div><p class="muted" style="margin-top:4px; font-size:12px;">حفظ: ${totalHifdh} • مراجعة: ${totalRevision}</p><p class="muted" style="margin-top:4px; font-size:12px;">حلقات مبررة: ${justifiedHalaqas}</p></div>
 	      `;
 
 	      if (!snapshots.some((snap) => snap.halaqa.id === state.currentDailyHalaqaId)) {
@@ -5771,17 +5970,24 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 
 	      cardsEl.innerHTML = snapshots.map((snap) => {
 	        const active = snap.halaqa.id === state.currentDailyHalaqaId;
+	        const statusBadge = snap.noteHasExcuse
+	          ? `<span class="badge ${snap.noteMeta.badgeClass}">مبرر: ${snap.noteMeta.label}</span>`
+	          : `<span class="badge ${snap.missingStudents === 0 ? 'badge-green' : 'badge-warn'}">${snap.missingStudents === 0 ? 'مكتمل' : `ناقص ${snap.missingStudents}`}</span>`;
+	        const noteLine = snap.noteSummary
+	          ? `<span>حالة اليوم: ${escapeAttr(snap.noteSummary)}</span>`
+	          : '';
 	        return `
 	          <button type="button" class="daily-halaqa-card ${active ? 'active' : ''}" onclick="openDailyHalaqa('${snap.halaqa.id}')">
 	            <div class="row between" style="align-items:flex-start; gap:8px;">
 	              <h4>${snap.halaqa.circleName}</h4>
-	              <span class="badge ${snap.missingStudents === 0 ? 'badge-green' : 'badge-warn'}">${snap.missingStudents === 0 ? 'مكتمل' : `ناقص ${snap.missingStudents}`}</span>
+	              ${statusBadge}
 	            </div>
 	            <div class="daily-halaqa-meta">
 	              <span>المعلم: ${snap.halaqa.teacherName || '-'}</span>
 	              <span>الطلاب: ${snap.studentsCount}</span>
 	              <span>المسجل اليوم: ${snap.loggedStudents}</span>
 	              <span>حفظ: ${snap.hifdhStudents} • مراجعة: ${snap.revisionStudents}</span>
+	              ${noteLine}
 	            </div>
 	          </button>
 	        `;
@@ -5796,20 +6002,29 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 
 	      const fmtSurah = (log) => log ? (log.surahName || '-') : '<span class="daily-empty">—</span>';
 	      const fmtRange = (log) => log ? `${log.fromAya || '-'} - ${log.toAya || '-'}` : '<span class="daily-empty">—</span>';
+	      const selectedNoteLine = selected.noteSummary
+	        ? `<p class="muted" style="font-size:12px; margin-top:4px;">حالة اليوم: ${escapeAttr(selected.noteSummary)}</p>`
+	        : '';
+	      const selectedStatusBadge = selected.noteHasExcuse
+	        ? `<span class="badge ${selected.noteMeta.badgeClass}">${selected.noteMeta.label}</span>`
+	        : '';
 	      detailEl.classList.remove('hidden');
 	      detailEl.innerHTML = `
 	        <div class="row between" style="margin-bottom:10px;">
 	          <div>
 	            <h3>متابعة يومية: ${selected.halaqa.circleName}</h3>
 	            <p class="muted" style="font-size:12px; margin-top:4px;">المعلم: ${selected.halaqa.teacherName || '-'} • التاريخ: ${selected.dateISO}</p>
+	            ${selectedNoteLine}
 	          </div>
 	          <div class="row" style="gap:6px;">
 	            <button class="btn btn-primary no-print" onclick="printDailyMonitorCurrent()">طباعة PDF</button>
 	            <span class="badge">الطلاب: ${selected.studentsCount}</span>
 	            <span class="badge badge-green">مكتمل: ${selected.loggedStudents}</span>
 	            <span class="badge ${selected.missingStudents ? 'badge-warn' : ''}">ناقص: ${selected.missingStudents}</span>
+	            ${selectedStatusBadge}
 	          </div>
 	        </div>
+	        ${selected.noteHasExcuse ? `<div class="card" style="margin-bottom:10px; border-color:#facc15; background:#fffbeb;"><p class="muted" style="font-size:12px;">تم اعتماد اليوم كحالة مبررة: ${escapeAttr(selected.noteSummary || selected.noteMeta.label)}</p></div>` : ''}
 	        <div style="overflow:auto;">
 	          <table class="daily-monitor-table">
 	            <thead>
@@ -5824,7 +6039,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	            </thead>
 	            <tbody>
 	              ${selected.rows.map((row, idx) => `
-	                <tr class="${!row.hifdh && !row.revision ? 'row-danger' : ''}">
+	                <tr class="${(!row.hifdh && !row.revision && !selected.noteJustified) ? 'row-danger' : ''}">
 	                  <td>${idx + 1}</td>
 	                  <td>${row.student.name || '-'}</td>
 	                  <td>${fmtSurah(row.hifdh)}</td>
@@ -5852,6 +6067,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      const dateISO = getDailyMonitorDate();
 	      const snap = buildDailyHalaqaSnapshot(halaqa, dateISO);
 	      const sectionLabel = halaqa.section === 'womens' ? 'قسم البنات' : 'قسم البنين';
+	      const noteLine = snap.noteSummary || '';
 	      const rowsHtml = snap.rows.map((row, idx) => {
 	        const hifdhSurah = row.hifdh ? escapeAttr(row.hifdh.surahName || '-') : '-';
 	        const hifdhRange = row.hifdh ? `${row.hifdh.fromAya || '-'} - ${row.hifdh.toAya || '-'}` : '-';
@@ -5892,17 +6108,19 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	        </head>
 	        <body>
 	          <h1>المتابعة اليومية للحلقة</h1>
-	          <div class="meta">
-	            الحلقة: <b>${escapeAttr(halaqa.circleName || '-')}</b> |
-	            المعلم: <b>${escapeAttr(halaqa.teacherName || '-')}</b> |
-	            القسم: <b>${sectionLabel}</b> |
-	            التاريخ: <b>${dateISO}</b>
-	          </div>
-	          <div class="chips">
-	            <span class="chip">الطلاب: ${snap.studentsCount}</span>
-	            <span class="chip">مكتمل: ${snap.loggedStudents}</span>
-	            <span class="chip">ناقص: ${snap.missingStudents}</span>
-	          </div>
+		          <div class="meta">
+		            الحلقة: <b>${escapeAttr(halaqa.circleName || '-')}</b> |
+		            المعلم: <b>${escapeAttr(halaqa.teacherName || '-')}</b> |
+		            القسم: <b>${sectionLabel}</b> |
+		            التاريخ: <b>${dateISO}</b>
+		          </div>
+		          ${noteLine ? `<div class="meta">حالة اليوم: <b>${escapeAttr(noteLine)}</b></div>` : ''}
+		          <div class="chips">
+		            <span class="chip">الطلاب: ${snap.studentsCount}</span>
+		            <span class="chip">مكتمل: ${snap.loggedStudents}</span>
+		            <span class="chip">ناقص: ${snap.missingStudents}</span>
+		            ${snap.noteHasExcuse ? '<span class="chip">اليوم مبرر</span>' : ''}
+		          </div>
 	          <table>
 	            <thead>
 	              <tr>
@@ -5999,8 +6217,91 @@ function getConsecutiveAbsences(studentId, halaqaId) {
                 </table>
               </div>
         </div>
-      `;
-    }
+	      `;
+	    }
+
+	    function buildHalaqaDayStatusCard(halaqa, dateISO, options = {}) {
+	      if (!halaqa) return '';
+	      const targetDate = normalizeISODate(dateISO || todayISO(), todayISO());
+	      const note = getHalaqaDayNote(halaqa.id, targetDate);
+	      const status = note ? normalizeHalaqaDayStatus(note.status) : 'normal';
+	      const meta = halaqaDayStatusMeta(status);
+	      const reason = note?.reason || '';
+	      const studentsPresent = Boolean(note?.studentsPresent);
+	      const canEdit = Boolean(options.canEdit);
+	      const savedBy = note?.createdBy
+	        ? (state.db.staff.find((s) => s.id === note.createdBy)?.name || 'المستخدم')
+	        : '';
+	      const updatedAt = note?.updatedAt || note?.createdAt || '';
+	      const updatedAtLabel = updatedAt
+	        ? new Date(updatedAt).toLocaleString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+	        : '';
+	      const statusOptions = HALAQA_DAY_STATUS_OPTIONS.map((item) =>
+	        `<option value="${item.key}" ${item.key === status ? 'selected' : ''}>${item.label}</option>`
+	      ).join('');
+	      const hint = note
+	        ? `<span class="badge ${meta.badgeClass}">${meta.label}</span>`
+	        : '<span class="badge">بدون حالة خاصة</span>';
+	      const studentsHint = studentsPresent ? '<span class="badge badge-green">الطلاب حاضرون</span>' : '';
+	      const reasonText = reason ? `<p class="muted" style="font-size:12px; margin-top:6px;">السبب: ${escapeAttr(reason)}</p>` : '';
+	      const savedMeta = (savedBy || updatedAtLabel)
+	        ? `<p class="muted" style="font-size:12px; margin-top:6px;">آخر تحديث: ${updatedAtLabel || '-'}${savedBy ? ` • بواسطة: ${escapeAttr(savedBy)}` : ''}</p>`
+	        : '';
+	      const caution = meta.justified
+	        ? '<p class="muted" style="font-size:12px; margin-top:6px;">هذه الحالة تُعتبر عذرًا رسميًا في تنبيه السجل اليومي الناقص.</p>'
+	        : '';
+	      if (!canEdit) {
+	        return `
+	          <div class="card" style="margin-bottom:10px; border-color:#d9ccb1; background:#fffef8;">
+	            <div class="row between" style="gap:8px; flex-wrap:wrap;">
+	              <h3>حالة يوم الحلقة (${targetDate})</h3>
+	              <div class="row" style="gap:6px;">${hint}${studentsHint}</div>
+	            </div>
+	            ${reasonText}
+	            ${savedMeta}
+	            ${caution}
+	          </div>
+	        `;
+	      }
+	      return `
+	        <div class="card no-print" style="margin-bottom:10px; border-color:#d9ccb1; background:#fffef8;">
+	          <div class="row between" style="gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+	            <h3>حالة يوم الحلقة (${targetDate})</h3>
+	            <div class="row" style="gap:6px;">${hint}${studentsHint}</div>
+	          </div>
+	          <div class="grid grid-4">
+	            <div class="field-block">
+	              <div class="field-label">التاريخ</div>
+	              <input id="halaqaDayDate" type="date" value="${targetDate}" ${options.lockDate ? 'readonly disabled' : ''} />
+	            </div>
+	            <div class="field-block">
+	              <div class="field-label">الحالة</div>
+	              <select id="halaqaDayStatusSelect">${statusOptions}</select>
+	            </div>
+	            <div class="field-block">
+	              <div class="field-label">حضور الطلاب</div>
+	              <label style="display:flex; align-items:center; gap:8px; min-height:44px; padding:0 8px; border:1px solid #d1d5db; border-radius:12px; background:#fff;">
+	                <input id="halaqaDayStudentsPresent" type="checkbox" ${studentsPresent ? 'checked' : ''} />
+	                <span>الطلاب حاضرون</span>
+	              </label>
+	            </div>
+	            <div class="field-block">
+	              <div class="field-label">تنفيذ</div>
+	              <div class="row" style="gap:6px;">
+	                <button class="btn btn-primary" type="button" onclick="saveHalaqaDayStatus()">حفظ الحالة</button>
+	                <button class="btn btn-light" type="button" onclick="clearHalaqaDayStatus()">إلغاء الحالة</button>
+	              </div>
+	            </div>
+	          </div>
+	          <div class="field-block" style="margin-top:8px;">
+	            <div class="field-label">السبب (اختياري)</div>
+	            <textarea id="halaqaDayReason" placeholder="مثال: يوم وطني - إجازة رسمية">${escapeAttr(reason)}</textarea>
+	          </div>
+	          ${savedMeta}
+	          ${caution}
+	        </div>
+	      `;
+	    }
 
 function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.students); if (!issues.length) return ''; return `<span class="badge badge-warn" style="font-size:10px;">${issues[0]}</span>`; } function getStudentLocation(s) { return s.grade || '-'; } function getStudentLastHifdh(s) { return s.lastHifdhSurah ? `${s.lastHifdhSurah} (${s.lastHifdhAya || ''})` : 'لم يبدأ'; } function getStudentPoints(s) { return Number(s.points || 0); } function getStudentBadgesHTML(s, limit) { const badges = getStudentBadges(s).slice(0, limit || 2); if (!badges.length) return '<span class="muted" style="font-size:11px;">لا يوجد</span>'; return badges.map(b => `<span class="badge badge-gold" style="font-size:10px;">${b}</span>`).join(' '); } function openEntryForm(studentId) { openEntry(studentId); } function renderHalaqaDetail() {
       const detail = $('halaqaDetail');
@@ -6011,15 +6312,16 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       }
 
       const h = visibleHalaqas().find(x => x.id === state.currentHalaqaId);
-      if (!h) {
-        state.currentHalaqaId = null;
-        state.currentStudentId = null;
-        detail.classList.add('hidden');
-        detail.innerHTML = '';
-        return;
-      }
+	      if (!h) {
+	        state.currentHalaqaId = null;
+	        state.currentStudentId = null;
+	        detail.classList.add('hidden');
+	        detail.innerHTML = '';
+	        return;
+	      }
 
-      const teacherMode = isTeacher();
+	      const u = currentUser();
+	      const teacherMode = isTeacher();
       const students = state.indexes?.studentsByHalaqa?.[h.id] || [];
       if (teacherMode && !state.currentStudentId && students.length) {
         state.currentStudentId = students[0].id;
@@ -6029,11 +6331,18 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const teacherViewDate = teacherMode ? getTeacherViewDate() : today;
       const viewDate = teacherMode ? teacherViewDate : today;
       const isHistoryView = teacherMode && teacherViewDate !== today;
-      const viewDateHijri = toHijriLabelFromISO(viewDate);
-      const wp = weekProgressForHalaqa(h.id, viewDate);
-      const pending = pendingLogsCount();
-      const dailyLogs = state.db.logs.filter((l) => l.halaqaId === h.id && l.date === viewDate);
-      const performancePanel = teacherMode ? '' : buildHalaqaPerformancePanel(h.id);
+	      const viewDateHijri = toHijriLabelFromISO(viewDate);
+	      const wp = weekProgressForHalaqa(h.id, viewDate);
+	      const pending = pendingLogsCount();
+	      const dailyLogs = state.db.logs.filter((l) => l.halaqaId === h.id && l.date === viewDate);
+	      const canEditDayStatus = Boolean(
+	        u && (u.role === 'admin' || u.role === 'supervisor' || (u.role === 'teacher' && (u.assignedHalaqaIds || []).includes(h.id)))
+	      );
+	      const dayStatusCard = buildHalaqaDayStatusCard(h, viewDate, {
+	        canEdit: canEditDayStatus,
+	        lockDate: Boolean(teacherMode),
+	      });
+	      const performancePanel = teacherMode ? '' : buildHalaqaPerformancePanel(h.id);
 
       const availableToAttach = state.db.students.filter(s => s.section === h.section && s.halaqaId !== h.id);
       const attachPickerOptions = availableToAttach.map(s => ({ id: s.id, label: studentLabel(s) }));
@@ -6101,7 +6410,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           </div>
         `}
 
-        ${performancePanel}
+	        ${dayStatusCard}
+
+	        ${performancePanel}
 
         ${teacherMode ? '' : `
           <div class="card no-print" style="padding:10px; margin-bottom:10px;">
@@ -6789,19 +7100,23 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         `).join('')
         : '<p class="muted">لا توجد حالات تعثر مبكر حالياً.</p>';
 
-      const missingDaily = halaqasMissingDailyLog(todayISO());
-      $('missingDailyPanel').innerHTML = missingDaily.length
-        ? missingDaily.map((m) => `
-          <div class="ops-task info">
-            <div class="row between">
-              <b>${m.halaqaName}</b>
-              <span class="badge badge-gold">ناقص: ${m.missing}</span>
-            </div>
-            <p class="muted" style="font-size:12px; margin-top:4px;">المعلم: ${m.teacherName}</p>
-            <p style="margin-top:4px;">المسجل اليوم: ${m.logged} / ${m.students}</p>
-          </div>
-        `).join('')
-        : '<p class="muted">جميع الحلقات مكتمل سجلها اليومي اليوم.</p>';
+	      const dailyLogAudit = halaqasMissingDailyLog(reportDate, { includeAll: true });
+	      const missingDaily = dailyLogAudit.filter((m) => m.missing > 0);
+	      const justifiedDaily = dailyLogAudit.filter((m) => m.justified && m.rawMissing > 0);
+	      $('missingDailyPanel').innerHTML = missingDaily.length
+	        ? missingDaily.map((m) => `
+	          <div class="ops-task info">
+	            <div class="row between">
+	              <b>${m.halaqaName}</b>
+	              <span class="badge badge-gold">ناقص: ${m.missing}</span>
+	            </div>
+	            <p class="muted" style="font-size:12px; margin-top:4px;">المعلم: ${m.teacherName}</p>
+	            <p style="margin-top:4px;">المسجل في التاريخ المحدد: ${m.logged} / ${m.students}</p>
+	          </div>
+	        `).join('')
+	        : (justifiedDaily.length
+	          ? `<p class="muted">لا يوجد نقص غير مبرر في التاريخ المحدد. الحلقات المبررة: ${justifiedDaily.map((m) => `${escapeAttr(m.halaqaName)} (${escapeAttr(m.dayNoteLabel || 'مبرر')})`).join('، ')}</p>`
+	          : '<p class="muted">جميع الحلقات مكتمل سجلها اليومي في التاريخ المحدد.</p>');
     }
 
     function getBoardSnapshot() {
@@ -6839,19 +7154,16 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           risk,
           reasons,
         };
-      }).filter(x => x.risk >= 3).sort((a, b) => b.risk - a.risk).slice(0, 10);
-      const today = todayISO();
-      const missing = state.db.halaqas.map((h) => {
-        const hStudents = state.db.students.filter(s => s.halaqaId === h.id);
-        const logs = state.db.logs.filter(l => l.halaqaId === h.id && l.date === today);
-        const loggedIds = new Set(logs.map(l => l.studentId));
-        const miss = Math.max(0, hStudents.length - loggedIds.size);
-        return {
-          halaqaName: h.circleName,
-          missing: miss,
-        };
-      }).filter(x => x.missing > 0).sort((a, b) => b.missing - a.missing).slice(0, 10);
-      return {
+	      }).filter(x => x.risk >= 3).sort((a, b) => b.risk - a.risk).slice(0, 10);
+	      const today = todayISO();
+	      const missing = halaqasMissingDailyLog(today, { includeAll: true, allSections: true })
+	        .filter((item) => item.missing > 0)
+	        .map((item) => ({
+	          halaqaName: item.halaqaName,
+	          missing: item.missing,
+	        }))
+	        .slice(0, 10);
+	      return {
         wr,
         mens: mensBundle.totals,
         womens: womensBundle.totals,
@@ -7859,10 +8171,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       return {
         staff: (Array.isArray(src.staff) ? src.staff : []).map((s) => ({ ...s, section: targetSection })),
         halaqas: (Array.isArray(src.halaqas) ? src.halaqas : []).map((h) => ({ ...h, section: targetSection })),
-        students: (Array.isArray(src.students) ? src.students : []).map((s) => ({ ...s, section: targetSection })),
-        logs: (Array.isArray(src.logs) ? src.logs : []).map((l) => ({ ...l, section: targetSection })),
-        rollcall: Array.isArray(src.rollcall) ? [...src.rollcall] : [],
-        supervisorNotes: (Array.isArray(src.supervisorNotes) ? src.supervisorNotes : []).map((n) => ({ ...n, section: targetSection })),
+	        students: (Array.isArray(src.students) ? src.students : []).map((s) => ({ ...s, section: targetSection })),
+	        logs: (Array.isArray(src.logs) ? src.logs : []).map((l) => ({ ...l, section: targetSection })),
+	        rollcall: Array.isArray(src.rollcall) ? [...src.rollcall] : [],
+	        dayNotes: (Array.isArray(src.dayNotes) ? src.dayNotes : []).map((note) => ({ ...note, section: targetSection })),
+	        supervisorNotes: (Array.isArray(src.supervisorNotes) ? src.supervisorNotes : []).map((n) => ({ ...n, section: targetSection })),
         examSessions: (Array.isArray(src.examSessions) ? src.examSessions : []).map((session) => ({ ...session, section: targetSection })),
         announcements: (Array.isArray(src.announcements) ? src.announcements : []).map((a) => ({ ...a, section: targetSection })),
       };
@@ -7904,10 +8217,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         && (
           Array.isArray(value.staff)
           || Array.isArray(value.halaqas)
-          || Array.isArray(value.students)
-          || Array.isArray(value.logs)
-          || Array.isArray(value.rollcall)
-          || Array.isArray(value.supervisorNotes)
+	          || Array.isArray(value.students)
+	          || Array.isArray(value.logs)
+	          || Array.isArray(value.rollcall)
+	          || Array.isArray(value.dayNotes)
+	          || Array.isArray(value.supervisorNotes)
           || Array.isArray(value.examSessions)
           || Array.isArray(value.announcements)
         );
@@ -8096,10 +8410,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.setTeacherViewDate = setTeacherViewDate;
     window.shiftTeacherViewDate = shiftTeacherViewDate;
     window.setTab = setTab;
-    window.addStudentToHalaqa = addStudentToHalaqa;
-    window.markAllStudentsAttendance = markAllStudentsAttendance;
-    window.saveDailyEntry = saveDailyEntry;
-    window.issueStudentCertificate = issueStudentCertificate;
+	    window.addStudentToHalaqa = addStudentToHalaqa;
+	    window.markAllStudentsAttendance = markAllStudentsAttendance;
+	    window.saveDailyEntry = saveDailyEntry;
+	    window.saveHalaqaDayStatus = saveHalaqaDayStatus;
+	    window.clearHalaqaDayStatus = clearHalaqaDayStatus;
+	    window.issueStudentCertificate = issueStudentCertificate;
     window.updateStudentBasic = updateStudentBasic;
     window.transferStudent = transferStudent;
     window.setStudentIssueFilter = setStudentIssueFilter;
