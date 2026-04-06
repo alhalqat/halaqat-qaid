@@ -4371,13 +4371,83 @@ localStorage.setItem = function(key, value) {
       if (persist) saveDB();
     }
 
-    function saveDB() { saveSeparatedDBToStorage(state.db); }
-
     const cloudSyncState = {
       timer: null,
       lastPulledAt: null,
+      lastPushedAt: null,
       isPulling: false,
+      isPushing: false,
+      localDirty: false,
     };
+
+    function cloudAuthReadyForWrite() {
+      return !!database && (!firebaseAuthEnabled() || !!auth?.currentUser);
+    }
+
+    async function pushCloudFromState(options = {}) {
+      const { notify = false, force = false } = options;
+      if (!database) return false;
+      if (firebaseAuthEnabled() && !auth?.currentUser) {
+        updateCloudSyncStatus('حالة السحابة: يلزم دخول الكادر');
+        return false;
+      }
+      if (!force && !cloudSyncState.localDirty) return true;
+      if (cloudSyncState.isPushing) return false;
+      cloudSyncState.isPushing = true;
+      try {
+        const separated = splitDBBySection(state.db);
+        await Promise.all([
+          FirebaseDataManager.saveData(STORAGE_KEYS.shared, separated.shared),
+          FirebaseDataManager.saveData(STORAGE_KEYS.mens, separated.mens),
+          FirebaseDataManager.saveData(STORAGE_KEYS.womens, separated.womens),
+        ]);
+        cloudSyncState.localDirty = false;
+        cloudSyncState.lastPushedAt = new Date();
+        updateCloudSyncStatus(`حالة السحابة: تم رفع آخر تعديل ${cloudSyncState.lastPushedAt.toLocaleTimeString('ar-SA')}`);
+        if (notify) toast('تم رفع التعديلات إلى السحابة', 'ok');
+        return true;
+      } catch (err) {
+        console.error('Cloud push error:', err);
+        updateCloudSyncStatus('حالة السحابة: تعذر رفع آخر تعديل (سيعاد المحاولة تلقائياً)');
+        if (notify) toast('تعذر رفع آخر تعديل للسحابة', 'err');
+        return false;
+      } finally {
+        cloudSyncState.isPushing = false;
+      }
+    }
+
+    let lastLocalSaveErrorToastAt = 0;
+    function saveDB() {
+      cloudSyncState.localDirty = true;
+      try {
+        saveSeparatedDBToStorage(state.db);
+        if (cloudAuthReadyForWrite()) {
+          pushCloudFromState({ notify: false }).catch((err) => {
+            console.error('Cloud background push error:', err);
+          });
+        }
+        return true;
+      } catch (err) {
+        console.error('Local save error:', err);
+        const cloudQueued = cloudAuthReadyForWrite();
+        if (cloudQueued) {
+          pushCloudFromState({ notify: false, force: true }).catch((cloudErr) => {
+            console.error('Cloud fallback save error:', cloudErr);
+          });
+        }
+        const now = Date.now();
+        if (now - lastLocalSaveErrorToastAt > 8000) {
+          lastLocalSaveErrorToastAt = now;
+          toast(
+            cloudQueued
+              ? 'تعذر الحفظ المحلي في Safari، وتم إرسال نسخة سحابية بديلة.'
+              : 'تعذر الحفظ المحلي على الجهاز. جرّب Safari العادي (ليس Private) ثم أعد المحاولة.',
+            'err'
+          );
+        }
+        return cloudQueued;
+      }
+    }
 
     function cloudStorageFingerprint() {
       const keys = [STORAGE_KEYS.shared, STORAGE_KEYS.mens, STORAGE_KEYS.womens];
@@ -4429,6 +4499,15 @@ localStorage.setItem = function(key, value) {
     async function pullCloudAndRefresh(options = {}) {
       const { notify = false, waitIfBusy = false } = options;
       if (!database) return false;
+      if (cloudSyncState.localDirty || cloudSyncState.isPushing) {
+        if (!cloudSyncState.isPushing && cloudAuthReadyForWrite()) {
+          pushCloudFromState({ notify: false }).catch((err) => {
+            console.error('Cloud push before pull error:', err);
+          });
+        }
+        updateCloudSyncStatus('حالة السحابة: جارٍ رفع التعديلات المحلية...');
+        return false;
+      }
       if (cloudSyncState.isPulling) {
         if (!waitIfBusy) return false;
         const startedAt = Date.now();
@@ -4482,6 +4561,14 @@ localStorage.setItem = function(key, value) {
       if (cloudSyncState.timer) clearInterval(cloudSyncState.timer);
       updateCloudSyncStatus('حالة السحابة: متصل');
       cloudSyncState.timer = setInterval(() => {
+        if (cloudSyncState.localDirty || cloudSyncState.isPushing) {
+          if (cloudAuthReadyForWrite()) {
+            pushCloudFromState({ notify: false }).catch((err) => {
+              console.error('Cloud auto-push error:', err);
+            });
+          }
+          return;
+        }
         pullCloudAndRefresh({ notify: false });
       }, 15000);
     }
@@ -10299,6 +10386,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
     window.addEventListener('online', () => {
       if (pendingLogsCount()) syncPendingLogs();
+      if (cloudSyncState.localDirty && cloudAuthReadyForWrite()) {
+        pushCloudFromState({ notify: false }).catch((err) => {
+          console.error('Cloud push on reconnect error:', err);
+        });
+      }
     });
     window.onerror = function(msg, src, line, col, err) {
       console.error('Global error', msg, src, line, col, err);
@@ -10448,6 +10540,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         summary: null,
         summaryHiddenStudentIds: {},
         autoReturnToken: '',
+        saving: false,
       };
     }
     if (!TEACHER_TABS.includes(state.teacherFlow.tab)) state.teacherFlow.tab = 'halaqas';
@@ -10476,7 +10569,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
   }
 
   function teacherParseNumericInput(value, fallback = 1) {
-    const raw = toEnglishDigits(String(value ?? '').trim());
+    const raw = toEnglishDigits(String(value ?? '').trim())
+      .replace(/[^\d]/g, '');
     if (!raw) return { empty: true, value: Number(fallback || 1) };
     const parsed = Number(raw);
     if (!Number.isFinite(parsed)) return { empty: true, value: Number(fallback || 1) };
@@ -10926,7 +11020,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     };
   }
 
-  function teacherPersistCurrentStudent() {
+  async function teacherPersistCurrentStudent() {
     const flow = teacherFlow();
     const dateISO = teacherDateISO();
     const halaqa = state.indexes?.halaqaById?.[flow.activeHalaqaId] || null;
@@ -10964,7 +11058,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     rebuildIndexes();
     recomputeStudentMetrics(student.id);
     teacherSyncAbsentCount(student.id);
-    saveDB();
+    const persisted = saveDB();
+    if (!persisted) return null;
+    if (cloudAuthReadyForWrite()) {
+      await pushCloudFromState({ notify: false, force: true });
+    }
     rebuildIndexes();
     return { halaqa, students, student, dateISO };
   }
@@ -10976,31 +11074,37 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     });
   }
 
-  function teacherSaveAndNext() {
+  async function teacherSaveAndNext() {
     const flow = teacherFlow();
+    if (flow.saving) return;
+    flow.saving = true;
     teacherSyncVisibleInputsToDraft();
-    const result = teacherPersistCurrentStudent();
-    if (!result) return;
-    const { halaqa, students, student, dateISO } = result;
-    const idx = flow.studentIndex;
-    const last = idx >= students.length - 1;
+    try {
+      const result = await teacherPersistCurrentStudent();
+      if (!result) return;
+      const { halaqa, students, student, dateISO } = result;
+      const idx = flow.studentIndex;
+      const last = idx >= students.length - 1;
 
-    if (last) {
-      teacherMarkHalaqaDone(halaqa.id, dateISO);
-      flow.undo = null;
-      flow.view = 'summary';
-      flow.summary = { halaqaId: halaqa.id, dateISO, studentId: student.id };
-      toast('تم إنهاء الحلقة بنجاح');
-      flow.autoReturnToken = '';
+      if (last) {
+        teacherMarkHalaqaDone(halaqa.id, dateISO);
+        flow.undo = null;
+        flow.view = 'summary';
+        flow.summary = { halaqaId: halaqa.id, dateISO, studentId: student.id };
+        toast('تم إنهاء الحلقة بنجاح');
+        flow.autoReturnToken = '';
+        renderTeacherWorkspace();
+        return;
+      }
+
+      flow.undo = { halaqaId: halaqa.id, index: idx, studentId: student.id };
+      flow.studentIndex = idx + 1;
+      flow.view = 'evaluate';
       renderTeacherWorkspace();
-      return;
+      toast('تم حفظ بيانات الطالب');
+    } finally {
+      flow.saving = false;
     }
-
-    flow.undo = { halaqaId: halaqa.id, index: idx, studentId: student.id };
-    flow.studentIndex = idx + 1;
-    flow.view = 'evaluate';
-    renderTeacherWorkspace();
-    toast('تم حفظ بيانات الطالب');
   }
 
   function teacherUndoLastAdvance() {
@@ -11265,6 +11369,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const absentMode = attendance === 'absent';
       const progressText = `${progress.completed} / ${students.length}`;
       const nextLabel = idx === students.length - 1 ? 'إنهاء الحلقة ✓' : 'حفظ والتالي ←';
+      const actionLabel = flow.saving ? 'جار الحفظ...' : nextLabel;
       const showUndo = flow.undo && flow.undo.halaqaId === active.id && idx === Number(flow.undo.index || -1) + 1;
       const renderRows = (type, entries) => entries.map((entry, i) => `
         <div class="tw-entry-row">
@@ -11318,7 +11423,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           </div>
           <div class="tw-actions">
             <button class="btn btn-light" ${idx === 0 ? 'disabled' : ''} onclick="teacherPrevStudent()">◀ السابق</button>
-            <button class="btn btn-primary" onclick="teacherSaveAndNext()">${nextLabel}</button>
+            <button class="btn btn-primary" ${flow.saving ? 'disabled' : ''} onclick="teacherSaveAndNext()">${actionLabel}</button>
           </div>
           ${showUndo ? `<div class="tw-undo"><span>تم الانتقال للتالي. يمكنك الرجوع لتعديل الطالب السابق.</span><button class="btn btn-light" onclick="teacherUndoLastAdvance()">تراجع</button></div>` : ''}
         </div>
