@@ -1052,6 +1052,86 @@
       background: #fef2f2;
       color: #b91c1c;
     }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.45);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.hidden {
+      display: none !important;
+    }
+    .modal-card {
+      width: min(700px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      border-radius: 16px;
+      border: 1px solid #dbe4ef;
+      background: #fff;
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.24);
+      padding: 12px;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .modal-close {
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      font-size: 18px;
+      line-height: 1;
+      background: #fff;
+      color: #334155;
+      cursor: pointer;
+    }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .modal-field .field-label {
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 5px;
+      color: #334155;
+    }
+    .modal-field input,
+    .modal-field select {
+      min-height: 42px;
+      font-size: 14px;
+    }
+    .modal-field input.field-empty,
+    .modal-field select.field-empty {
+      border-color: #facc15 !important;
+      box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.22);
+      background: #fffbeb;
+    }
+    .field-hint {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #a16207;
+      font-weight: 700;
+      display: none;
+    }
+    .field-hint.show {
+      display: block;
+    }
+    .modal-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
     .students-group-row td {
       background: linear-gradient(120deg, #f8fafc, #f1f5f9);
       font-weight: 800;
@@ -1890,6 +1970,8 @@ tbody tr:hover td { background: #fef9e7; }
       .teacher-summary-card .value { font-size: 22px; }
       .teacher-students-filter-row { grid-template-columns: 1fr; }
       .teacher-students-filter-row .btn { width: 100%; }
+      .modal-grid { grid-template-columns: 1fr; }
+      .modal-actions .btn { flex: 1 1 130px; }
       .announcement-panel > summary { padding: 8px 10px; }
       .announcement-summary-meta { font-size: 11px; }
       .announcement-panel-content { padding: 8px; }
@@ -2498,6 +2580,59 @@ localStorage.setItem = function(key, value) {
           </table>
         </div>
 
+        <div id="studentEditModal" class="modal-overlay hidden" aria-hidden="true">
+          <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="studentEditModalTitle">
+            <div class="modal-header">
+              <div>
+                <h3 id="studentEditModalTitle" style="margin:0;">تعديل بيانات الطالب/ـة</h3>
+                <p class="muted" style="margin-top:4px; font-size:12px;">عدّل البيانات ثم اضغط حفظ لتحديث الجدول مباشرة.</p>
+              </div>
+              <button type="button" class="modal-close" id="closeStudentEditModalBtn" aria-label="إغلاق">✕</button>
+            </div>
+            <input id="editStudentId" type="hidden" />
+            <div class="modal-grid">
+              <div class="modal-field">
+                <div class="field-label">الاسم الكامل</div>
+                <input id="editStudentName" placeholder="الاسم الكامل" />
+                <div id="editStudentNameHint" class="field-hint">هذا الحقل مطلوب</div>
+              </div>
+              <div class="modal-field">
+                <div class="field-label">رقم الهوية</div>
+                <input id="editStudentNationalId" inputmode="numeric" placeholder="رقم الهوية" />
+                <div id="editStudentNationalIdHint" class="field-hint">الهوية مطلوبة لتكامل البيانات</div>
+              </div>
+              <div class="modal-field">
+                <div class="field-label">جوال ولي الأمر</div>
+                <input id="editStudentGuardianPhone" dir="ltr" inputmode="tel" placeholder="05xxxxxxxx" />
+                <div id="editStudentGuardianPhoneHint" class="field-hint">أدخل جوال ولي الأمر للمتابعة</div>
+              </div>
+              <div class="modal-field">
+                <div class="field-label">المرحلة الدراسية</div>
+                <select id="editStudentGrade"></select>
+                <div id="editStudentGradeHint" class="field-hint">اختر المرحلة الدراسية</div>
+              </div>
+              <div class="modal-field">
+                <div class="field-label">القسم</div>
+                <select id="editStudentSection">
+                  <option value="">اختر القسم</option>
+                  <option value="mens">البنين</option>
+                  <option value="womens">البنات</option>
+                </select>
+                <div id="editStudentSectionHint" class="field-hint">القسم مطلوب</div>
+              </div>
+              <div class="modal-field">
+                <div class="field-label">الحلقة</div>
+                <select id="editStudentHalaqa"></select>
+                <div id="editStudentHalaqaHint" class="field-hint">اختر الحلقة</div>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-light" id="cancelStudentEditModalBtn">إلغاء</button>
+              <button type="button" class="btn btn-primary" id="saveStudentModalBtn">حفظ</button>
+            </div>
+          </div>
+        </div>
+
         <div class="card" id="studentsWeeklyPanel"></div>
       </section>
 
@@ -2867,6 +3002,16 @@ localStorage.setItem = function(key, value) {
     ];
 
 	    const GRADES = Array.from({ length: 10 }, (_, i) => String(i + 1));
+    const STUDENT_GRADE_OPTIONS = [
+      'روضة',
+      'تمهيدي',
+      'ابتدائي',
+      'متوسط',
+      'ثانوي',
+      'جامعي',
+      'خريجة',
+      'متزوجة/أم',
+    ];
 
 	    const HALAQA_DAY_STATUS_OPTIONS = [
 	      { key: 'normal', label: 'يوم دراسي عادي', justified: false, badgeClass: 'badge-green' },
@@ -5989,22 +6134,157 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       toast('تم نقل الطالب');
     }
 
-    function updateStudentBasic(studentId) {
+    function studentGradeOptionsHtml(selectedValue = '') {
+      const selected = compactName(selectedValue);
+      const grades = STUDENT_GRADE_OPTIONS.slice();
+      if (selected && !grades.includes(selected)) grades.unshift(selected);
+      return [
+        '<option value="">اختر المرحلة الدراسية</option>',
+        ...grades.map((grade) => `<option value="${escapeAttr(grade)}">${escapeAttr(grade)}</option>`),
+      ].join('');
+    }
+
+    function modalAllowedHalaqas(sectionKey) {
+      const targetSection = normalizeSection(sectionKey || state.section);
+      const all = Array.isArray(state.db?.halaqas) ? state.db.halaqas : [];
+      if (isAdmin()) return all.filter((h) => normalizeSection(h.section) === targetSection);
+      const allowed = new Set(visibleHalaqas().map((h) => h.id));
+      return all.filter((h) => normalizeSection(h.section) === targetSection && allowed.has(h.id));
+    }
+
+    function setStudentModalFieldEmpty(fieldId, hintId, options = {}) {
+      const field = $(fieldId);
+      const hint = $(hintId);
+      if (!field || !hint) return true;
+      const required = options.required !== false;
+      const value = field.tagName === 'SELECT'
+        ? String(field.value || '').trim()
+        : compactName(field.value || '');
+      const isEmpty = !value;
+      field.classList.toggle('field-empty', isEmpty);
+      hint.classList.toggle('show', isEmpty);
+      return required ? !isEmpty : true;
+    }
+
+    function syncStudentEditModalValidation() {
+      const checks = [
+        setStudentModalFieldEmpty('editStudentName', 'editStudentNameHint', { required: true }),
+        setStudentModalFieldEmpty('editStudentNationalId', 'editStudentNationalIdHint', { required: false }),
+        setStudentModalFieldEmpty('editStudentGuardianPhone', 'editStudentGuardianPhoneHint', { required: false }),
+        setStudentModalFieldEmpty('editStudentGrade', 'editStudentGradeHint', { required: true }),
+        setStudentModalFieldEmpty('editStudentSection', 'editStudentSectionHint', { required: true }),
+        setStudentModalFieldEmpty('editStudentHalaqa', 'editStudentHalaqaHint', { required: true }),
+      ];
+      return checks.every(Boolean);
+    }
+
+    function refreshStudentEditModalHalaqaOptions(selectedHalaqaId = '') {
+      const halaqaSelect = $('editStudentHalaqa');
+      if (!halaqaSelect) return;
+      const sectionValue = normalizeSection($('editStudentSection')?.value || state.section);
+      const options = modalAllowedHalaqas(sectionValue)
+        .slice()
+        .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+      const selected = String(selectedHalaqaId || '').trim();
+      const hasSelected = selected && options.some((h) => h.id === selected);
+      const fallback = selected ? (state.indexes?.halaqaById?.[selected] || null) : null;
+
+      halaqaSelect.innerHTML = `
+        <option value="">اختر الحلقة</option>
+        ${options.map((h) => `<option value="${h.id}">${escapeAttr(h.circleName)}</option>`).join('')}
+        ${(!hasSelected && fallback && normalizeSection(fallback.section) === sectionValue)
+          ? `<option value="${fallback.id}">${escapeAttr(fallback.circleName)}</option>`
+          : ''}
+      `;
+      if (selected) halaqaSelect.value = selected;
+      syncStudentEditModalValidation();
+    }
+
+    function closeStudentEditModal() {
+      const modal = $('studentEditModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    function openStudentEditModal(studentId) {
       if (!canManageStudents()) return toast('غير مسموح', 'err');
-      const s = state.db.students.find(x => x.id === studentId);
-      if (!s) return;
-      const name = ($('edit_name_' + studentId)?.value || '').trim();
-      const nationalId = ($('edit_nid_' + studentId)?.value || '').trim();
-      const guardianPhone = normalizePhone(($('edit_guardian_' + studentId)?.value || ''));
-      const grade = ($('edit_grade_' + studentId)?.value || '').trim();
-      if (!name) return toast('اسم الطالب مطلوب', 'err');
-      s.name = name;
-      s.nationalId = nationalId;
-      s.guardianPhone = guardianPhone;
-      s.grade = grade || s.grade;
+      const student = state.db.students.find((x) => x.id === studentId);
+      if (!student) return toast('الطالب غير موجود', 'err');
+
+      const sectionValue = normalizeSection(student.section || state.section);
+      const gradeValue = compactName(student.grade || '');
+      $('editStudentId').value = student.id;
+      $('editStudentName').value = student.name || '';
+      $('editStudentNationalId').value = student.nationalId || '';
+      $('editStudentGuardianPhone').value = student.guardianPhone || '';
+
+      const gradeSelect = $('editStudentGrade');
+      gradeSelect.innerHTML = studentGradeOptionsHtml(gradeValue);
+      gradeSelect.value = gradeValue;
+
+      const sectionSelect = $('editStudentSection');
+      sectionSelect.value = sectionValue;
+      sectionSelect.disabled = !isAdmin();
+      refreshStudentEditModalHalaqaOptions(student.halaqaId || '');
+      const halaqaSelect = $('editStudentHalaqa');
+      if (student.halaqaId) halaqaSelect.value = student.halaqaId;
+
+      const modal = $('studentEditModal');
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      syncStudentEditModalValidation();
+      setTimeout(() => $('editStudentName')?.focus(), 0);
+    }
+
+    function saveStudentFromModal() {
+      if (!canManageStudents()) return toast('غير مسموح', 'err');
+      const studentId = String($('editStudentId')?.value || '').trim();
+      const student = state.db.students.find((x) => x.id === studentId);
+      if (!student) return toast('الطالب غير موجود', 'err');
+
+      const name = compactName($('editStudentName')?.value || '');
+      const nationalId = compactName($('editStudentNationalId')?.value || '');
+      const guardianPhone = normalizePhone($('editStudentGuardianPhone')?.value || '');
+      const grade = compactName($('editStudentGrade')?.value || '');
+      const section = normalizeSection($('editStudentSection')?.value || '');
+      const halaqaId = String($('editStudentHalaqa')?.value || '').trim();
+
+      $('editStudentName').value = name;
+      $('editStudentNationalId').value = nationalId;
+      $('editStudentGuardianPhone').value = guardianPhone;
+
+      const validFields = syncStudentEditModalValidation();
+      if (!validFields) return toast('أكمل الحقول المطلوبة أولاً', 'err');
+
+      const targetHalaqa = state.indexes?.halaqaById?.[halaqaId] || null;
+      if (!targetHalaqa) return toast('الحلقة المختارة غير موجودة', 'err');
+      if (normalizeSection(targetHalaqa.section) !== section) {
+        return toast('القسم لا يطابق الحلقة المختارة', 'err');
+      }
+      const allowed = modalAllowedHalaqas(section).map((h) => h.id);
+      if (!isAdmin() && !allowed.includes(halaqaId)) {
+        return toast('لا تملك صلاحية نقل الطالب لهذه الحلقة', 'err');
+      }
+
+      student.name = name;
+      student.nationalId = nationalId;
+      student.guardianPhone = guardianPhone;
+      student.grade = grade;
+      student.section = section;
+      student.halaqaId = halaqaId;
+
       saveDB();
-      renderAll();
+      rebuildIndexes();
+      renderStudents();
+      closeStudentEditModal();
       toast('تم تحديث بيانات الطالب');
+    }
+
+    function updateStudentBasic(studentId) {
+      openStudentEditModal(studentId);
     }
 
     function issueStudentCertificate(studentId) {
@@ -7886,10 +8166,10 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         }
         rowsHtml.push(`
           <tr class="${issues.length ? 'row-danger' : ''}">
-            <td>${manage ? `<div class="student-name-editor"><input id="edit_name_${s.id}" value="${safeName}" title="${safeName}" /><div class="name-preview">${safeName}</div></div>` : s.name}</td>
-            <td>${manage ? `<input id="edit_nid_${s.id}" value="${escapeAttr(s.nationalId || '')}" />` : (s.nationalId || '-')}</td>
-            <td>${manage ? `<input id="edit_guardian_${s.id}" value="${escapeAttr(s.guardianPhone || '')}" />` : (s.guardianPhone || '-')}</td>
-            <td>${manage ? `<input id="edit_grade_${s.id}" value="${escapeAttr(s.grade || '')}" />` : (s.grade || '-')}</td>
+            <td title="${safeName}">${safeName || '-'}</td>
+            <td>${escapeAttr(s.nationalId || '-')}</td>
+            <td>${escapeAttr(s.guardianPhone || '-')}</td>
+            <td>${escapeAttr(s.grade || '-')}</td>
             <td>${s.section === 'mens' ? 'البنين' : 'البنات'}</td>
             <td>${currentH?.circleName || '-'}</td>
             <td>${s.lastHifdhSurah ? `${s.lastHifdhSurah} (${s.lastHifdhAya || ''})` : 'لم يبدأ'}</td>
@@ -7901,7 +8181,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             <td class="no-print">
               ${(manage || certAllowed) ? `
                 <div class="row">
-                  ${manage ? `<button class="btn btn-light" onclick="updateStudentBasic('${s.id}')">تحديث</button><button class="btn btn-light" onclick="transferStudent('${s.id}')">نقل</button>` : ''}
+                  ${manage ? `<button class="btn btn-light" onclick="openStudentEditModal('${s.id}')">تعديل</button><button class="btn btn-light" onclick="transferStudent('${s.id}')">نقل</button>` : ''}
                   ${certAllowed ? `<button class="btn btn-gold" onclick="issueStudentCertificate('${s.id}')">شهادة شكر</button>` : ''} ${manage ? `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">🗑️ حذف</button>` : ''}
                 </div>
               ` : '-'}
@@ -9858,6 +10138,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	    window.saveHalaqaDayStatus = saveHalaqaDayStatus;
 	    window.clearHalaqaDayStatus = clearHalaqaDayStatus;
 	    window.issueStudentCertificate = issueStudentCertificate;
+    window.openStudentEditModal = openStudentEditModal;
+    window.closeStudentEditModal = closeStudentEditModal;
+    window.saveStudentFromModal = saveStudentFromModal;
     window.updateStudentBasic = updateStudentBasic;
     window.transferStudent = transferStudent;
     window.setStudentIssueFilter = setStudentIssueFilter;
@@ -9903,6 +10186,16 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      safe('examSessionSelect', el => el.onchange = syncExamStudentSelect);
 	      safe('studentSearch', el => el.oninput = renderStudents);
 	      safe('studentHalaqaFilter', el => el.onchange = () => setStudentHalaqaFilter(el.value));
+      safe('saveStudentModalBtn', el => el.onclick = saveStudentFromModal);
+      safe('closeStudentEditModalBtn', el => el.onclick = closeStudentEditModal);
+      safe('cancelStudentEditModalBtn', el => el.onclick = closeStudentEditModal);
+      safe('studentEditModal', el => el.onclick = (ev) => { if (ev.target === el) closeStudentEditModal(); });
+      safe('editStudentName', el => el.oninput = syncStudentEditModalValidation);
+      safe('editStudentNationalId', el => el.oninput = syncStudentEditModalValidation);
+      safe('editStudentGuardianPhone', el => el.oninput = syncStudentEditModalValidation);
+      safe('editStudentGrade', el => el.onchange = syncStudentEditModalValidation);
+      safe('editStudentSection', el => el.onchange = () => refreshStudentEditModalHalaqaOptions());
+      safe('editStudentHalaqa', el => el.onchange = syncStudentEditModalValidation);
 	      safe('dailyMonitorDate', el => el.onchange = () => setDailyMonitorDate(el.value));
 	      safe('dailyMonitorPrevBtn', el => el.onclick = () => shiftDailyMonitorDate(-1));
 	      safe('dailyMonitorNextBtn', el => el.onclick = () => shiftDailyMonitorDate(1));
@@ -9945,6 +10238,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const btn = e.target.closest('[data-student-id]');
       if (btn?.dataset?.studentId) {
         openEntry(btn.dataset.studentId);
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !$('studentEditModal')?.classList.contains('hidden')) {
+        closeStudentEditModal();
       }
     });
 
