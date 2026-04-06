@@ -9070,6 +9070,1291 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       setTimeout(() => w.print(), 280);
     }
 
+    function injectAdminOpsV2Styles() {
+      if ($('adminOpsV2Styles')) return;
+      const style = document.createElement('style');
+      style.id = 'adminOpsV2Styles';
+      style.textContent = `
+.ops-v2-shell { display:grid; gap:12px; }
+.ops-v2-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+.ops-v2-title { margin:0; font-size:22px; color:#14532d; font-weight:900; }
+.ops-v2-sub { margin-top:4px; font-size:13px; color:#475569; }
+.ops-v2-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.ops-sec-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.ops-sec-card { border:1px solid #dbe7db; border-radius:16px; padding:14px; background:#fff; text-align:right; cursor:pointer; font-family:inherit; }
+.ops-sec-card:hover { transform:translateY(-2px); box-shadow:0 10px 24px rgba(15,23,42,0.08); }
+.ops-sec-card.mens { background:linear-gradient(155deg,#f0fdf4,#ecfdf5); border-color:#86efac; }
+.ops-sec-card.womens { background:linear-gradient(155deg,#faf5ff,#f3e8ff); border-color:#d8b4fe; }
+.ops-sec-title { font-size:20px; font-weight:900; margin:0; }
+.ops-sec-meta { margin-top:10px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.ops-sec-box { border:1px dashed rgba(15,23,42,0.15); border-radius:10px; padding:8px; background:rgba(255,255,255,0.8); }
+.ops-sec-box span { display:block; font-size:12px; color:#64748b; }
+.ops-sec-box b { display:block; margin-top:3px; font-size:18px; color:#0f172a; }
+.ops-alert-line { margin-top:10px; padding:7px 9px; border-radius:10px; font-size:12px; font-weight:700; }
+.ops-alert-line.warn { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+.ops-alert-line.ok { background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; }
+.ops-kpi-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.ops-kpi-card { border:1px solid #dbe7db; border-radius:12px; background:#fff; padding:10px; }
+.ops-kpi-card span { font-size:12px; color:#64748b; display:block; }
+.ops-kpi-card b { margin-top:4px; font-size:24px; color:#14532d; display:block; }
+.ops-table-wrap { border:1px solid #e2e8f0; border-radius:12px; overflow:auto; background:#fff; }
+.ops-table { width:100%; border-collapse:collapse; min-width:980px; }
+.ops-table th,.ops-table td { border-top:1px solid #e2e8f0; padding:9px 8px; text-align:right; font-size:13px; vertical-align:middle; }
+.ops-table thead th { border-top:0; background:#f8fafc; color:#334155; font-weight:800; }
+.ops-row-click { cursor:pointer; }
+.ops-row-click:hover { background:#f8fafc; }
+.ops-status-pill { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:2px 10px; font-size:12px; font-weight:800; }
+.ops-status-pill.ok { background:#dcfce7; color:#166534; }
+.ops-status-pill.warn { background:#fef2f2; color:#b91c1c; }
+.ops-status-pill.muted { background:#f1f5f9; color:#475569; }
+.ops-mini-bar { width:120px; background:#eef2f7; border-radius:999px; overflow:hidden; position:relative; height:14px; }
+.ops-mini-bar > div { height:100%; background:linear-gradient(90deg,#16a34a,#22c55e); border-radius:999px; }
+.ops-mini-bar > span { position:absolute; inset:0; font-size:10px; color:#0f172a; display:grid; place-items:center; font-weight:700; }
+.ops-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.ops-tab-btn { border:1px solid #d1d5db; border-radius:10px; background:#fff; color:#334155; padding:7px 10px; font-weight:800; cursor:pointer; font-family:inherit; }
+.ops-tab-btn.active { border-color:#166534; color:#166534; background:#dcfce7; }
+.ops-detail-head { border:1px solid #bbf7d0; border-radius:14px; background:linear-gradient(145deg,#14532d,#166534); color:#f0fdf4; padding:12px; }
+.ops-detail-meta { margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; font-size:12px; opacity:0.95; }
+.ops-detail-meta span { background:rgba(255,255,255,0.12); padding:4px 8px; border-radius:999px; }
+.ops-quick { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+.ops-quick b { background:rgba(255,255,255,0.16); border-radius:10px; padding:5px 8px; font-size:12px; }
+.ops-student-chip { display:flex; align-items:center; gap:8px; }
+.ops-avatar { width:30px; height:30px; border-radius:999px; background:#dcfce7; color:#14532d; display:grid; place-items:center; font-size:12px; font-weight:900; }
+.ops-att-pill { display:inline-flex; border-radius:999px; padding:3px 8px; font-size:12px; font-weight:800; }
+.ops-att-pill.present { background:#dcfce7; color:#166534; }
+.ops-att-pill.absent { background:#fee2e2; color:#b91c1c; }
+.ops-att-pill.excused { background:#fef3c7; color:#92400e; }
+.ops-att-pill.remote { background:#dbeafe; color:#1d4ed8; }
+.ops-att-pill.other { background:#f1f5f9; color:#334155; }
+.ops-grade-dot { width:30px; height:30px; border-radius:999px; display:grid; place-items:center; font-size:12px; font-weight:900; background:#e2e8f0; color:#334155; margin-inline:auto; }
+.ops-grade-dot.good { background:#86efac; color:#14532d; }
+.ops-grade-dot.mid { background:#fde68a; color:#92400e; }
+.ops-grade-dot.low { background:#fecaca; color:#991b1b; }
+.ops-absent-row { opacity:0.58; }
+.ops-days-table { min-width:860px; }
+.ops-days-table td.cell { text-align:center; min-width:44px; }
+.ops-cell-ok { background:#dcfce7; color:#166534; font-weight:800; }
+.ops-cell-abs { background:#fee2e2; color:#b91c1c; font-weight:800; }
+.ops-cell-exc { background:#fef3c7; color:#92400e; font-weight:800; }
+.ops-cell-off { background:#f1f5f9; color:#94a3b8; }
+.ops-cell-empty { color:#94a3b8; }
+.ops-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:8px; }
+.ops-form-grid .field-label { margin-bottom:4px; font-size:12px; color:#334155; font-weight:700; }
+.ops-day-checks { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.ops-day-checks label { border:1px solid #d1d5db; border-radius:999px; padding:4px 10px; font-size:12px; cursor:pointer; background:#fff; }
+.ops-modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,0.45); display:grid; place-items:center; z-index:1200; padding:14px; }
+.ops-modal { width:min(560px,96vw); background:#fff; border-radius:14px; border:1px solid #cbd5e1; padding:12px; }
+.ops-modal-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.ops-modal-head h3 { margin:0; font-size:18px; color:#0f172a; }
+.ops-modal textarea { width:100%; min-height:90px; margin-top:6px; }
+.ops-report-page { display:grid; gap:12px; }
+.ops-report-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+.ops-report-filters { display:grid; grid-template-columns:repeat(3,minmax(180px,1fr)); gap:8px; flex:1; }
+.ops-report-filters .field-label { font-size:12px; margin-bottom:4px; color:#334155; font-weight:700; }
+.ops-report-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.ops-report-paper { border:1px solid #dbe7db; border-radius:16px; overflow:hidden; background:#fff; }
+.ops-report-hero { padding:14px; color:#f0fdf4; background:linear-gradient(140deg,#14532d,#0f766e); }
+.ops-report-hero-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+.ops-report-brand { display:flex; align-items:center; gap:10px; }
+.ops-report-brand img { width:64px; height:64px; object-fit:contain; border-radius:12px; background:#fff; padding:4px; border:1px solid rgba(255,255,255,0.4); }
+.ops-report-brand h2 { margin:0; font-size:24px; font-family:Amiri, serif; }
+.ops-report-brand p { margin:3px 0 0; font-size:12px; opacity:0.95; }
+.ops-report-meta { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; font-size:12px; }
+.ops-report-meta span { background:rgba(255,255,255,0.14); border-radius:999px; padding:4px 9px; }
+.ops-report-body { padding:12px; display:grid; gap:12px; }
+.ops-report-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.ops-report-kpi { border-radius:12px; padding:10px; color:#fff; }
+.ops-report-kpi.k1 { background:#166534; }
+.ops-report-kpi.k2 { background:#0369a1; }
+.ops-report-kpi.k3 { background:#b45309; }
+.ops-report-kpi.k4 { background:#7c3aed; }
+.ops-report-kpi span { font-size:12px; opacity:0.9; display:block; }
+.ops-report-kpi b { display:block; margin-top:4px; font-size:28px; }
+.ops-report-charts { display:grid; grid-template-columns:1.3fr 1fr; gap:10px; }
+.ops-chart-card { border:1px solid #e2e8f0; border-radius:12px; padding:10px; background:#fff; }
+.ops-chart-title { font-weight:800; color:#0f172a; margin-bottom:8px; }
+.ops-week-bars { display:flex; gap:10px; align-items:flex-end; min-height:170px; }
+.ops-week-col { flex:1; display:grid; justify-items:center; gap:5px; }
+.ops-week-col .bar { width:100%; max-width:62px; border-radius:10px 10px 4px 4px; background:linear-gradient(180deg,#16a34a,#22c55e); min-height:10px; }
+.ops-week-col b { font-size:12px; color:#0f172a; }
+.ops-week-col span { font-size:11px; color:#64748b; }
+.ops-donut-wrap { display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center; }
+.ops-donut { width:140px; height:140px; border-radius:999px; position:relative; }
+.ops-donut::after { content:''; position:absolute; inset:26px; background:#fff; border-radius:999px; }
+.ops-donut-legend { display:grid; gap:6px; font-size:12px; }
+.ops-donut-legend div { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.ops-dot { width:10px; height:10px; border-radius:999px; display:inline-block; margin-inline-start:4px; }
+.ops-top-students { border:1px solid #e2e8f0; border-radius:12px; padding:10px; background:#fff; }
+.ops-top-row { display:grid; grid-template-columns:40px 1fr auto; gap:10px; align-items:center; padding:8px 0; border-top:1px dashed #e2e8f0; }
+.ops-top-row:first-child { border-top:0; }
+.ops-rank { width:32px; height:32px; border-radius:999px; background:#dcfce7; color:#166534; display:grid; place-items:center; font-weight:900; }
+.ops-top-name { font-weight:800; color:#0f172a; }
+.ops-top-meta { font-size:12px; color:#64748b; margin-top:3px; }
+.ops-top-progress { width:180px; max-width:42vw; height:10px; border-radius:999px; background:#eef2f7; overflow:hidden; }
+.ops-top-progress > div { height:100%; background:linear-gradient(90deg,#16a34a,#22c55e); }
+.ops-heat-wrap { border:1px solid #e2e8f0; border-radius:12px; overflow:auto; background:#fff; }
+.ops-heat { border-collapse:collapse; min-width:980px; width:max-content; }
+.ops-heat th,.ops-heat td { border-top:1px solid #e2e8f0; border-left:1px solid #f1f5f9; padding:6px; text-align:center; font-size:11px; }
+.ops-heat thead th { background:#f8fafc; position:sticky; top:0; z-index:1; }
+.ops-heat .name { text-align:right; min-width:170px; background:#fff; position:sticky; right:0; z-index:2; }
+.ops-heat .c-ok { background:#dcfce7; }
+.ops-heat .c-abs { background:#fee2e2; }
+.ops-heat .c-exc { background:#fef3c7; }
+.ops-heat .c-off { background:#f1f5f9; color:#94a3b8; }
+.ops-report-note { border:1px dashed #cbd5e1; border-radius:12px; padding:10px; background:#fff; }
+.ops-report-note textarea { width:100%; min-height:72px; }
+.ops-note-print { margin-top:6px; color:#334155; white-space:pre-wrap; }
+.ops-report-foot { border-top:1px solid #e2e8f0; padding-top:8px; font-size:12px; color:#64748b; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+@media (max-width:980px){
+  .ops-sec-grid { grid-template-columns:1fr; }
+  .ops-kpi-grid { grid-template-columns:1fr 1fr; }
+  .ops-report-filters { grid-template-columns:1fr; }
+  .ops-report-kpis { grid-template-columns:1fr 1fr; }
+  .ops-report-charts { grid-template-columns:1fr; }
+  .ops-form-grid { grid-template-columns:1fr; }
+}
+@media print {
+  .no-print { display:none !important; }
+  .ops-report-page { gap:0; }
+  .ops-report-paper { border:0; border-radius:0; }
+  .ops-note-print { display:block !important; }
+}
+      `;
+      document.head.appendChild(style);
+    }
+
+    function adminHalaqaFlow() {
+      if (!state.adminHalaqaFlow || typeof state.adminHalaqaFlow !== 'object') {
+        state.adminHalaqaFlow = {
+          section: '',
+          view: 'section',
+          halaqaId: '',
+          tab: 'today',
+          reasonModal: { open: false, halaqaId: '' },
+          createModalOpen: false,
+        };
+      }
+      return state.adminHalaqaFlow;
+    }
+
+    function adminReportFlow() {
+      if (!state.adminReportFlow || typeof state.adminReportFlow !== 'object') {
+        state.adminReportFlow = {
+          halaqaId: '',
+          periodMode: 'monthly',
+          refDate: todayISO(),
+          supervisorNote: '',
+        };
+      }
+      return state.adminReportFlow;
+    }
+
+    function adminSectionLabel(section) {
+      return section === 'womens' ? 'البنات' : 'البنين';
+    }
+
+    function adminHalaqaAllowedSections() {
+      const u = currentUser();
+      if (!u) return [];
+      if (u.role === 'supervisor') return [normalizeSection(u.section || 'mens')];
+      return ['mens', 'womens'];
+    }
+
+    function adminHalaqaListBySection(section) {
+      const u = currentUser();
+      if (!u) return [];
+      let rows = (state.db?.halaqas || []).filter((h) => normalizeSection(h.section) === normalizeSection(section));
+      if (u.role === 'supervisor' && (u.assignedHalaqaIds || []).length) {
+        const allowed = new Set(u.assignedHalaqaIds || []);
+        rows = rows.filter((h) => allowed.has(h.id));
+      }
+      return rows
+        .slice()
+        .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+    }
+
+    function adminHalaqaAttendanceStatus(studentId, halaqaId, dateISO) {
+      const roll = getRollcall(studentId, halaqaId, dateISO);
+      if (roll?.status) return String(roll.status);
+      const logs = (state.db.logs || []).filter((l) => l.studentId === studentId && l.halaqaId === halaqaId && l.date === dateISO);
+      return logs[0]?.attendance || '';
+    }
+
+    function adminHalaqaTodaySnapshot(halaqa, dateISO = todayISO()) {
+      const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
+        .slice()
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+      const dayLogs = sortLogsByRecency(
+        (state.db.logs || []).filter((l) => l.halaqaId === halaqa.id && l.date === dateISO)
+      );
+      const dayRollcalls = (state.db.rollcall || []).filter((r) => r.halaqaId === halaqa.id && r.date === dateISO);
+      const rollByStudent = {};
+      dayRollcalls.forEach((row) => { rollByStudent[row.studentId] = row; });
+      const perStudentLogs = {};
+      dayLogs.forEach((log) => {
+        if (!perStudentLogs[log.studentId]) perStudentLogs[log.studentId] = [];
+        perStudentLogs[log.studentId].push(log);
+      });
+      const rows = students.map((student) => {
+        const logs = perStudentLogs[student.id] || [];
+        const attendance = rollByStudent[student.id]?.status || logs[0]?.attendance || '';
+        const hifdh = logs.find((l) => l.type === 'hifdh') || null;
+        const revision = logs.find((l) => l.type === 'revision') || null;
+        const notes = [...new Set(logs.map((l) => String(l.notes || '').trim()).filter(Boolean))];
+        return { student, logs, attendance, hifdh, revision, notesText: notes.join(' | ') || '—' };
+      });
+      const presentCount = rows.filter((r) => ['present', 'late', 'remote'].includes(r.attendance)).length;
+      const absentCount = rows.filter((r) => ['absent', 'dropped'].includes(r.attendance)).length;
+      const recorded = dayLogs.length > 0 || dayRollcalls.length > 0;
+      const dayNote = getHalaqaDayNote(halaqa.id, dateISO);
+      const justified = dayNote && isHalaqaDayNoteJustified(dayNote);
+      const statusKey = !students.length ? 'no-data' : (recorded ? 'recorded' : (justified ? 'no-data' : 'not-recorded'));
+      return {
+        halaqa,
+        dateISO,
+        students,
+        rows,
+        dayLogs,
+        presentCount,
+        absentCount,
+        recorded,
+        dayNote,
+        justified,
+        statusKey,
+      };
+    }
+
+    function adminHalaqaSectionStats(section) {
+      const halaqas = adminHalaqaListBySection(section);
+      const students = (state.db.students || []).filter((s) => normalizeSection(s.section) === normalizeSection(section));
+      const teachers = (state.db.staff || []).filter((s) => s.role === 'teacher' && normalizeSection(s.section) === normalizeSection(section));
+      const snapshots = halaqas.map((h) => adminHalaqaTodaySnapshot(h, todayISO()));
+      const recordedToday = snapshots.filter((s) => s.statusKey === 'recorded').length;
+      const missingToday = snapshots.filter((s) => s.statusKey === 'not-recorded').length;
+      return { section, halaqas, students, teachers, snapshots, recordedToday, missingToday };
+    }
+
+    function adminHalaqaStatusBadge(statusKey) {
+      if (statusKey === 'recorded') return '<span class="ops-status-pill ok">سُجِّلت</span>';
+      if (statusKey === 'not-recorded') return '<span class="ops-status-pill warn">لم تُسجَّل</span>';
+      return '<span class="ops-status-pill muted">لا بيانات</span>';
+    }
+
+    function adminHalaqaSectionCardHTML(stats) {
+      const missingLabel = stats.missingToday
+        ? `${stats.missingToday} حلقات لم تُسجَّل`
+        : 'كل الحلقات مسجلة اليوم';
+      return `
+        <button type="button" class="ops-sec-card ${stats.section}" onclick="adminHalaqaChooseSection('${stats.section}')">
+          <h3 class="ops-sec-title">قسم ${adminSectionLabel(stats.section)}</h3>
+          <div class="ops-sec-meta">
+            <div class="ops-sec-box"><span>عدد الحلقات</span><b>${stats.halaqas.length}</b></div>
+            <div class="ops-sec-box"><span>عدد الطلاب</span><b>${stats.students.length}</b></div>
+            <div class="ops-sec-box"><span>عدد المعلمين</span><b>${teachersCountInSection(stats.section)}</b></div>
+            <div class="ops-sec-box"><span>سُجّلت اليوم</span><b>${stats.recordedToday}</b></div>
+          </div>
+          <div class="ops-alert-line ${stats.missingToday ? 'warn' : 'ok'}">${missingLabel}</div>
+        </button>
+      `;
+    }
+
+    function teachersCountInSection(section) {
+      return (state.db.staff || []).filter((s) => s.role === 'teacher' && normalizeSection(s.section) === normalizeSection(section)).length;
+    }
+
+    function adminHalaqaChooseSection(section) {
+      const flow = adminHalaqaFlow();
+      flow.section = normalizeSection(section || 'mens');
+      flow.view = 'list';
+      flow.halaqaId = '';
+      flow.tab = 'today';
+      flow.reasonModal = { open: false, halaqaId: '' };
+      flow.createModalOpen = false;
+      state.section = flow.section;
+      renderHalaqas();
+    }
+
+    function adminHalaqaSwitchSection() {
+      const flow = adminHalaqaFlow();
+      flow.view = 'section';
+      flow.halaqaId = '';
+      flow.reasonModal = { open: false, halaqaId: '' };
+      renderHalaqas();
+    }
+
+    function adminHalaqaOpenDetail(halaqaId) {
+      const flow = adminHalaqaFlow();
+      const halaqa = (state.db.halaqas || []).find((h) => h.id === halaqaId);
+      if (!halaqa) return;
+      flow.section = normalizeSection(halaqa.section || flow.section || 'mens');
+      state.section = flow.section;
+      flow.halaqaId = halaqa.id;
+      flow.view = 'detail';
+      flow.tab = 'today';
+      flow.reasonModal = { open: false, halaqaId: '' };
+      renderHalaqas();
+    }
+
+    function adminHalaqaBackToList() {
+      const flow = adminHalaqaFlow();
+      flow.view = 'list';
+      flow.tab = 'today';
+      flow.reasonModal = { open: false, halaqaId: '' };
+      renderHalaqas();
+    }
+
+    function adminHalaqaSetTab(tab) {
+      const flow = adminHalaqaFlow();
+      flow.tab = ['today', 'week', 'students', 'settings'].includes(tab) ? tab : 'today';
+      renderHalaqas();
+    }
+
+    function adminHalaqaOpenReasonModal(halaqaId) {
+      const flow = adminHalaqaFlow();
+      flow.reasonModal = { open: true, halaqaId: String(halaqaId || '') };
+      renderHalaqas();
+    }
+
+    function adminHalaqaCloseReasonModal() {
+      const flow = adminHalaqaFlow();
+      flow.reasonModal = { open: false, halaqaId: '' };
+      renderHalaqas();
+    }
+
+    function adminHalaqaSaveReason() {
+      const flow = adminHalaqaFlow();
+      const halaqaId = String(flow.reasonModal?.halaqaId || '').trim();
+      if (!halaqaId) return toast('تعذر تحديد الحلقة', 'err');
+      const reasonTypeRaw = String($('opsReasonType')?.value || 'teacher_excused').trim();
+      const text = String($('opsReasonText')?.value || '').trim();
+      let status = 'other';
+      let reason = text;
+      if (reasonTypeRaw === 'teacher_excused') status = 'teacher_excused';
+      else if (reasonTypeRaw === 'holiday') status = 'holiday';
+      else if (reasonTypeRaw === 'no_session') status = 'no_session';
+      else if (reasonTypeRaw === 'emergency') {
+        status = 'other';
+        reason = reason ? `ظرف طارئ - ${reason}` : 'ظرف طارئ';
+      } else {
+        status = 'other';
+      }
+      const result = upsertHalaqaDayNote(halaqaId, todayISO(), { status, reason, studentsPresent: false });
+      if (!result.changed) return toast('لا يوجد تغيير للحفظ');
+      saveDB();
+      rebuildIndexes();
+      flow.reasonModal = { open: false, halaqaId: '' };
+      renderHalaqas();
+      toast('تم حفظ سبب عدم تسجيل الحلقة');
+    }
+
+    function adminHalaqaOpenCreateModal() {
+      if (!isAdmin()) return toast('إضافة حلقة جديدة متاحة للإدارة', 'err');
+      const flow = adminHalaqaFlow();
+      flow.createModalOpen = true;
+      renderHalaqas();
+    }
+
+    function adminHalaqaCloseCreateModal() {
+      const flow = adminHalaqaFlow();
+      flow.createModalOpen = false;
+      renderHalaqas();
+    }
+
+    function adminCheckedDays(name) {
+      return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`))
+        .map((el) => String(el.value || '').trim())
+        .filter(Boolean);
+    }
+
+    function adminHalaqaDayChecksHtml(name, selectedDays = []) {
+      const allDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      const selected = new Set((selectedDays || []).map((d) => String(d || '').trim()));
+      return allDays
+        .map((day) => `<label><input type="checkbox" name="${name}" value="${day}" ${selected.has(day) ? 'checked' : ''} /> ${day}</label>`)
+        .join('');
+    }
+
+    function adminTeacherOptionsHtml(selectedTeacherName = '', section = '') {
+      const targetSection = normalizeSection(section || 'mens');
+      const teachers = (state.db.staff || [])
+        .filter((s) => s.role === 'teacher' && normalizeSection(s.section) === targetSection)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+      const selectedName = String(selectedTeacherName || '').trim();
+      const base = teachers.map((t) => `<option value="${t.id}" ${selectedName && t.name === selectedName ? 'selected' : ''}>${escapeAttr(t.name)} (${adminSectionLabel(targetSection)})</option>`).join('');
+      const hasSelected = teachers.some((t) => t.name === selectedName);
+      const fallback = (!hasSelected && selectedName) ? `<option value="__name__:${escapeAttr(selectedName)}" selected>${escapeAttr(selectedName)} (غير مربوط)</option>` : '';
+      return `<option value="">اختر المعلم</option>${base}${fallback}`;
+    }
+
+    function adminDeliveryModeLabel(mode) {
+      const raw = String(mode || '').trim();
+      if (raw === 'remote') return 'عن بعد';
+      if (raw === 'hybrid') return 'هجين';
+      return 'حضوري';
+    }
+
+    function adminHalaqaCreate() {
+      if (!isAdmin()) return toast('إضافة حلقة جديدة متاحة للإدارة', 'err');
+      const flow = adminHalaqaFlow();
+      const circleName = String($('opsCreateHalaqaName')?.value || '').trim();
+      const section = normalizeSection($('opsCreateHalaqaSection')?.value || flow.section || 'mens');
+      const teacherVal = String($('opsCreateHalaqaTeacher')?.value || '').trim();
+      const timeSlot = String($('opsCreateHalaqaTime')?.value || 'after_asr').trim();
+      const deliveryMode = String($('opsCreateHalaqaMode')?.value || 'onsite').trim();
+      const days = adminCheckedDays('opsCreateDays');
+      if (!circleName) return toast('أدخل اسم الحلقة', 'err');
+      if (!days.length) return toast('اختر أيام الحلقة', 'err');
+      let teacherName = '';
+      if (teacherVal.startsWith('__name__:')) teacherName = teacherVal.slice('__name__:'.length);
+      else {
+        const teacher = (state.db.staff || []).find((s) => s.id === teacherVal);
+        teacherName = teacher?.name || '';
+      }
+      if (!teacherName) return toast('اختر المعلم', 'err');
+      const scheduleType = days.length >= 6 ? 'full-week' : 'sun-wed';
+      const created = {
+        id: uid('h'),
+        section,
+        circleName,
+        teacherName,
+        scheduleType,
+        scheduleDays: days,
+        deliveryMode,
+        timeSlot,
+      };
+      state.db.halaqas.push(created);
+      saveDB();
+      rebuildIndexes();
+      flow.createModalOpen = false;
+      flow.section = section;
+      flow.view = 'detail';
+      flow.halaqaId = created.id;
+      flow.tab = 'today';
+      state.section = section;
+      renderHalaqas();
+      toast('تم إنشاء الحلقة الجديدة');
+    }
+
+    function adminHalaqaSaveSettings() {
+      const flow = adminHalaqaFlow();
+      const halaqaId = String(flow.halaqaId || '').trim();
+      const h = (state.db.halaqas || []).find((row) => row.id === halaqaId);
+      if (!h) return toast('الحلقة غير موجودة', 'err');
+      const circleName = String($('opsSetHalaqaName')?.value || '').trim();
+      const teacherVal = String($('opsSetHalaqaTeacher')?.value || '').trim();
+      const timeSlot = String($('opsSetHalaqaTime')?.value || 'after_asr').trim();
+      const deliveryMode = String($('opsSetHalaqaMode')?.value || 'onsite').trim();
+      const section = normalizeSection($('opsSetHalaqaSection')?.value || h.section || flow.section || 'mens');
+      const days = adminCheckedDays('opsSetDays');
+      if (!circleName) return toast('اسم الحلقة مطلوب', 'err');
+      if (!days.length) return toast('اختر أيام الحلقة', 'err');
+      let teacherName = '';
+      if (teacherVal.startsWith('__name__:')) teacherName = teacherVal.slice('__name__:'.length);
+      else {
+        const teacher = (state.db.staff || []).find((s) => s.id === teacherVal);
+        teacherName = teacher?.name || '';
+      }
+      if (!teacherName) return toast('اختر المعلم', 'err');
+      const oldSection = normalizeSection(h.section);
+      h.circleName = circleName;
+      h.teacherName = teacherName;
+      h.timeSlot = timeSlot;
+      h.deliveryMode = deliveryMode;
+      h.section = section;
+      h.scheduleDays = days;
+      h.scheduleType = days.length >= 6 ? 'full-week' : 'sun-wed';
+      if (oldSection !== section) {
+        (state.db.students || []).forEach((s) => {
+          if (s.halaqaId === h.id) s.section = section;
+        });
+      }
+      saveDB();
+      rebuildIndexes();
+      flow.section = section;
+      state.section = section;
+      renderHalaqas();
+      toast('تم حفظ إعدادات الحلقة');
+    }
+
+    function adminHalaqaAttendancePill(attendance) {
+      const key = String(attendance || '').trim();
+      const label = ATTENDANCE.find((a) => a.key === key)?.label || 'غير محدد';
+      let cls = 'other';
+      if (['present', 'late'].includes(key)) cls = 'present';
+      else if (['absent', 'dropped'].includes(key)) cls = 'absent';
+      else if (key === 'excused') cls = 'excused';
+      else if (key === 'remote') cls = 'remote';
+      return `<span class="ops-att-pill ${cls}">${label}</span>`;
+    }
+
+    function adminGradeDot(grade) {
+      const value = Number(gradeToScore(grade));
+      if (!Number.isFinite(value) || value <= 0) return '<span class="ops-grade-dot">—</span>';
+      const cls = value >= 8 ? 'good' : (value >= 5 ? 'mid' : 'low');
+      return `<span class="ops-grade-dot ${cls}">${value}</span>`;
+    }
+
+    function adminHalaqaDaysInRange(range) {
+      const out = [];
+      const start = parseISODate(range.startISO);
+      const end = parseISODate(range.endISO);
+      if (!start || !end) return out;
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        out.push({ iso: dateToISO(cursor), dayName: reportDayName(cursor.getDay()) });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return out;
+    }
+
+    function adminHalaqaWeekTabHtml(halaqa) {
+      const range = weekRangeFromDate(todayISO());
+      const days = adminHalaqaDaysInRange(range);
+      const scheduleDays = new Set(Array.isArray(halaqa.scheduleDays) && halaqa.scheduleDays.length ? halaqa.scheduleDays : (SCHEDULE_PRESETS[halaqa.scheduleType || 'sun-wed'] || []));
+      const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
+        .slice()
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+      return `
+        <div class="ops-table-wrap">
+          <table class="ops-table ops-days-table">
+            <thead>
+              <tr>
+                <th>الطالب</th>
+                ${days.map((d) => `<th class="cell">${d.dayName}<br/><span class="muted" style="font-size:10px;">${d.iso.slice(5)}</span></th>`).join('')}
+                <th>إجمالي آيات الأسبوع</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${students.length ? students.map((student) => {
+                const logsWeek = (state.db.logs || []).filter((l) => l.halaqaId === halaqa.id && l.studentId === student.id && l.date >= range.startISO && l.date <= range.endISO);
+                const totalAya = logsWeek.reduce((sum, l) => sum + Number(l.ayaCount || 0), 0);
+                const cells = days.map((d) => {
+                  if (!scheduleDays.has(d.dayName)) return '<td class="cell ops-cell-off">—</td>';
+                  const attendance = adminHalaqaAttendanceStatus(student.id, halaqa.id, d.iso);
+                  if (attendance === 'absent' || attendance === 'dropped') return '<td class="cell ops-cell-abs">غ</td>';
+                  if (attendance === 'excused') return '<td class="cell ops-cell-exc">إ</td>';
+                  if (attendance === 'present' || attendance === 'late' || attendance === 'remote') return '<td class="cell ops-cell-ok">✓</td>';
+                  return '<td class="cell ops-cell-empty">—</td>';
+                }).join('');
+                return `
+                  <tr>
+                    <td>${escapeAttr(student.name || '-')}</td>
+                    ${cells}
+                    <td><b>${totalAya}</b></td>
+                  </tr>
+                `;
+              }).join('') : '<tr><td colspan="9" class="muted">لا يوجد طلاب في الحلقة.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function adminHalaqaStudentsTabHtml(halaqa) {
+      const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
+        .slice()
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+      return `
+        <div class="ops-table-wrap">
+          <table class="ops-table">
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>الهوية</th>
+                <th>المرحلة</th>
+                <th>الغيابات</th>
+                <th>النقاط</th>
+                <th>آخر حفظ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${students.length ? students.map((student) => `
+                <tr>
+                  <td>${escapeAttr(student.name || '-')}</td>
+                  <td>${compactName(student.nationalId || '') ? escapeAttr(student.nationalId) : '<span style="color:#b91c1c; font-weight:800;">هوية ناقصة</span>'}</td>
+                  <td>${escapeAttr(student.grade || '-')}</td>
+                  <td>${Number(student.absentCount || 0)}</td>
+                  <td>${Number(student.points || 0)}</td>
+                  <td>${student.lastHifdhSurah ? `${escapeAttr(student.lastHifdhSurah)} (${escapeAttr(student.lastHifdhAya || '-')})` : '—'}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="6" class="muted">لا يوجد طلاب في الحلقة.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function adminHalaqaSettingsTabHtml(halaqa) {
+      const canEdit = isAdmin() || (currentUser()?.role === 'supervisor');
+      const scheduleDays = Array.isArray(halaqa.scheduleDays) && halaqa.scheduleDays.length ? halaqa.scheduleDays : (SCHEDULE_PRESETS[halaqa.scheduleType || 'sun-wed'] || []);
+      return `
+        <div class="card" style="border-style:dashed;">
+          <div class="ops-form-grid">
+            <div>
+              <div class="field-label">اسم الحلقة</div>
+              <input id="opsSetHalaqaName" value="${escapeAttr(halaqa.circleName || '')}" ${canEdit ? '' : 'disabled'} />
+            </div>
+            <div>
+              <div class="field-label">المعلم</div>
+              <select id="opsSetHalaqaTeacher" ${canEdit ? '' : 'disabled'}>${adminTeacherOptionsHtml(halaqa.teacherName || '', halaqa.section || 'mens')}</select>
+            </div>
+            <div>
+              <div class="field-label">وقت الحلقة</div>
+              <select id="opsSetHalaqaTime" ${canEdit ? '' : 'disabled'}>
+                ${Object.entries(HALAQA_TIME_LABELS).map(([value, label]) => `<option value="${value}" ${String(halaqa.timeSlot || 'after_asr') === value ? 'selected' : ''}>${label}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <div class="field-label">نوع الحلقة</div>
+              <select id="opsSetHalaqaMode" ${canEdit ? '' : 'disabled'}>
+                <option value="onsite" ${halaqa.deliveryMode === 'onsite' ? 'selected' : ''}>حضوري</option>
+                <option value="remote" ${halaqa.deliveryMode === 'remote' ? 'selected' : ''}>عن بعد</option>
+                <option value="hybrid" ${halaqa.deliveryMode === 'hybrid' ? 'selected' : ''}>هجين</option>
+              </select>
+            </div>
+            <div>
+              <div class="field-label">القسم</div>
+              <select id="opsSetHalaqaSection" ${canEdit ? '' : 'disabled'}>
+                <option value="mens" ${halaqa.section === 'mens' ? 'selected' : ''}>البنين</option>
+                <option value="womens" ${halaqa.section === 'womens' ? 'selected' : ''}>البنات</option>
+              </select>
+            </div>
+            <div>
+              <div class="field-label">الأيام</div>
+              <div class="ops-day-checks">${adminHalaqaDayChecksHtml('opsSetDays', scheduleDays)}</div>
+            </div>
+          </div>
+          ${canEdit ? `<div class="ops-v2-actions" style="margin-top:10px;"><button class="btn btn-primary" onclick="adminHalaqaSaveSettings()">حفظ الإعدادات</button></div>` : '<p class="muted" style="margin-top:8px;">وضع العرض فقط.</p>'}
+        </div>
+      `;
+    }
+
+    function adminHalaqaDetailContent(halaqa, snapshot) {
+      const flow = adminHalaqaFlow();
+      if (flow.tab === 'week') return adminHalaqaWeekTabHtml(halaqa);
+      if (flow.tab === 'students') return adminHalaqaStudentsTabHtml(halaqa);
+      if (flow.tab === 'settings') return adminHalaqaSettingsTabHtml(halaqa);
+      const rows = snapshot.rows || [];
+      return `
+        <div class="ops-table-wrap">
+          <table class="ops-table">
+            <thead>
+              <tr>
+                <th>الطالب</th>
+                <th>الحضور</th>
+                <th>سورة الحفظ</th>
+                <th>من آية</th>
+                <th>إلى آية</th>
+                <th>تقدير الحفظ</th>
+                <th>سورة المراجعة</th>
+                <th>تقدير المراجعة</th>
+                <th>ملاحظة المعلم</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.length ? rows.map((row) => `
+                <tr class="${row.attendance === 'absent' ? 'ops-absent-row' : ''}">
+                  <td>
+                    <div class="ops-student-chip">
+                      <span class="ops-avatar">${escapeAttr((compactName(row.student.name || 'طالب').split(' ')[0] || 'ط').slice(0, 1))}</span>
+                      <span>${escapeAttr(row.student.name || '-')}</span>
+                    </div>
+                  </td>
+                  <td>${adminHalaqaAttendancePill(row.attendance)}</td>
+                  <td>${row.hifdh ? escapeAttr(row.hifdh.surahName || '-') : '—'}</td>
+                  <td>${row.hifdh ? Number(row.hifdh.fromAya || 1) : '—'}</td>
+                  <td>${row.hifdh ? Number(row.hifdh.toAya || 1) : '—'}</td>
+                  <td>${adminGradeDot(row.hifdh?.grade || '')}</td>
+                  <td>${row.revision ? escapeAttr(row.revision.surahName || '-') : '—'}</td>
+                  <td>${adminGradeDot(row.revision?.grade || '')}</td>
+                  <td>${escapeAttr(row.notesText || '—')}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="9" class="muted">لا توجد بيانات اليوم لهذه الحلقة.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function adminHalaqaRenderList(section) {
+      const flow = adminHalaqaFlow();
+      const cards = $('halaqaCards');
+      const halaqas = adminHalaqaListBySection(section);
+      const snapshots = halaqas.map((h) => adminHalaqaTodaySnapshot(h, todayISO()));
+      const totals = {
+        totalHalaqas: halaqas.length,
+        recorded: snapshots.filter((s) => s.statusKey === 'recorded').length,
+        missing: snapshots.filter((s) => s.statusKey === 'not-recorded').length,
+        students: snapshots.reduce((sum, s) => sum + s.students.length, 0),
+      };
+      const rowsHtml = snapshots.map((snap) => {
+        const score = halaqaQuality(snap.halaqa.id).score;
+        const statusHtml = adminHalaqaStatusBadge(snap.statusKey);
+        const missingReasonBtn = snap.statusKey === 'not-recorded'
+          ? `<button class="btn btn-light" onclick="event.stopPropagation(); adminHalaqaOpenReasonModal('${snap.halaqa.id}')">⚠ سجّل سبب</button>`
+          : '';
+        return `
+          <tr class="ops-row-click" onclick="adminHalaqaOpenDetail('${snap.halaqa.id}')">
+            <td><b>${escapeAttr(snap.halaqa.circleName || '-')}</b></td>
+            <td>${escapeAttr(snap.halaqa.teacherName || '-')}</td>
+            <td>${halaqaTimeLabel(snap.halaqa)}</td>
+            <td>${snap.students.length}</td>
+            <td>${snap.presentCount}/${snap.students.length}</td>
+            <td><div class="ops-mini-bar"><div style="width:${score}%;"></div><span>${score}%</span></div></td>
+            <td>${statusHtml}${snap.dayNote ? `<div class="muted" style="margin-top:4px; font-size:11px;">${escapeAttr(halaqaDayNoteLabel(snap.dayNote))}</div>` : ''}</td>
+            <td class="no-print">${missingReasonBtn}</td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="8" class="muted">لا توجد حلقات في هذا القسم.</td></tr>';
+
+      const reasonModalHtml = flow.reasonModal?.open ? `
+        <div class="ops-modal-backdrop no-print" onclick="if(event.target===this) adminHalaqaCloseReasonModal()">
+          <div class="ops-modal">
+            <div class="ops-modal-head">
+              <h3>سبب عدم إقامة الحلقة اليوم</h3>
+              <button class="btn btn-light" onclick="adminHalaqaCloseReasonModal()">✕</button>
+            </div>
+            <div class="field-label" style="margin-top:10px;">السبب</div>
+            <select id="opsReasonType">
+              <option value="teacher_excused">المعلم مستأذن</option>
+              <option value="holiday">إجازة رسمية</option>
+              <option value="no_session">لا يوجد دوام</option>
+              <option value="emergency">ظرف طارئ</option>
+              <option value="other">سبب آخر</option>
+            </select>
+            <div class="field-label" style="margin-top:8px;">ملاحظة إضافية</div>
+            <textarea id="opsReasonText" placeholder="اكتب ملاحظة مختصرة (اختياري)"></textarea>
+            <div class="ops-v2-actions" style="margin-top:10px;">
+              <button class="btn btn-primary" onclick="adminHalaqaSaveReason()">حفظ السبب</button>
+              <button class="btn btn-light" onclick="adminHalaqaCloseReasonModal()">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      ` : '';
+
+      const createModalHtml = flow.createModalOpen ? `
+        <div class="ops-modal-backdrop no-print" onclick="if(event.target===this) adminHalaqaCloseCreateModal()">
+          <div class="ops-modal">
+            <div class="ops-modal-head">
+              <h3>إنشاء حلقة جديدة</h3>
+              <button class="btn btn-light" onclick="adminHalaqaCloseCreateModal()">✕</button>
+            </div>
+            <div class="ops-form-grid">
+              <div><div class="field-label">اسم الحلقة</div><input id="opsCreateHalaqaName" placeholder="مثال: حلقة الفاروق" /></div>
+              <div><div class="field-label">القسم</div><select id="opsCreateHalaqaSection"><option value="mens" ${section === 'mens' ? 'selected' : ''}>البنين</option><option value="womens" ${section === 'womens' ? 'selected' : ''}>البنات</option></select></div>
+              <div><div class="field-label">المعلم</div><select id="opsCreateHalaqaTeacher">${adminTeacherOptionsHtml('', section)}</select></div>
+              <div><div class="field-label">وقت الحلقة</div><select id="opsCreateHalaqaTime">${Object.entries(HALAQA_TIME_LABELS).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select></div>
+              <div><div class="field-label">نوع الحلقة</div><select id="opsCreateHalaqaMode"><option value="onsite">حضوري</option><option value="remote">عن بعد</option><option value="hybrid">هجين</option></select></div>
+              <div><div class="field-label">الأيام</div><div class="ops-day-checks">${adminHalaqaDayChecksHtml('opsCreateDays', SCHEDULE_PRESETS['sun-wed'])}</div></div>
+            </div>
+            <div class="ops-v2-actions" style="margin-top:10px;">
+              <button class="btn btn-primary" onclick="adminHalaqaCreate()">إضافة الحلقة</button>
+              <button class="btn btn-light" onclick="adminHalaqaCloseCreateModal()">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      ` : '';
+
+      cards.className = '';
+      cards.innerHTML = `
+        <div class="ops-v2-shell">
+          <div class="ops-v2-head no-print">
+            <div>
+              <h2 class="ops-v2-title">حلقات قسم ${adminSectionLabel(section)}</h2>
+              <p class="ops-v2-sub">المستوى الأول: قائمة حلقات القسم مع حالة اليوم.</p>
+            </div>
+            <div class="ops-v2-actions">
+              <button class="btn btn-light" onclick="adminHalaqaSwitchSection()">⇄ تبديل القسم</button>
+              ${isAdmin() ? '<button class="btn btn-primary" onclick="adminHalaqaOpenCreateModal()">+ حلقة جديدة</button>' : ''}
+            </div>
+          </div>
+          <div class="ops-kpi-grid">
+            <div class="ops-kpi-card"><span>إجمالي الحلقات</span><b>${totals.totalHalaqas}</b></div>
+            <div class="ops-kpi-card"><span>سُجّلت اليوم</span><b>${totals.recorded}</b></div>
+            <div class="ops-kpi-card"><span>لم تُسجّل</span><b>${totals.missing}</b></div>
+            <div class="ops-kpi-card"><span>إجمالي الطلاب</span><b>${totals.students}</b></div>
+          </div>
+          <div class="ops-table-wrap">
+            <table class="ops-table">
+              <thead>
+                <tr>
+                  <th>اسم الحلقة</th>
+                  <th>المعلم</th>
+                  <th>الوقت</th>
+                  <th>عدد الطلاب</th>
+                  <th>الحضور اليوم</th>
+                  <th>أداء الأسبوع</th>
+                  <th>حالة اليوم</th>
+                  <th class="no-print">إجراء</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+          ${reasonModalHtml}
+          ${createModalHtml}
+        </div>
+      `;
+    }
+
+    function adminHalaqaRenderSectionChooser() {
+      const cards = $('halaqaCards');
+      const sections = adminHalaqaAllowedSections();
+      const statsRows = sections.map((section) => adminHalaqaSectionStats(section));
+      cards.className = '';
+      cards.innerHTML = `
+        <div class="ops-v2-shell">
+          <div class="ops-v2-head">
+            <div>
+              <h2 class="ops-v2-title">اختر القسم</h2>
+              <p class="ops-v2-sub">الصفحة الأولى: اختر بين قسم البنين أو البنات لعرض حلقاته.</p>
+            </div>
+          </div>
+          <div class="ops-sec-grid">${statsRows.map((stats) => adminHalaqaSectionCardHTML(stats)).join('')}</div>
+        </div>
+      `;
+    }
+
+    function adminHalaqaRenderDetail(section, halaqaId) {
+      const flow = adminHalaqaFlow();
+      const cards = $('halaqaCards');
+      const halaqa = adminHalaqaListBySection(section).find((h) => h.id === halaqaId) || null;
+      if (!halaqa) {
+        flow.view = 'list';
+        flow.halaqaId = '';
+        return adminHalaqaRenderList(section);
+      }
+      const snapshot = adminHalaqaTodaySnapshot(halaqa, todayISO());
+      const tab = ['today', 'week', 'students', 'settings'].includes(flow.tab) ? flow.tab : 'today';
+      flow.tab = tab;
+      cards.className = '';
+      cards.innerHTML = `
+        <div class="ops-v2-shell">
+          <div class="ops-detail-head">
+            <div class="ops-v2-head">
+              <div>
+                <h2 class="ops-v2-title" style="color:#f0fdf4;">${escapeAttr(halaqa.circleName || '-')}</h2>
+                <p class="ops-v2-sub" style="color:#dcfce7;">المعلم: ${escapeAttr(halaqa.teacherName || '-')} • الوقت: ${halaqaTimeLabel(halaqa)} • الأيام: ${scheduleTypeLabel(halaqa)}</p>
+              </div>
+              <div class="ops-v2-actions no-print">
+                <button class="btn btn-light" onclick="adminHalaqaBackToList()">↩ الحلقات</button>
+                <button class="btn btn-light" onclick="adminHalaqaSwitchSection()">⇄ تبديل القسم</button>
+              </div>
+            </div>
+            <div class="ops-quick">
+              <b>حاضر: ${snapshot.presentCount}</b>
+              <b>غائب: ${snapshot.absentCount}</b>
+              <b>إجمالي: ${snapshot.students.length}</b>
+            </div>
+          </div>
+          <div class="ops-tabs no-print">
+            <button class="ops-tab-btn ${tab === 'today' ? 'active' : ''}" onclick="adminHalaqaSetTab('today')">اليوم</button>
+            <button class="ops-tab-btn ${tab === 'week' ? 'active' : ''}" onclick="adminHalaqaSetTab('week')">الأسبوع</button>
+            <button class="ops-tab-btn ${tab === 'students' ? 'active' : ''}" onclick="adminHalaqaSetTab('students')">الطلاب</button>
+            <button class="ops-tab-btn ${tab === 'settings' ? 'active' : ''}" onclick="adminHalaqaSetTab('settings')">الإعدادات</button>
+          </div>
+          ${adminHalaqaDetailContent(halaqa, snapshot)}
+        </div>
+      `;
+    }
+
+    function renderHalaqas() {
+      const u = currentUser();
+      if (!u) return;
+      $('sessionLabel').textContent = u ? `المستخدم: ${u.name} | الدور: ${u.role}` : '';
+      if (isTeacher()) return;
+
+      injectAdminOpsV2Styles();
+      const createBox = $('createHalaqaBox');
+      const annPanel = $('halaqaAnnouncements');
+      const detailPanel = $('halaqaDetail');
+      if (createBox) createBox.classList.add('hidden');
+      if (annPanel) { annPanel.classList.add('hidden'); annPanel.innerHTML = ''; }
+      if (detailPanel) { detailPanel.classList.add('hidden'); detailPanel.innerHTML = ''; }
+
+      const cards = $('halaqaCards');
+      if (!cards) return;
+
+      const flow = adminHalaqaFlow();
+      const allowedSections = adminHalaqaAllowedSections();
+      if (!allowedSections.length) {
+        cards.innerHTML = '<div class="card">لا توجد صلاحية لعرض الحلقات.</div>';
+        return;
+      }
+      if (!flow.section && allowedSections.length === 1) {
+        flow.section = allowedSections[0];
+        flow.view = 'list';
+      }
+      if (flow.section && !allowedSections.includes(flow.section)) {
+        flow.section = allowedSections[0];
+        flow.view = 'list';
+      }
+      if (!flow.section || flow.view === 'section') return adminHalaqaRenderSectionChooser();
+      if (flow.view === 'detail' && flow.halaqaId) return adminHalaqaRenderDetail(flow.section, flow.halaqaId);
+      return adminHalaqaRenderList(flow.section);
+    }
+
+    function adminReportAllowedHalaqas() {
+      const u = currentUser();
+      if (!u) return [];
+      let rows = [];
+      if (u.role === 'supervisor') {
+        rows = adminHalaqaListBySection(normalizeSection(u.section || state.section));
+      } else {
+        rows = (state.db.halaqas || [])
+          .slice()
+          .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+      }
+      return rows;
+    }
+
+    function adminReportDateLabel(dateISO) {
+      const dateObj = parseISODate(dateISO) || new Date();
+      const greg = new Intl.DateTimeFormat('ar-SA', { month: 'long', year: 'numeric' }).format(dateObj);
+      const hijri = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', { month: 'long', year: 'numeric' }).format(dateObj);
+      return { greg, hijri };
+    }
+
+    function adminReportRange(periodMode, refDateISO) {
+      const normalized = normalizeISODate(refDateISO, todayISO());
+      if (periodMode === 'yearly') {
+        const year = (parseISODate(normalized) || new Date()).getFullYear();
+        return { startISO: `${year}-01-01`, endISO: `${year}-12-31` };
+      }
+      return monthRangeFromDate(normalized);
+    }
+
+    function adminReportStatusWeight(status) {
+      if (status === 'present' || status === 'late' || status === 'remote') return 1;
+      if (status === 'excused') return 0.5;
+      return 0;
+    }
+
+    function adminReportAttendanceAvg(students, halaqa, range) {
+      const schedule = new Set(Array.isArray(halaqa.scheduleDays) && halaqa.scheduleDays.length ? halaqa.scheduleDays : (SCHEDULE_PRESETS[halaqa.scheduleType || 'sun-wed'] || []));
+      const days = adminHalaqaDaysInRange(range).filter((d) => schedule.has(d.dayName));
+      const denominator = Math.max(1, students.length * days.length);
+      let score = 0;
+      students.forEach((student) => {
+        days.forEach((day) => {
+          const attendance = adminHalaqaAttendanceStatus(student.id, halaqa.id, day.iso);
+          score += adminReportStatusWeight(attendance);
+        });
+      });
+      return Math.round((score / denominator) * 100);
+    }
+
+    function adminReportWeeklyAttendance(students, halaqa, refDateISO) {
+      const base = normalizeISODate(refDateISO, todayISO());
+      const out = [];
+      for (let idx = 3; idx >= 0; idx -= 1) {
+        const ref = addDaysISO(base, -idx * 7);
+        const wr = weekRangeFromDate(ref);
+        out.push({
+          label: `أسبوع ${4 - idx}`,
+          range: wr,
+          percent: adminReportAttendanceAvg(students, halaqa, wr),
+        });
+      }
+      return out;
+    }
+
+    function adminReportGradeBuckets(logs) {
+      const result = { excellent: 0, good: 0, monitor: 0 };
+      (logs || []).forEach((log) => {
+        const g = Number(gradeToScore(log.grade));
+        if (!Number.isFinite(g) || g <= 0) return;
+        if (g >= 8) result.excellent += 1;
+        else if (g >= 5) result.good += 1;
+        else result.monitor += 1;
+      });
+      return result;
+    }
+
+    function adminReportTopStudents(students, halaqa, range) {
+      return students.map((student) => {
+        const logs = (state.db.logs || []).filter((l) => l.halaqaId === halaqa.id && l.studentId === student.id && l.date >= range.startISO && l.date <= range.endISO);
+        const totalAya = logs.reduce((sum, l) => sum + Number(l.ayaCount || 0), 0);
+        const gradeRows = logs.map((l) => Number(gradeToScore(l.grade))).filter((n) => Number.isFinite(n) && n > 0);
+        const avgGrade = gradeRows.length ? (gradeRows.reduce((sum, n) => sum + n, 0) / gradeRows.length) : 0;
+        const attendanceRate = adminReportAttendanceAvg([student], halaqa, range);
+        return {
+          student,
+          totalAya,
+          avgGrade,
+          attendanceRate,
+        };
+      }).sort((a, b) =>
+        Number(b.totalAya || 0) - Number(a.totalAya || 0)
+        || Number(b.avgGrade || 0) - Number(a.avgGrade || 0)
+        || String(a.student?.name || '').localeCompare(String(b.student?.name || ''), 'ar')
+      );
+    }
+
+    function adminReportHeatStatus(studentId, halaqaId, iso, schedule) {
+      const dayName = reportDayName((parseISODate(iso) || new Date()).getDay());
+      if (!schedule.has(dayName)) return 'off';
+      const attendance = adminHalaqaAttendanceStatus(studentId, halaqaId, iso);
+      if (attendance === 'absent' || attendance === 'dropped') return 'abs';
+      if (attendance === 'excused') return 'exc';
+      if (attendance === 'present' || attendance === 'late' || attendance === 'remote') return 'ok';
+      return 'off';
+    }
+
+    function adminReportSetHalaqa(halaqaId) {
+      const flow = adminReportFlow();
+      flow.halaqaId = String(halaqaId || '').trim();
+      renderReports();
+    }
+
+    function adminReportSetPeriod(mode) {
+      const flow = adminReportFlow();
+      flow.periodMode = mode === 'yearly' ? 'yearly' : 'monthly';
+      renderReports();
+    }
+
+    function adminReportSetDate(dateISO) {
+      const flow = adminReportFlow();
+      flow.refDate = normalizeISODate(dateISO || todayISO(), todayISO());
+      renderReports();
+    }
+
+    function adminReportSetNote(value) {
+      const flow = adminReportFlow();
+      flow.supervisorNote = String(value || '');
+    }
+
+    function adminReportPrint() {
+      window.print();
+    }
+
+    function adminReportShareLink() {
+      const flow = adminReportFlow();
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'reports');
+      if (flow.halaqaId) url.searchParams.set('halaqa', flow.halaqaId);
+      url.searchParams.set('period', flow.periodMode || 'monthly');
+      url.searchParams.set('date', flow.refDate || todayISO());
+      const text = url.toString();
+      navigator.clipboard.writeText(text).then(() => {
+        toast('تم نسخ رابط التقرير للمشاركة', 'ok');
+      }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('تم نسخ الرابط');
+      });
+    }
+
+    function renderReports() {
+      const u = currentUser();
+      if (!u) return;
+      if (isTeacher()) return;
+      injectAdminOpsV2Styles();
+      const view = $('view-reports');
+      if (!view) return;
+      const flow = adminReportFlow();
+      const halaqas = adminReportAllowedHalaqas();
+      if (!halaqas.length) {
+        view.innerHTML = '<div class="card">لا توجد حلقات متاحة لعرض التقرير.</div>';
+        return;
+      }
+      if (!flow.halaqaId || !halaqas.some((h) => h.id === flow.halaqaId)) flow.halaqaId = halaqas[0].id;
+      const selected = halaqas.find((h) => h.id === flow.halaqaId) || halaqas[0];
+      const periodMode = flow.periodMode === 'yearly' ? 'yearly' : 'monthly';
+      flow.periodMode = periodMode;
+      flow.refDate = normalizeISODate(flow.refDate || todayISO(), todayISO());
+      const range = adminReportRange(periodMode, flow.refDate);
+      const monthRange = monthRangeFromDate(flow.refDate);
+      const dateLabel = adminReportDateLabel(flow.refDate);
+      const students = (state.indexes?.studentsByHalaqa?.[selected.id] || [])
+        .slice()
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+      const logsRange = (state.db.logs || []).filter((l) => l.halaqaId === selected.id && l.date >= range.startISO && l.date <= range.endISO);
+      const hifdhLogs = logsRange.filter((l) => l.type === 'hifdh');
+      const avgAttendance = adminReportAttendanceAvg(students, selected, range);
+      const avgHifdhGradeRows = hifdhLogs.map((l) => Number(gradeToScore(l.grade))).filter((n) => Number.isFinite(n) && n > 0);
+      const avgHifdhGrade = avgHifdhGradeRows.length ? (avgHifdhGradeRows.reduce((sum, n) => sum + n, 0) / avgHifdhGradeRows.length) : 0;
+      const totalHifdhAya = hifdhLogs.reduce((sum, l) => sum + Number(l.ayaCount || 0), 0);
+
+      const weeklySeries = adminReportWeeklyAttendance(students, selected, flow.refDate);
+      const gradeBuckets = adminReportGradeBuckets(logsRange);
+      const gradeTotal = Math.max(1, gradeBuckets.excellent + gradeBuckets.good + gradeBuckets.monitor);
+      const exDeg = Math.round((gradeBuckets.excellent / gradeTotal) * 360);
+      const goodDeg = Math.round((gradeBuckets.good / gradeTotal) * 360);
+      const donutStyle = `background: conic-gradient(#16a34a 0deg ${exDeg}deg, #f59e0b ${exDeg}deg ${exDeg + goodDeg}deg, #ef4444 ${exDeg + goodDeg}deg 360deg);`;
+
+      const topStudents = adminReportTopStudents(students, selected, range).slice(0, 4);
+      const maxTopAya = Math.max(1, ...topStudents.map((row) => Number(row.totalAya || 0)));
+      const heatDays = adminHalaqaDaysInRange(monthRange);
+      const schedule = new Set(Array.isArray(selected.scheduleDays) && selected.scheduleDays.length ? selected.scheduleDays : (SCHEDULE_PRESETS[selected.scheduleType || 'sun-wed'] || []));
+
+      const logo = state.db?.settings?.logoDataUrl || '';
+      const issueDate = new Date().toLocaleString('ar-SA');
+
+      view.innerHTML = `
+        <div class="ops-report-page">
+          <div class="card no-print">
+            <div class="ops-report-top">
+              <div class="ops-report-filters">
+                <div>
+                  <div class="field-label">الحلقة</div>
+                  <select onchange="adminReportSetHalaqa(this.value)">
+                    ${halaqas.map((h) => `<option value="${h.id}" ${h.id === selected.id ? 'selected' : ''}>${escapeAttr(h.circleName)} (${adminSectionLabel(h.section)})</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <div class="field-label">الفترة</div>
+                  <select onchange="adminReportSetPeriod(this.value)">
+                    <option value="monthly" ${periodMode === 'monthly' ? 'selected' : ''}>شهري</option>
+                    <option value="yearly" ${periodMode === 'yearly' ? 'selected' : ''}>سنوي</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="field-label">التاريخ المرجعي</div>
+                  <input type="date" value="${flow.refDate}" onchange="adminReportSetDate(this.value)" />
+                </div>
+              </div>
+              <div class="ops-report-actions">
+                <button class="btn btn-light" onclick="adminReportPrint()">طباعة PDF</button>
+                <button class="btn btn-primary" onclick="adminReportShareLink()">مشاركة الرابط</button>
+              </div>
+            </div>
+          </div>
+
+          <article class="ops-report-paper">
+            <header class="ops-report-hero">
+              <div class="ops-report-hero-top">
+                <div class="ops-report-brand">
+                  ${logo ? `<img src="${logo}" alt="شعار الجمعية" />` : ''}
+                  <div>
+                    <h2>جمعية تحفيظ القران الكريم بالقاعد</h2>
+                    <p>تقرير الحلقة الرسمي للمجلس والكافلين</p>
+                  </div>
+                </div>
+                <div style="text-align:left; font-size:12px;">
+                  <div>الفترة: ${range.startISO} ⟵ ${range.endISO}</div>
+                  <div style="margin-top:4px;">هجري: ${dateLabel.hijri}</div>
+                  <div style="margin-top:2px;">ميلادي: ${dateLabel.greg}</div>
+                </div>
+              </div>
+              <div class="ops-report-meta">
+                <span>الحلقة: ${escapeAttr(selected.circleName || '-')}</span>
+                <span>القسم: ${adminSectionLabel(selected.section)}</span>
+                <span>المعلم: ${escapeAttr(selected.teacherName || '-')}</span>
+                <span>الوقت: ${halaqaTimeLabel(selected)}</span>
+                <span>الأيام: ${scheduleTypeLabel(selected)}</span>
+                <span>النوع: ${adminDeliveryModeLabel(selected.deliveryMode)}</span>
+              </div>
+            </header>
+
+            <div class="ops-report-body">
+              <div class="ops-report-kpis">
+                <div class="ops-report-kpi k1"><span>إجمالي الطلاب</span><b>${students.length}</b></div>
+                <div class="ops-report-kpi k2"><span>متوسط الحضور</span><b>${avgAttendance}%</b></div>
+                <div class="ops-report-kpi k3"><span>متوسط تقدير الحفظ /10</span><b>${avgHifdhGrade ? avgHifdhGrade.toFixed(1) : '0.0'}</b></div>
+                <div class="ops-report-kpi k4"><span>إجمالي الآيات المحفوظة</span><b>${totalHifdhAya}</b></div>
+              </div>
+
+              <div class="ops-report-charts">
+                <div class="ops-chart-card">
+                  <div class="ops-chart-title">نسبة الحضور الأسبوعية (4 أسابيع)</div>
+                  <div class="ops-week-bars">
+                    ${weeklySeries.map((item) => `
+                      <div class="ops-week-col">
+                        <div class="bar" style="height:${Math.max(10, item.percent)}%;"></div>
+                        <b>${item.percent}%</b>
+                        <span>${item.label}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+                <div class="ops-chart-card">
+                  <div class="ops-chart-title">توزيع التقديرات</div>
+                  <div class="ops-donut-wrap">
+                    <div class="ops-donut" style="${donutStyle}"></div>
+                    <div class="ops-donut-legend">
+                      <div><span><i class="ops-dot" style="background:#16a34a;"></i> ممتاز (8-10)</span><b>${gradeBuckets.excellent}</b></div>
+                      <div><span><i class="ops-dot" style="background:#f59e0b;"></i> جيد (5-7)</span><b>${gradeBuckets.good}</b></div>
+                      <div><span><i class="ops-dot" style="background:#ef4444;"></i> يحتاج متابعة (1-4)</span><b>${gradeBuckets.monitor}</b></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ops-top-students">
+                <div class="ops-chart-title">أبرز الطلاب هذا ${periodMode === 'yearly' ? 'العام' : 'الشهر'}</div>
+                ${topStudents.length ? topStudents.map((row, idx) => {
+                  const progress = Math.round((Number(row.totalAya || 0) / maxTopAya) * 100);
+                  return `
+                    <div class="ops-top-row">
+                      <div class="ops-rank">${idx + 1}</div>
+                      <div>
+                        <div class="ops-top-name">${escapeAttr(row.student.name || '-')}</div>
+                        <div class="ops-top-meta">الآيات: ${row.totalAya} • متوسط التقدير: ${row.avgGrade ? row.avgGrade.toFixed(1) : '0.0'} • الحضور: ${row.attendanceRate}%</div>
+                      </div>
+                      <div class="ops-top-progress"><div style="width:${progress}%;"></div></div>
+                    </div>
+                  `;
+                }).join('') : '<p class="muted">لا توجد بيانات كافية لفرز الطلاب في الفترة المحددة.</p>'}
+              </div>
+
+              <div class="ops-chart-card">
+                <div class="ops-chart-title">خريطة الحضور (شهر ${monthRange.startISO.slice(0, 7)})</div>
+                <div class="ops-heat-wrap">
+                  <table class="ops-heat">
+                    <thead>
+                      <tr>
+                        <th class="name">الطالب</th>
+                        ${heatDays.map((day) => `<th>${Number(day.iso.slice(8))}</th>`).join('')}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${students.length ? students.map((student) => `
+                        <tr>
+                          <td class="name">${escapeAttr(student.name || '-')}</td>
+                          ${heatDays.map((day) => {
+                            const status = adminReportHeatStatus(student.id, selected.id, day.iso, schedule);
+                            return `<td class="c-${status}"></td>`;
+                          }).join('')}
+                        </tr>
+                      `).join('') : '<tr><td class="name">لا يوجد طلاب</td></tr>'}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="ops-report-note">
+                <div class="ops-chart-title">ملاحظة المشرف</div>
+                <textarea class="no-print" placeholder="أضف ملاحظة مختصرة قبل مشاركة التقرير..." oninput="adminReportSetNote(this.value)">${escapeAttr(flow.supervisorNote || '')}</textarea>
+                <div class="ops-note-print">${escapeAttr(flow.supervisorNote || 'لا توجد ملاحظة.')}</div>
+              </div>
+
+              <footer class="ops-report-foot">
+                <span>المنصة: منصة متابعة الحلقات</span>
+                <span>الجهة: جمعية تحفيظ القران الكريم بالقاعد</span>
+                <span>تاريخ إصدار التقرير: ${issueDate}</span>
+              </footer>
+            </div>
+          </article>
+        </div>
+      `;
+    }
+
+    const _legacyOpenHalaqa = openHalaqa;
+    const _legacyCloseHalaqa = closeHalaqa;
+    openHalaqa = function(id) {
+      if (isTeacher()) return _legacyOpenHalaqa(id);
+      adminHalaqaOpenDetail(id);
+    };
+    closeHalaqa = function() {
+      if (isTeacher()) return _legacyCloseHalaqa();
+      adminHalaqaBackToList();
+    };
+
     function saveSupervisionNote() {
       const u = currentUser();
       if (!u || (u.role !== 'admin' && u.role !== 'supervisor')) return toast('غير مسموح', 'err');
