@@ -9786,12 +9786,14 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       rebuildIndexes();
       const u = currentUser();
       if (!u) return;
+      const teacherWorkspaceMode = u.role === 'teacher';
 
       if (u.role === 'teacher' || u.role === 'supervisor') {
         state.section = u.section || state.section;
       }
 
       $('appView').setAttribute('data-role', u.role || '');
+      $('appView').setAttribute('data-teacher-workspace', teacherWorkspaceMode ? '1' : '0');
       $('sectionTabs').style.display = (u.role === 'teacher' || u.role === 'supervisor' || u.role === 'board') ? 'none' : 'inline-flex';
       $('appView').setAttribute('data-display-mode', state.displayMode);
       document.querySelectorAll('#displaySwitch button').forEach((btn) => {
@@ -9823,10 +9825,13 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       knightsTab.style.display = isTeacher() ? 'none' : 'inline-block';
       settingsTab.style.display = isAdmin() ? 'inline-block' : 'none';
 
-	      if (isTeacher()) {
+      if (isTeacher()) {
+        state.tab = 'halaqas';
 	        dailyTab.style.display = 'none';
+        studentsTab.style.display = 'none';
 	        staffTab.style.display = 'none';
 	        supervisionTab.style.display = 'none';
+        examsTab.style.display = 'none';
 	        reportsTab.style.display = 'none';
         boardTab.style.display = 'none';
         knightsTab.style.display = 'none';
@@ -10304,93 +10309,1028 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       }
     };
   
-// === PATCH v37: تحسينات واجهة المعلم ===
-// 1. تحسين بطاقات الطلاب في واجهة المعلم لإظهار معلومات إضافية
-// 2. إضافة زر تقرير واتساب في شريط المعلم
-// 3. تحسين عرض الطالب المختار
+// === PATCH v38: إعادة بناء صفحة المعلم (نمط تشغيل يومي) ===
+(function teacherWorkspaceV38() {
+  const TEACHER_TABS = ['halaqas', 'alerts', 'exams'];
+  const TEACHER_ATT = [
+    { key: 'present', label: 'حاضر ✅' },
+    { key: 'absent', label: 'غائب ❌' },
+    { key: 'excused', label: 'مستأذن 🤝' },
+    { key: 'remote', label: 'عن بُعد 📱' },
+    { key: 'dropped', label: 'منقطع ⚠️' },
+  ];
 
-// تعريف دالة getStudentWeeklyAya لحساب آيات الطالب هذا الأسبوع
-function getStudentWeeklyAya(studentId, referenceDate = todayISO()) {
-  const wr = weekRangeFromDate(referenceDate);
-  return logsForStudent(studentId)
-    .filter(l => l.date >= wr.startISO && l.date <= wr.endISO)
-    .reduce((s, l) => s + Number(l.ayaCount || 0), 0);
+  function injectTeacherWorkspaceStyles() {
+    if (document.getElementById('teacherWorkspaceStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'teacherWorkspaceStyles';
+    style.textContent = `
+#appView[data-teacher-workspace="1"] #workflowBanner { display:none !important; }
+#appView[data-teacher-workspace="1"] .ops-sidebar { display:none !important; }
+#appView[data-teacher-workspace="1"] .app-shell { grid-template-columns:1fr !important; }
+#appView[data-teacher-workspace="1"] main { padding-bottom:88px; }
+#appView[data-teacher-workspace="1"] #createHalaqaBox,
+#appView[data-teacher-workspace="1"] #halaqaAnnouncements { display:none !important; }
+.tw-shell { display:grid; gap:10px; padding-bottom:84px; }
+.tw-card { border:1px solid #dbe7db; border-radius:14px; padding:10px; background:#fff; box-shadow:0 8px 20px rgba(15,23,42,0.06); }
+.tw-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+.tw-head h3 { margin:0; font-size:20px; color:#14532d; }
+.tw-head p { margin:0; color:#64748b; font-size:12px; }
+.tw-halaqa-grid { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); }
+.tw-halaqa-item { border:1px solid #dbe7db; border-radius:14px; background:#fff; padding:10px; text-align:right; cursor:pointer; transition:.15s; }
+.tw-halaqa-item:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(15,23,42,0.08); }
+.tw-halaqa-item.done { border-color:#22c55e; background:#f0fdf4; }
+.tw-halaqa-item .name { font-weight:800; color:#166534; font-size:17px; }
+.tw-halaqa-meta { margin-top:6px; display:grid; gap:4px; color:#475569; font-size:13px; }
+.tw-kpi { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.tw-pill { border-radius:999px; background:#f1f5f9; color:#334155; padding:4px 10px; font-size:12px; font-weight:700; }
+.tw-pill.done { background:#dcfce7; color:#166534; }
+.tw-progress { border:1px solid #dbe7db; border-radius:14px; padding:10px; background:#f8fff9; }
+.tw-progress-line { height:10px; border-radius:999px; background:#d1fae5; overflow:hidden; margin-top:6px; }
+.tw-progress-fill { height:100%; background:linear-gradient(90deg,#22c55e,#16a34a); border-radius:999px; }
+.tw-dot-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-top:8px; }
+.tw-dot { border:0; border-radius:10px; padding:7px 4px; font-size:12px; font-weight:800; cursor:pointer; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; }
+.tw-dot.active { box-shadow:0 0 0 2px #0f172a inset; }
+.tw-dot.unset { background:rgba(148,163,184,0.25); color:#334155; }
+.tw-dot.pending { background:#86efac; color:#14532d; }
+.tw-dot.done { background:#059669; color:#fff; }
+.tw-dot.absent { background:#ef4444; color:#fff; }
+.tw-dot.excused { background:#facc15; color:#713f12; }
+.tw-dot.remote { background:#60a5fa; color:#0c4a6e; }
+.tw-dot.dropped { background:#a855f7; color:#fff; }
+.tw-student-name { font-size:22px; font-weight:900; color:#14532d; margin-bottom:8px; }
+.tw-att-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+.tw-att-btn { border:1px solid #d1d5db; border-radius:11px; background:#fff; font-weight:800; padding:8px 6px; cursor:pointer; font-family:inherit; }
+.tw-att-btn.active { border-color:#166534; box-shadow:0 0 0 2px rgba(22,101,52,.2); }
+.tw-att-btn.present.active { background:#dcfce7; color:#14532d; }
+.tw-att-btn.absent.active { background:#fee2e2; color:#991b1b; }
+.tw-att-btn.excused.active { background:#fef9c3; color:#713f12; }
+.tw-att-btn.remote.active { background:#dbeafe; color:#1e3a8a; }
+.tw-att-btn.dropped.active { background:#f3e8ff; color:#6b21a8; }
+.tw-entry-section { border:1px solid #e2e8f0; border-radius:12px; padding:8px; margin-top:8px; background:#fff; }
+.tw-entry-section.disabled { opacity:.45; pointer-events:none; }
+.tw-entry-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.tw-entry-head h4 { margin:0; font-size:15px; color:#334155; }
+.tw-entry-row { display:grid; grid-template-columns: minmax(0,1.4fr) minmax(90px,.7fr) minmax(90px,.7fr) auto; gap:6px; margin-bottom:6px; }
+.tw-entry-row .del { border:1px solid #ef4444; color:#991b1b; background:#fff; border-radius:10px; width:36px; cursor:pointer; }
+.tw-grade-row { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+.tw-grade-btn { border:1px solid #d1d5db; border-radius:8px; min-width:30px; height:30px; background:#fff; cursor:pointer; font-weight:800; font-family:inherit; }
+.tw-grade-btn.active { background:#16a34a; color:#fff; border-color:#166534; }
+.tw-note { margin-top:8px; }
+.tw-note textarea { min-height:68px; }
+.tw-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.tw-actions .btn { flex:1 1 150px; }
+.tw-undo { margin-top:8px; background:#fff7ed; border:1px solid #fdba74; color:#9a3412; padding:8px 10px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.tw-summary-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:8px; }
+.tw-summary-box { border:1px solid #e2e8f0; border-radius:12px; padding:8px; background:#fff; }
+.tw-summary-box b { font-size:24px; color:#14532d; display:block; margin-top:4px; }
+.tw-bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:45; background:#ffffff; border-top:1px solid #dbe7db; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
+.tw-nav-btn { border:1px solid #d1d5db; border-radius:11px; background:#fff; padding:8px 6px; font-size:13px; font-weight:800; cursor:pointer; color:#334155; position:relative; font-family:inherit; }
+.tw-nav-btn.active { border-color:#14532d; background:#dcfce7; color:#14532d; }
+.tw-nav-badge { position:absolute; top:-6px; left:8px; background:#ef4444; color:#fff; border-radius:999px; min-width:18px; height:18px; display:grid; place-items:center; font-size:11px; padding:0 4px; }
+.tw-alert-list { display:grid; gap:8px; }
+.tw-alert-item { border:1px solid #e2e8f0; border-radius:12px; padding:8px; background:#fff; }
+.tw-alert-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.tw-alert-kind { display:flex; gap:7px; align-items:center; font-weight:800; color:#334155; }
+.tw-alert-icon { width:28px; height:28px; border-radius:9px; display:grid; place-items:center; }
+.tw-alert-icon.gen { background:#dcfce7; color:#14532d; }
+.tw-alert-icon.holiday { background:#fef9c3; color:#854d0e; }
+.tw-alert-icon.exam { background:#dbeafe; color:#1d4ed8; }
+.tw-exam-grid { display:grid; gap:8px; }
+.tw-exam-item { border:1px solid #dbe7db; border-radius:12px; padding:10px; background:#fff; text-align:right; cursor:pointer; font-family:inherit; }
+.tw-exam-item.done { background:#f8fafc; color:#64748b; border-color:#cbd5e1; cursor:default; }
+.tw-exam-meta { margin-top:6px; color:#475569; font-size:13px; display:grid; gap:4px; }
+.tw-exam-students { display:grid; gap:8px; margin-top:8px; }
+.tw-exam-student { border:1px solid #e2e8f0; border-radius:12px; padding:8px; background:#fff; }
+.tw-score-block { margin-top:6px; }
+.tw-score-title { font-size:12px; color:#334155; margin-bottom:4px; font-weight:700; }
+.tw-score-buttons { display:flex; flex-wrap:wrap; gap:4px; }
+.tw-score-buttons button { border:1px solid #d1d5db; border-radius:8px; min-width:34px; height:30px; background:#fff; cursor:pointer; font-family:inherit; font-weight:800; }
+.tw-score-buttons button.active { background:#0f766e; color:#fff; border-color:#0f766e; }
+@media (max-width:760px){
+  .tw-dot-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .tw-att-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .tw-entry-row { grid-template-columns:1fr 1fr; }
+  .tw-entry-row .del { width:100%; height:34px; }
+  .tw-summary-grid { grid-template-columns:1fr 1fr; }
 }
-window.getStudentWeeklyAya = getStudentWeeklyAya;
-
-function normalizeAdminStudentCardsLayout() {
-  const detail = document.getElementById('halaqaDetail');
-  if (!detail) return;
-  const grid = detail.querySelector('.admin-student-grid');
-  if (!grid || grid.classList.contains('hidden')) return;
-
-  const allCards = Array.from(grid.querySelectorAll('.admin-student-card'));
-  if (!allCards.length) return;
-
-  const directCards = Array.from(grid.children).filter((el) => el.classList && el.classList.contains('admin-student-card'));
-  if (directCards.length === allCards.length) return;
-
-  grid.innerHTML = allCards.map((card) => card.outerHTML).join('');
-}
-
-// تحسين عرض بطاقة الطالب مع إضافة معلومات أسبوعية
-const _orig_renderHalaqaDetail = renderHalaqaDetail;
-function renderHalaqaDetail_enhanced() {
-  _orig_renderHalaqaDetail();
-  normalizeAdminStudentCardsLayout();
-  // إضافة زر واتساب إذا كان المعلم مسجل دخول والحلقة مفتوحة
-  const u = currentUser();
-  if (!u || u.role !== 'teacher' || !state.currentHalaqaId) return;
-  const closeBtnArea = document.querySelector('#halaqaDetail .row.between');
-  if (closeBtnArea && !document.getElementById('wa-report-btn')) {
-    const waBtn = document.createElement('button');
-    waBtn.id = 'wa-report-btn';
-    waBtn.className = 'btn btn-ok no-print';
-    waBtn.style.cssText = 'background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-size:13px;';
-    waBtn.textContent = '📋 تقرير اليوم (واتساب)';
-    waBtn.onclick = copyWeeklyReportToWhatsapp;
-    closeBtnArea.insertBefore(waBtn, closeBtnArea.querySelector('.btn-light'));
+    `;
+    document.head.appendChild(style);
   }
-  // إضافة معلومات آيات الأسبوع على بطاقات الطلاب
-  document.querySelectorAll('.teacher-student-btn').forEach(btn => {
-    const sId = btn.dataset.studentId;
-    if (!sId) return;
-    const aya = getStudentWeeklyAya(sId, getTeacherViewDate());
-    const metaEl = btn.querySelector('.meta');
-    if (metaEl && aya > 0) {
-      if (!metaEl.querySelector('.aya-badge')) {
-        const badge = document.createElement('span');
-        badge.className = 'aya-badge';
-        badge.style.cssText = 'display:inline-block;background:#dcfce7;color:#166534;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-right:4px;';
-        badge.textContent = aya + ' آية';
-        metaEl.insertBefore(badge, metaEl.firstChild);
+
+  function teacherFlow() {
+    if (!state.teacherFlow || typeof state.teacherFlow !== 'object') {
+      state.teacherFlow = {
+        tab: 'halaqas',
+        view: 'list',
+        activeHalaqaId: '',
+        studentIndex: 0,
+        undo: null,
+        sessions: {},
+        examDrafts: {},
+        completedByDate: {},
+        summary: null,
+        autoReturnToken: '',
+      };
+    }
+    if (!TEACHER_TABS.includes(state.teacherFlow.tab)) state.teacherFlow.tab = 'halaqas';
+    return state.teacherFlow;
+  }
+
+  function teacherDateISO() {
+    return todayISO();
+  }
+
+  function teacherSessionKey(halaqaId, dateISO = teacherDateISO()) {
+    return `${String(halaqaId || '').trim()}__${String(dateISO || '').trim()}`;
+  }
+
+  function teacherFirstWord(name) {
+    const compact = compactName(name || '');
+    return compact ? compact.split(' ')[0] : 'طالب';
+  }
+
+  function teacherAttendanceLabel(key) {
+    return ATTENDANCE.find((a) => a.key === key)?.label || 'غير محدد';
+  }
+
+  function teacherDefaultEntry() {
+    return { id: uid('trow'), surahIdx: '', fromAya: 1, toAya: 1, grade: '1' };
+  }
+
+  function teacherSurahOptionsHtml(selectedIdx = '') {
+    const selected = selectedIdx === '' ? '' : String(Number(selectedIdx));
+    const rows = SURAH_DATA.slice().reverse();
+    return `
+      <option value="">اختر السورة</option>
+      ${rows.map((s) => `<option value="${s.n - 1}" ${String(s.n - 1) === selected ? 'selected' : ''}>${s.n}. ${escapeAttr(s.name)} (${s.a})</option>`).join('')}
+    `;
+  }
+
+  function teacherBuildDraftFromStorage(student, halaqaId, dateISO) {
+    const dayLogs = sortLogsByRecency(
+      (state.db.logs || []).filter((l) =>
+        l.halaqaId === halaqaId && l.studentId === student.id && l.date === dateISO
+      )
+    );
+    const rollcallStatus = getRollcall(student.id, halaqaId, dateISO)?.status || '';
+    const attendance = rollcallStatus || (dayLogs[0]?.attendance || '');
+    const note = dayLogs.map((l) => String(l.notes || '').trim()).find(Boolean) || '';
+    const parseRows = (type) => dayLogs
+      .filter((l) => l.type === type)
+      .map((l) => ({
+        id: uid('trow'),
+        surahIdx: Number.isFinite(Number(l.surahIdx)) ? Number(l.surahIdx) : '',
+        fromAya: Number(l.fromAya || 1),
+        toAya: Number(l.toAya || 1),
+        grade: String(l.grade || '1'),
+      }));
+    const hifdhEntries = parseRows('hifdh');
+    const revisionEntries = parseRows('revision');
+    return {
+      attendance,
+      hifdhEntries: hifdhEntries.length ? hifdhEntries : [teacherDefaultEntry()],
+      revisionEntries: revisionEntries.length ? revisionEntries : [teacherDefaultEntry()],
+      note,
+    };
+  }
+
+  function teacherGetDraft(halaqaId, studentId, dateISO = teacherDateISO(), create = true) {
+    const flow = teacherFlow();
+    const key = teacherSessionKey(halaqaId, dateISO);
+    if (!flow.sessions[key]) flow.sessions[key] = { students: {} };
+    const box = flow.sessions[key].students;
+    if (!box[studentId] && create) {
+      const student = state.db.students.find((s) => s.id === studentId && s.halaqaId === halaqaId);
+      if (!student) return null;
+      box[studentId] = teacherBuildDraftFromStorage(student, halaqaId, dateISO);
+    }
+    return box[studentId] || null;
+  }
+
+  function teacherRowsValid(rows = []) {
+    return (rows || []).map((row) => {
+      if (row.surahIdx === '' || row.surahIdx === null || typeof row.surahIdx === 'undefined') return null;
+      const surahIdx = Number(row.surahIdx);
+      if (!Number.isFinite(surahIdx) || surahIdx < 0 || surahIdx >= SURAH_DATA.length) return null;
+      const maxAya = Number(SURAH_DATA[surahIdx]?.a || 1);
+      const fromAya = clamp(Number(row.fromAya || 1), 1, maxAya);
+      const toAya = clamp(Number(row.toAya || 1), 1, maxAya);
+      const grade = String(clamp(Number(row.grade || 1), 1, 10));
+      return { surahIdx, fromAya, toAya, grade };
+    }).filter(Boolean);
+  }
+
+  function teacherHasAnyRecord(draft) {
+    if (!draft) return false;
+    return teacherRowsValid(draft.hifdhEntries).length > 0 || teacherRowsValid(draft.revisionEntries).length > 0;
+  }
+
+  function teacherStatusFromDraft(draft) {
+    const attendance = String(draft?.attendance || '').trim();
+    const hasRecords = teacherHasAnyRecord(draft);
+    if (!attendance) return { className: 'unset', complete: false, label: 'لم يحدد' };
+    if (attendance === 'absent') return { className: 'absent', complete: true, label: 'غائب' };
+    if (attendance === 'dropped') return { className: 'dropped', complete: hasRecords, label: hasRecords ? 'منقطع (مكتمل)' : 'منقطع' };
+    if (attendance === 'excused' && !hasRecords) return { className: 'excused', complete: false, label: 'مستأذن بلا حفظ' };
+    if (attendance === 'remote' && !hasRecords) return { className: 'remote', complete: false, label: 'عن بُعد بلا حفظ' };
+    if (hasRecords) return { className: 'done', complete: true, label: 'مكتمل' };
+    return { className: 'pending', complete: false, label: 'ناقص (بدون حفظ/مراجعة)' };
+  }
+
+  function teacherHalaqaStudents(halaqaId) {
+    return (state.indexes?.studentsByHalaqa?.[halaqaId] || [])
+      .slice()
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+  }
+
+  function teacherHalaqaProgress(halaqaId, dateISO = teacherDateISO()) {
+    const students = teacherHalaqaStudents(halaqaId);
+    const statusRows = students.map((student) => {
+      const draft = teacherGetDraft(halaqaId, student.id, dateISO, true);
+      const status = teacherStatusFromDraft(draft);
+      return { student, draft, status };
+    });
+    const completed = statusRows.filter((row) => row.status.complete).length;
+    return {
+      students,
+      statusRows,
+      completed,
+      remaining: Math.max(0, students.length - completed),
+      percent: students.length ? Math.round((completed / students.length) * 100) : 0,
+    };
+  }
+
+  function teacherIsHalaqaDone(halaqaId, dateISO = teacherDateISO()) {
+    const flow = teacherFlow();
+    const marks = flow.completedByDate[dateISO] || {};
+    if (marks[halaqaId]) return true;
+    const p = teacherHalaqaProgress(halaqaId, dateISO);
+    return p.students.length > 0 && p.remaining === 0;
+  }
+
+  function teacherMarkHalaqaDone(halaqaId, dateISO = teacherDateISO()) {
+    const flow = teacherFlow();
+    if (!flow.completedByDate[dateISO]) flow.completedByDate[dateISO] = {};
+    flow.completedByDate[dateISO][halaqaId] = true;
+  }
+
+  function teacherJumpStudent(index, options = {}) {
+    const flow = teacherFlow();
+    const clearUndo = options.clearUndo !== false;
+    const students = teacherHalaqaStudents(flow.activeHalaqaId);
+    if (!students.length) return;
+    flow.studentIndex = clamp(Number(index || 0), 0, students.length - 1);
+    if (clearUndo) flow.undo = null;
+    flow.view = 'evaluate';
+    renderTeacherWorkspace();
+  }
+
+  function teacherSetAttendance(attendanceKey) {
+    const flow = teacherFlow();
+    const dateISO = teacherDateISO();
+    const students = teacherHalaqaStudents(flow.activeHalaqaId);
+    const student = students[flow.studentIndex];
+    if (!student) return;
+    const draft = teacherGetDraft(flow.activeHalaqaId, student.id, dateISO, true);
+    if (!draft) return;
+    draft.attendance = attendanceKey;
+    renderTeacherWorkspace();
+  }
+
+  function teacherSetEntryField(type, rowIndex, field, value) {
+    const flow = teacherFlow();
+    const dateISO = teacherDateISO();
+    const students = teacherHalaqaStudents(flow.activeHalaqaId);
+    const student = students[flow.studentIndex];
+    if (!student) return;
+    const draft = teacherGetDraft(flow.activeHalaqaId, student.id, dateISO, true);
+    if (!draft) return;
+    const rows = type === 'revision' ? draft.revisionEntries : draft.hifdhEntries;
+    if (!rows[rowIndex]) return;
+    if (field === 'surahIdx') rows[rowIndex][field] = value === '' ? '' : Number(value);
+    else if (field === 'fromAya' || field === 'toAya') rows[rowIndex][field] = Number(value || 1);
+    else rows[rowIndex][field] = value;
+    renderTeacherWorkspace();
+  }
+
+  function teacherAddEntry(type) {
+    const flow = teacherFlow();
+    const dateISO = teacherDateISO();
+    const students = teacherHalaqaStudents(flow.activeHalaqaId);
+    const student = students[flow.studentIndex];
+    if (!student) return;
+    const draft = teacherGetDraft(flow.activeHalaqaId, student.id, dateISO, true);
+    if (!draft) return;
+    const rows = type === 'revision' ? draft.revisionEntries : draft.hifdhEntries;
+    rows.push(teacherDefaultEntry());
+    renderTeacherWorkspace();
+  }
+
+  function teacherRemoveEntry(type, rowIndex) {
+    const flow = teacherFlow();
+    const dateISO = teacherDateISO();
+    const students = teacherHalaqaStudents(flow.activeHalaqaId);
+    const student = students[flow.studentIndex];
+    if (!student) return;
+    const draft = teacherGetDraft(flow.activeHalaqaId, student.id, dateISO, true);
+    if (!draft) return;
+    const rows = type === 'revision' ? draft.revisionEntries : draft.hifdhEntries;
+    if (rows.length <= 1) return;
+    rows.splice(rowIndex, 1);
+    renderTeacherWorkspace();
+  }
+
+  function teacherSetNote(text) {
+    const flow = teacherFlow();
+    const dateISO = teacherDateISO();
+    const students = teacherHalaqaStudents(flow.activeHalaqaId);
+    const student = students[flow.studentIndex];
+    if (!student) return;
+    const draft = teacherGetDraft(flow.activeHalaqaId, student.id, dateISO, true);
+    if (!draft) return;
+    draft.note = String(text || '');
+  }
+
+  function teacherSyncAbsentCount(studentId) {
+    const student = state.db.students.find((s) => s.id === studentId);
+    if (!student) return;
+    student.absentCount = (state.db.rollcall || []).filter((r) => r.studentId === studentId && r.status === 'absent').length;
+  }
+
+  function teacherBuildLog(halaqa, student, dateISO, attendance, type, row, note) {
+    const surah = SURAH_DATA[row.surahIdx];
+    if (!surah) return null;
+    const fromAya = clamp(Number(row.fromAya || 1), 1, surah.a);
+    const toAya = clamp(Number(row.toAya || 1), 1, surah.a);
+    return {
+      id: uid('log'),
+      date: dateISO,
+      syncStatus: navigator.onLine ? 'synced' : 'pending',
+      section: halaqa.section,
+      halaqaId: halaqa.id,
+      studentId: student.id,
+      createdAt: new Date().toISOString(),
+      attendance,
+      grade: String(row.grade || '1'),
+      type,
+      surahIdx: row.surahIdx,
+      surahName: surah.name,
+      fromAya,
+      toAya,
+      ayaCount: ayaCount(fromAya, toAya),
+      pages: { faces: calcFaces(row.surahIdx, fromAya, toAya) },
+      dateMode: 'gregorian',
+      hijriDate: '',
+      notes: String(note || '').trim(),
+      adminNote: '',
+      knightScore: computeKnightScore({ type, attendance }),
+    };
+  }
+
+  function teacherPersistCurrentStudent() {
+    const flow = teacherFlow();
+    const dateISO = teacherDateISO();
+    const halaqa = state.indexes?.halaqaById?.[flow.activeHalaqaId] || null;
+    if (!halaqa) return null;
+    const students = teacherHalaqaStudents(halaqa.id);
+    const student = students[flow.studentIndex];
+    if (!student) return null;
+    const draft = teacherGetDraft(halaqa.id, student.id, dateISO, true);
+    if (!draft) return null;
+    const attendance = String(draft.attendance || '').trim();
+    if (!attendance) {
+      toast('حدد حالة الحضور أولاً قبل الحفظ', 'err');
+      return null;
+    }
+
+    const hRows = teacherRowsValid(draft.hifdhEntries);
+    const rRows = teacherRowsValid(draft.revisionEntries);
+
+    state.db.logs = (state.db.logs || []).filter((l) =>
+      !(l.halaqaId === halaqa.id && l.studentId === student.id && l.date === dateISO)
+    );
+    upsertRollcall(student.id, halaqa.id, dateISO, attendance);
+
+    if (attendance !== 'absent') {
+      hRows.forEach((row) => {
+        const payload = teacherBuildLog(halaqa, student, dateISO, attendance, 'hifdh', row, draft.note);
+        if (payload) state.db.logs.unshift(payload);
+      });
+      rRows.forEach((row) => {
+        const payload = teacherBuildLog(halaqa, student, dateISO, attendance, 'revision', row, draft.note);
+        if (payload) state.db.logs.unshift(payload);
+      });
+    }
+
+    rebuildIndexes();
+    recomputeStudentMetrics(student.id);
+    teacherSyncAbsentCount(student.id);
+    saveDB();
+    rebuildIndexes();
+    return { halaqa, students, student, dateISO };
+  }
+
+  function teacherHasUnfinishedHalaqas(dateISO = teacherDateISO()) {
+    return visibleHalaqas().some((h) => {
+      const p = teacherHalaqaProgress(h.id, dateISO);
+      return p.students.length && p.remaining > 0;
+    });
+  }
+
+  function teacherSaveAndNext() {
+    const flow = teacherFlow();
+    const result = teacherPersistCurrentStudent();
+    if (!result) return;
+    const { halaqa, students, student, dateISO } = result;
+    const idx = flow.studentIndex;
+    const last = idx >= students.length - 1;
+
+    if (last) {
+      teacherMarkHalaqaDone(halaqa.id, dateISO);
+      flow.undo = null;
+      flow.view = 'summary';
+      flow.summary = { halaqaId: halaqa.id, dateISO, studentId: student.id };
+      toast('تم إنهاء الحلقة بنجاح');
+      const multipleHalaqas = visibleHalaqas().length > 1;
+      if (multipleHalaqas && teacherHasUnfinishedHalaqas(dateISO)) {
+        const token = uid('auto');
+        flow.autoReturnToken = token;
+        setTimeout(() => {
+          const current = teacherFlow();
+          if (!isTeacher()) return;
+          if (current.autoReturnToken !== token) return;
+          if (current.view !== 'summary') return;
+          current.view = 'list';
+          current.activeHalaqaId = '';
+          renderTeacherWorkspace();
+        }, 1300);
+      }
+      renderTeacherWorkspace();
+      return;
+    }
+
+    flow.undo = { halaqaId: halaqa.id, index: idx, studentId: student.id };
+    flow.studentIndex = idx + 1;
+    flow.view = 'evaluate';
+    renderTeacherWorkspace();
+    toast('تم حفظ بيانات الطالب');
+  }
+
+  function teacherUndoLastAdvance() {
+    const flow = teacherFlow();
+    if (!flow.undo || flow.undo.halaqaId !== flow.activeHalaqaId) return;
+    flow.studentIndex = clamp(Number(flow.undo.index || 0), 0, 9999);
+    flow.undo = null;
+    flow.view = 'evaluate';
+    renderTeacherWorkspace();
+  }
+
+  function teacherPrevStudent() {
+    const flow = teacherFlow();
+    flow.undo = null;
+    teacherJumpStudent((flow.studentIndex || 0) - 1);
+  }
+
+  function teacherOpenHalaqaFlow(halaqaId) {
+    const target = visibleHalaqas().find((h) => h.id === halaqaId);
+    if (!target) return toast('الحلقة غير متاحة', 'err');
+    const flow = teacherFlow();
+    const p = teacherHalaqaProgress(target.id, teacherDateISO());
+    const firstPending = Math.max(0, p.statusRows.findIndex((row) => !row.status.complete));
+    flow.activeHalaqaId = target.id;
+    flow.studentIndex = firstPending < 0 ? 0 : firstPending;
+    flow.view = 'evaluate';
+    flow.undo = null;
+    flow.summary = null;
+    state.currentHalaqaId = target.id;
+    renderTeacherWorkspace();
+  }
+
+  function teacherBackToHalaqas() {
+    const flow = teacherFlow();
+    flow.view = 'list';
+    flow.activeHalaqaId = '';
+    flow.undo = null;
+    renderTeacherWorkspace();
+  }
+
+  function teacherSetBottomTab(tab) {
+    const flow = teacherFlow();
+    flow.tab = TEACHER_TABS.includes(tab) ? tab : 'halaqas';
+    if (flow.tab !== 'exams') flow.openExamSessionId = '';
+    renderTeacherWorkspace();
+  }
+
+  function teacherUnreadAlertsCount() {
+    const u = currentUser();
+    if (!u) return 0;
+    return visibleAnnouncementsForUser(u).length;
+  }
+
+  function teacherAnnouncementType(announcement) {
+    const text = `${announcement?.title || ''} ${announcement?.body || ''}`;
+    if (text.includes('اختبار')) return { icon: '📝', cls: 'exam', label: 'اختبار' };
+    if (text.includes('إجازة') || text.includes('معايدة') || text.includes('وطني') || text.includes('تأسيس')) {
+      return { icon: '🎉', cls: 'holiday', label: 'إجازة' };
+    }
+    return { icon: '📢', cls: 'gen', label: 'تعميم' };
+  }
+
+  function teacherDismissAlert(id) {
+    const u = currentUser();
+    if (!u) return;
+    const key = announcementViewerKey(u);
+    if (!key) return;
+    const map = loadDismissedAnnouncementsMap();
+    const hidden = new Set(Array.isArray(map[key]) ? map[key].map((x) => String(x || '').trim()).filter(Boolean) : []);
+    hidden.add(String(id || '').trim());
+    map[key] = [...hidden];
+    saveDismissedAnnouncementsMap(map);
+    renderTeacherWorkspace();
+    renderOpsSidebar();
+  }
+
+  function teacherOpenExamSession(sessionId) {
+    const flow = teacherFlow();
+    flow.openExamSessionId = String(sessionId || '');
+    renderTeacherWorkspace();
+  }
+
+  function teacherCloseExamSession() {
+    const flow = teacherFlow();
+    flow.openExamSessionId = '';
+    renderTeacherWorkspace();
+  }
+
+  function teacherExamStudents(session) {
+    return state.db.students
+      .filter((s) => s.halaqaId === session.halaqaId)
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+  }
+
+  function teacherExamResultDraft(sessionId, studentId) {
+    const flow = teacherFlow();
+    const sid = String(sessionId || '');
+    const stid = String(studentId || '');
+    if (!flow.examDrafts[sid]) flow.examDrafts[sid] = {};
+    if (!flow.examDrafts[sid][stid]) {
+      const session = state.db.examSessions.find((s) => s.id === sid);
+      const existing = (session?.results || []).find((r) => r.studentId === stid);
+      flow.examDrafts[sid][stid] = {
+        hifdh: Number(existing?.hifdh ?? 30),
+        tajweed: Number(existing?.tajweed ?? 18),
+        fluency: Number(existing?.fluency ?? 10),
+        revision: Number(existing?.revision ?? 7),
+        discipline: Number(existing?.discipline ?? 8),
+      };
+    }
+    return flow.examDrafts[sid][stid];
+  }
+
+  function teacherExamTotal(draft) {
+    return Number(draft?.hifdh || 0) + Number(draft?.tajweed || 0) + Number(draft?.fluency || 0) + Number(draft?.revision || 0) + Number(draft?.discipline || 0);
+  }
+
+  function teacherSetExamScore(sessionId, studentId, field, value) {
+    const draft = teacherExamResultDraft(sessionId, studentId);
+    draft[field] = Number(value || 0);
+    renderTeacherWorkspace();
+  }
+
+  function teacherSaveExamStudent(sessionId, studentId) {
+    const u = currentUser();
+    if (!u) return toast('غير مسموح', 'err');
+    const session = state.db.examSessions.find((s) => s.id === sessionId);
+    if (!session) return toast('جلسة الاختبار غير موجودة', 'err');
+    const draft = teacherExamResultDraft(sessionId, studentId);
+    const hifdh = clamp(Number(draft.hifdh || 0), 0, 40);
+    const tajweed = clamp(Number(draft.tajweed || 0), 0, 25);
+    const fluency = clamp(Number(draft.fluency || 0), 0, 15);
+    const revision = clamp(Number(draft.revision || 0), 0, 10);
+    const discipline = clamp(Number(draft.discipline || 0), 0, 10);
+    const total = hifdh + tajweed + fluency + revision + discipline;
+    const byTeacher = u.role === 'teacher';
+    const payload = {
+      studentId,
+      hifdh,
+      tajweed,
+      fluency,
+      revision,
+      discipline,
+      total,
+      gradeLabel: examGradeLabel(total),
+      by: u.id,
+      at: todayISO(),
+      status: byTeacher ? 'pending' : 'approved',
+      approvedBy: byTeacher ? '' : u.id,
+      approvedAt: byTeacher ? '' : todayISO(),
+    };
+    const existing = (session.results || []).find((r) => r.studentId === studentId);
+    if (existing) Object.assign(existing, payload);
+    else {
+      if (!Array.isArray(session.results)) session.results = [];
+      session.results.push(payload);
+    }
+    saveDB();
+    renderTeacherWorkspace();
+    toast(byTeacher ? 'تم حفظ نتيجة الطالب' : 'تم حفظ واعتماد النتيجة');
+  }
+
+  function teacherSendSummaryWhatsapp() {
+    const flow = teacherFlow();
+    const sum = flow.summary || {};
+    const halaqaId = sum.halaqaId || flow.activeHalaqaId;
+    if (!halaqaId) return;
+    state.currentHalaqaId = halaqaId;
+    state.teacherViewDate = sum.dateISO || teacherDateISO();
+    copyWeeklyReportToWhatsapp();
+  }
+
+  function teacherProgressStatusDot(row, idx, activeIdx) {
+    const firstWord = teacherFirstWord(row.student.name);
+    return `
+      <button type="button" class="tw-dot ${row.status.className} ${idx === activeIdx ? 'active' : ''}" title="${escapeAttr(row.student.name)} - ${row.status.label}" onclick="teacherJumpStudent(${idx})">
+        ${escapeAttr(firstWord)}
+      </button>
+    `;
+  }
+
+  function teacherRenderHalaqasTab(halaqas) {
+    const flow = teacherFlow();
+    const dateISO = teacherDateISO();
+    if (!flow.activeHalaqaId && halaqas.length === 1) {
+      flow.activeHalaqaId = halaqas[0].id;
+      flow.view = 'evaluate';
+      flow.studentIndex = 0;
+    }
+
+    if (flow.view === 'summary' && flow.summary?.halaqaId) {
+      const halaqa = state.indexes?.halaqaById?.[flow.summary.halaqaId] || null;
+      if (!halaqa) {
+        flow.view = 'list';
+      } else {
+        const p = teacherHalaqaProgress(halaqa.id, flow.summary.dateISO || dateISO);
+        const byAttendance = p.statusRows.reduce((acc, row) => {
+          const attendance = String(row.draft?.attendance || '');
+          if (attendance === 'present') acc.present += 1;
+          else if (attendance === 'absent') acc.absent += 1;
+          else if (attendance === 'excused') acc.excused += 1;
+          else if (attendance === 'remote' || attendance === 'dropped') acc.remoteDrop += 1;
+          else acc.unset += 1;
+          return acc;
+        }, { present: 0, absent: 0, excused: 0, remoteDrop: 0, unset: 0 });
+        const hasOther = halaqas.some((h) => h.id !== halaqa.id && !teacherIsHalaqaDone(h.id, dateISO));
+        return `
+          <div class="tw-card">
+            <div class="tw-head">
+              <div>
+                <h3>ملخص الحلقة: ${escapeAttr(halaqa.circleName)}</h3>
+                <p>${flow.summary.dateISO || dateISO}</p>
+              </div>
+              <span class="tw-pill done">✓ مكتملة</span>
+            </div>
+            <div class="tw-summary-grid">
+              <div class="tw-summary-box"><span>الحاضرون</span><b>${byAttendance.present}</b></div>
+              <div class="tw-summary-box"><span>الغائبون</span><b>${byAttendance.absent}</b></div>
+              <div class="tw-summary-box"><span>المستأذنون</span><b>${byAttendance.excused}</b></div>
+              <div class="tw-summary-box"><span>عن بُعد/منقطع</span><b>${byAttendance.remoteDrop}</b></div>
+            </div>
+            <div class="tw-actions">
+              <button class="btn btn-ok" onclick="teacherSendSummaryWhatsapp()">إرسال تقرير اليوم واتساب</button>
+              <button class="btn btn-light" onclick="teacherBackToHalaqas()">${hasOther ? 'العودة لقائمة الحلقات' : 'إغلاق الملخص'}</button>
+            </div>
+          </div>
+        `;
       }
     }
-  });
-}
-window.renderHalaqaDetail = renderHalaqaDetail_enhanced;
 
-// إضافة زر الواتساب في شريط المعلم عند فتح الحلقة
-const _origOpenHalaqa = openHalaqa;
-function openHalaqa_enhanced(id) {
-  _origOpenHalaqa(id);
-  setTimeout(() => {
+    const active = flow.activeHalaqaId ? (state.indexes?.halaqaById?.[flow.activeHalaqaId] || null) : null;
+    if (flow.view === 'evaluate' && active) {
+      const progress = teacherHalaqaProgress(active.id, dateISO);
+      const students = progress.students;
+      if (!students.length) {
+        return `
+          <div class="tw-card">
+            <div class="tw-head">
+              <div><h3>${escapeAttr(active.circleName)}</h3><p>لا يوجد طلاب في الحلقة</p></div>
+              <button class="btn btn-light" onclick="teacherBackToHalaqas()">↩ الحلقات</button>
+            </div>
+          </div>
+        `;
+      }
+
+      const idx = clamp(Number(flow.studentIndex || 0), 0, students.length - 1);
+      flow.studentIndex = idx;
+      const row = progress.statusRows[idx];
+      const student = row.student;
+      const draft = row.draft;
+      const attendance = String(draft.attendance || '');
+      const absentMode = attendance === 'absent';
+      const progressText = `${progress.completed} / ${students.length}`;
+      const nextLabel = idx === students.length - 1 ? 'إنهاء الحلقة ✓' : 'حفظ والتالي ←';
+      const showUndo = flow.undo && flow.undo.halaqaId === active.id && idx === Number(flow.undo.index || -1) + 1;
+      const renderRows = (type, entries) => entries.map((entry, i) => `
+        <div class="tw-entry-row">
+          <select onchange="teacherSetEntryField('${type}', ${i}, 'surahIdx', this.value)">${teacherSurahOptionsHtml(entry.surahIdx)}</select>
+          <input type="number" min="1" value="${Number(entry.fromAya || 1)}" onchange="teacherSetEntryField('${type}', ${i}, 'fromAya', this.value)" />
+          <input type="number" min="1" value="${Number(entry.toAya || 1)}" onchange="teacherSetEntryField('${type}', ${i}, 'toAya', this.value)" />
+          ${i > 0 ? `<button type="button" class="del" onclick="teacherRemoveEntry('${type}', ${i})">✕</button>` : '<span></span>'}
+        </div>
+        <div class="tw-grade-row">
+          ${GRADES.map((g) => `<button type="button" class="tw-grade-btn ${String(entry.grade || '1') === g ? 'active' : ''}" onclick="teacherSetEntryField('${type}', ${i}, 'grade', '${g}')">${g}</button>`).join('')}
+        </div>
+      `).join('');
+
+      return `
+        <div class="tw-card">
+          <div class="tw-head">
+            <div>
+              <h3>${escapeAttr(active.circleName)}</h3>
+              <p>التاريخ: ${dateISO} • ${halaqaTimeLabel(active)} • ${scheduleTypeLabel(active)}</p>
+            </div>
+            <button class="btn btn-light" onclick="teacherBackToHalaqas()">↩ الحلقات</button>
+          </div>
+        </div>
+        <div class="tw-progress">
+          <div class="tw-head"><b>تقييم الطلاب اليوم</b><span class="tw-pill">${progressText}</span></div>
+          <div class="tw-progress-line"><div class="tw-progress-fill" style="width:${progress.percent}%;"></div></div>
+          <div class="tw-dot-grid">${progress.statusRows.map((r, i) => teacherProgressStatusDot(r, i, idx)).join('')}</div>
+        </div>
+        <div class="tw-card">
+          <div class="tw-student-name">${escapeAttr(student.name)}</div>
+          <div class="tw-att-grid">
+            ${TEACHER_ATT.map((att) => `<button type="button" class="tw-att-btn ${att.key} ${attendance === att.key ? 'active' : ''}" onclick="teacherSetAttendance('${att.key}')">${att.label}</button>`).join('')}
+          </div>
+          <div class="tw-entry-section ${absentMode ? 'disabled' : ''}">
+            <div class="tw-entry-head">
+              <h4>جدول الحفظ</h4>
+              <button class="btn btn-light" type="button" onclick="teacherAddEntry('hifdh')">+ سورة أخرى</button>
+            </div>
+            ${renderRows('hifdh', draft.hifdhEntries)}
+          </div>
+          <div class="tw-entry-section ${absentMode ? 'disabled' : ''}">
+            <div class="tw-entry-head">
+              <h4>جدول المراجعة</h4>
+              <button class="btn btn-light" type="button" onclick="teacherAddEntry('revision')">+ سورة أخرى</button>
+            </div>
+            ${renderRows('revision', draft.revisionEntries)}
+          </div>
+          <div class="tw-note">
+            <div class="field-label">ملاحظة</div>
+            <textarea placeholder="ملاحظة اختيارية" onchange="teacherSetNote(this.value)">${escapeAttr(draft.note || '')}</textarea>
+          </div>
+          <div class="tw-actions">
+            <button class="btn btn-light" ${idx === 0 ? 'disabled' : ''} onclick="teacherPrevStudent()">◀ السابق</button>
+            <button class="btn btn-primary" onclick="teacherSaveAndNext()">${nextLabel}</button>
+          </div>
+          ${showUndo ? `<div class="tw-undo"><span>تم الانتقال للتالي. يمكنك الرجوع لتعديل الطالب السابق.</span><button class="btn btn-light" onclick="teacherUndoLastAdvance()">تراجع</button></div>` : ''}
+        </div>
+      `;
+    }
+
+    const cards = halaqas.map((h) => {
+      const p = teacherHalaqaProgress(h.id, dateISO);
+      const done = teacherIsHalaqaDone(h.id, dateISO);
+      const doneIcon = done ? '<span class="tw-pill done">✓ منتهية</span>' : '<span class="tw-pill">قيد المتابعة</span>';
+      return `
+        <button type="button" class="tw-halaqa-item ${done ? 'done' : ''}" onclick="teacherOpenHalaqaFlow('${h.id}')">
+          <div class="tw-head">
+            <div class="name">${escapeAttr(h.circleName || '-')}</div>
+            ${doneIcon}
+          </div>
+          <div class="tw-halaqa-meta">
+            <span>⏰ ${halaqaTimeLabel(h)} • 📅 ${scheduleTypeLabel(h)}</span>
+            <span>👥 الطلاب: ${p.students.length}</span>
+            <span>تم التسجيل: ${p.completed} • المتبقي: ${p.remaining}</span>
+          </div>
+        </button>
+      `;
+    }).join('') || '<div class="tw-card">لا توجد حلقات مخصصة لهذا المعلم.</div>';
+
+    const total = halaqas.reduce((acc, h) => {
+      const p = teacherHalaqaProgress(h.id, dateISO);
+      acc.students += p.students.length;
+      acc.completed += p.completed;
+      return acc;
+    }, { students: 0, completed: 0 });
+
+    return `
+      <div class="tw-card">
+        <div class="tw-head">
+          <div>
+            <h3>حلقات المعلم</h3>
+            <p>اختر الحلقة لبدء تقييم الطلاب اليوم</p>
+          </div>
+          <span class="tw-pill">${dateISO}</span>
+        </div>
+        <div class="tw-halaqa-grid" style="margin-top:8px;">${cards}</div>
+      </div>
+      <div class="tw-card">
+        <div class="tw-head">
+          <div><h3>ملخص اليوم (كل الحلقات)</h3></div>
+          <span class="tw-pill done">${total.completed} / ${total.students}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function teacherRenderAlertsTab() {
     const u = currentUser();
-    if (!u || u.role !== 'teacher') return;
-    const existing = document.getElementById('wa-report-btn');
-    if (existing) return;
-    const closeBtnArea = document.querySelector('#halaqaDetail .row.between');
-    if (!closeBtnArea) return;
-    const waBtn = document.createElement('button');
-    waBtn.id = 'wa-report-btn';
-    waBtn.className = 'btn btn-ok no-print';
-    waBtn.style.cssText = 'background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-size:13px;';
-    waBtn.textContent = '📋 تقرير اليوم (واتساب)';
-    waBtn.onclick = copyWeeklyReportToWhatsapp;
-    closeBtnArea.insertBefore(waBtn, closeBtnArea.querySelector('.btn-light'));
-  }, 100);
-}
-window.openHalaqa = openHalaqa_enhanced;
+    if (!u) return '<div class="tw-card">غير مسموح.</div>';
+    const list = visibleAnnouncementsForUser(u);
+    if (!list.length) {
+      return '<div class="tw-card"><h3>التنبيهات</h3><p class="muted" style="margin-top:6px;">لا توجد تنبيهات جديدة</p></div>';
+    }
+    return `
+      <div class="tw-card">
+        <div class="tw-head"><h3>التنبيهات</h3><span class="tw-pill">${list.length}</span></div>
+        <div class="tw-alert-list" style="margin-top:8px;">
+          ${list.map((a) => {
+            const kind = teacherAnnouncementType(a);
+            return `
+              <div class="tw-alert-item">
+                <div class="tw-alert-top">
+                  <div class="tw-alert-kind">
+                    <span class="tw-alert-icon ${kind.cls}">${kind.icon}</span>
+                    <span>${kind.label}</span>
+                  </div>
+                  <span class="tw-pill">${escapeAttr(a.date || '-')}</span>
+                </div>
+                <p style="margin-top:8px; font-weight:800;">${escapeAttr(a.title || 'تنبيه')}</p>
+                <p class="muted" style="font-size:12px; margin-top:4px;">بواسطة: ${escapeAttr(announcementAuthorName(a))}</p>
+                <p style="margin-top:6px; line-height:1.7;">${escapeAttr(a.body || '')}</p>
+                <div class="tw-actions">
+                  <button class="btn btn-ok" onclick="teacherDismissAlert('${escapeAttr(String(a.id || ''))}')">تم الاطلاع ✓</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function teacherRenderExamScoreButtons(sessionId, studentId, field, options, current) {
+    return `
+      <div class="tw-score-buttons">
+        ${options.map((val) => `<button type="button" class="${Number(current) === Number(val) ? 'active' : ''}" onclick="teacherSetExamScore('${sessionId}','${studentId}','${field}',${Number(val)})">${Number(val)}</button>`).join('')}
+      </div>
+    `;
+  }
+
+  function teacherExamTypeLabel(type) {
+    const raw = String(type || '').trim().toLowerCase();
+    if (raw === 'weekly') return 'أسبوعي';
+    if (raw === 'monthly') return 'شهري';
+    if (raw === 'placement') return 'مستوى';
+    return raw || 'اختبار';
+  }
+
+  function teacherRenderExamsTab() {
+    const halaqaIds = new Set(visibleHalaqas().map((h) => h.id));
+    const sessions = (state.db.examSessions || [])
+      .filter((s) => halaqaIds.has(s.halaqaId))
+      .sort((a, b) => String(b.startDate || '').localeCompare(String(a.startDate || '')));
+    const flow = teacherFlow();
+    const openSession = sessions.find((s) => s.id === flow.openExamSessionId) || null;
+
+    if (openSession) {
+      const students = teacherExamStudents(openSession);
+      const halaqa = state.indexes?.halaqaById?.[openSession.halaqaId] || null;
+      return `
+        <div class="tw-card">
+          <div class="tw-head">
+            <div>
+              <h3>${escapeAttr(openSession.title || 'جلسة اختبار')}</h3>
+              <p>${escapeAttr(halaqa?.circleName || '-')} • ${escapeAttr(teacherExamTypeLabel(openSession.examType || '-'))}</p>
+            </div>
+            <button class="btn btn-light" onclick="teacherCloseExamSession()">↩ رجوع</button>
+          </div>
+          <div class="tw-exam-students">
+            ${students.map((student) => {
+              const d = teacherExamResultDraft(openSession.id, student.id);
+              const total = teacherExamTotal(d);
+              return `
+                <div class="tw-exam-student">
+                  <div class="tw-head">
+                    <b>${escapeAttr(student.name)}</b>
+                    <span class="tw-pill done">المجموع: ${total}/100</span>
+                  </div>
+                  <div class="tw-score-block"><div class="tw-score-title">الحفظ /40</div>${teacherRenderExamScoreButtons(openSession.id, student.id, 'hifdh', [0,10,20,30,40], d.hifdh)}</div>
+                  <div class="tw-score-block"><div class="tw-score-title">التجويد /25</div>${teacherRenderExamScoreButtons(openSession.id, student.id, 'tajweed', [0,5,10,15,20,25], d.tajweed)}</div>
+                  <div class="tw-score-block"><div class="tw-score-title">الطلاقة /15</div>${teacherRenderExamScoreButtons(openSession.id, student.id, 'fluency', [0,3,6,9,12,15], d.fluency)}</div>
+                  <div class="tw-score-block"><div class="tw-score-title">المراجعة /10</div>${teacherRenderExamScoreButtons(openSession.id, student.id, 'revision', [0,2,4,6,8,10], d.revision)}</div>
+                  <div class="tw-score-block"><div class="tw-score-title">الانضباط /10</div>${teacherRenderExamScoreButtons(openSession.id, student.id, 'discipline', [0,2,4,6,8,10], d.discipline)}</div>
+                  <div class="tw-actions">
+                    <button class="btn btn-primary" onclick="teacherSaveExamStudent('${openSession.id}','${student.id}')">حفظ نتيجة الطالب</button>
+                  </div>
+                </div>
+              `;
+            }).join('') || '<p class="muted">لا يوجد طلاب في الحلقة.</p>'}
+          </div>
+        </div>
+      `;
+    }
+
+    if (!sessions.length) return '<div class="tw-card"><h3>الاختبارات</h3><p class="muted" style="margin-top:6px;">لا توجد جلسات اختبار مسندة حالياً.</p></div>';
+
+    return `
+      <div class="tw-card">
+        <div class="tw-head"><h3>جلسات الاختبار</h3></div>
+        <div class="tw-exam-grid" style="margin-top:8px;">
+          ${sessions.map((s) => {
+            const studentsCount = state.db.students.filter((st) => st.halaqaId === s.halaqaId).length;
+            const entered = new Set((s.results || []).map((r) => r.studentId)).size;
+            const avg = entered ? Math.round((s.results || []).reduce((sum, r) => sum + Number(r.total || 0), 0) / entered) : 0;
+            const closed = studentsCount > 0 && entered >= studentsCount;
+            const halaqa = state.indexes?.halaqaById?.[s.halaqaId] || null;
+            return `
+              <button type="button" class="tw-exam-item ${closed ? 'done' : ''}" ${closed ? 'disabled' : ''} onclick="teacherOpenExamSession('${s.id}')">
+                <div class="tw-head">
+                  <b>${escapeAttr(teacherExamTypeLabel(s.examType || ''))}</b>
+                  <span class="tw-pill ${closed ? 'done' : ''}">${closed ? 'منتهية' : 'مفتوحة'}</span>
+                </div>
+                <div class="tw-exam-meta">
+                  <span>الحلقة: ${escapeAttr(halaqa?.circleName || '-')}</span>
+                  <span>تم إدخال النتائج: ${entered}/${studentsCount}</span>
+                  <span>متوسط الدرجات: ${avg}</span>
+                </div>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function teacherBottomNavHtml() {
+    const flow = teacherFlow();
+    const unread = teacherUnreadAlertsCount();
+    return `
+      <nav class="tw-bottom-nav no-print">
+        <button type="button" class="tw-nav-btn ${flow.tab === 'halaqas' ? 'active' : ''}" onclick="teacherSetBottomTab('halaqas')">الحلقات</button>
+        <button type="button" class="tw-nav-btn ${flow.tab === 'alerts' ? 'active' : ''}" onclick="teacherSetBottomTab('alerts')">
+          التنبيهات
+          ${unread ? `<span class="tw-nav-badge">${unread}</span>` : ''}
+        </button>
+        <button type="button" class="tw-nav-btn ${flow.tab === 'exams' ? 'active' : ''}" onclick="teacherSetBottomTab('exams')">الاختبارات</button>
+      </nav>
+    `;
+  }
+
+  function renderTeacherWorkspace() {
+    if (!isTeacher()) return;
+    injectTeacherWorkspaceStyles();
+    const flow = teacherFlow();
+    const cards = $('halaqaCards');
+    const detail = $('halaqaDetail');
+    if (!cards || !detail) return;
+    detail.classList.add('hidden');
+    detail.innerHTML = '';
+    cards.classList.remove('hidden');
+
+    const halaqas = visibleHalaqas()
+      .slice()
+      .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+    if (!halaqas.length) {
+      cards.innerHTML = `<div class="tw-shell"><div class="tw-card">لا توجد حلقات مخصصة لك حالياً.</div></div>${teacherBottomNavHtml()}`;
+      return;
+    }
+
+    let content = '';
+    if (flow.tab === 'alerts') content = teacherRenderAlertsTab();
+    else if (flow.tab === 'exams') content = teacherRenderExamsTab();
+    else content = teacherRenderHalaqasTab(halaqas);
+    cards.innerHTML = `<div class="tw-shell">${content}</div>${teacherBottomNavHtml()}`;
+  }
+
+  const _origRenderHalaqasV38 = renderHalaqas;
+  renderHalaqas = function renderHalaqasV38() {
+    if (isTeacher()) return renderTeacherWorkspace();
+    return _origRenderHalaqasV38();
+  };
+  window.renderHalaqas = renderHalaqas;
+
+  window.teacherSetBottomTab = teacherSetBottomTab;
+  window.teacherOpenHalaqaFlow = teacherOpenHalaqaFlow;
+  window.teacherBackToHalaqas = teacherBackToHalaqas;
+  window.teacherSetAttendance = teacherSetAttendance;
+  window.teacherSetEntryField = teacherSetEntryField;
+  window.teacherAddEntry = teacherAddEntry;
+  window.teacherRemoveEntry = teacherRemoveEntry;
+  window.teacherSetNote = teacherSetNote;
+  window.teacherSaveAndNext = teacherSaveAndNext;
+  window.teacherPrevStudent = teacherPrevStudent;
+  window.teacherUndoLastAdvance = teacherUndoLastAdvance;
+  window.teacherJumpStudent = teacherJumpStudent;
+  window.teacherSendSummaryWhatsapp = teacherSendSummaryWhatsapp;
+  window.teacherDismissAlert = teacherDismissAlert;
+  window.teacherOpenExamSession = teacherOpenExamSession;
+  window.teacherCloseExamSession = teacherCloseExamSession;
+  window.teacherSetExamScore = teacherSetExamScore;
+  window.teacherSaveExamStudent = teacherSaveExamStudent;
+})();
   </script>
 </body>
 </html>
