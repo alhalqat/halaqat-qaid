@@ -10475,6 +10475,19 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     return { id: uid('trow'), surahIdx: '', fromAya: 1, toAya: 1, grade: '1' };
   }
 
+  function teacherParseNumericInput(value, fallback = 1) {
+    const raw = toEnglishDigits(String(value ?? '').trim());
+    if (!raw) return { empty: true, value: Number(fallback || 1) };
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return { empty: true, value: Number(fallback || 1) };
+    return { empty: false, value: parsed };
+  }
+
+  function teacherAyaDisplayValue(value) {
+    if (value === '' || value === null || typeof value === 'undefined') return '';
+    return toEnglishDigits(String(value).trim());
+  }
+
   function teacherSurahOptionsHtml(selectedIdx = '') {
     const selected = selectedIdx === '' ? '' : String(Number(selectedIdx));
     const rows = SURAH_DATA.slice().reverse();
@@ -10531,9 +10544,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const surahIdx = Number(row.surahIdx);
       if (!Number.isFinite(surahIdx) || surahIdx < 0 || surahIdx >= SURAH_DATA.length) return null;
       const maxAya = Number(SURAH_DATA[surahIdx]?.a || 1);
-      const fromAya = clamp(Number(row.fromAya || 1), 1, maxAya);
-      const toAya = clamp(Number(row.toAya || 1), 1, maxAya);
-      const grade = String(clamp(Number(row.grade || 1), 1, 10));
+      const fromParsed = teacherParseNumericInput(row.fromAya, 1);
+      const toParsed = teacherParseNumericInput(row.toAya, 1);
+      const gradeParsed = teacherParseNumericInput(row.grade, 1);
+      const fromAya = clamp(fromParsed.value, 1, maxAya);
+      const toAya = clamp(toParsed.value, 1, maxAya);
+      const grade = String(clamp(gradeParsed.value, 1, 10));
       return { surahIdx, fromAya, toAya, grade };
     }).filter(Boolean);
   }
@@ -10791,9 +10807,18 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     if (!draft) return;
     const rows = type === 'revision' ? draft.revisionEntries : draft.hifdhEntries;
     if (!rows[rowIndex]) return;
-    if (field === 'surahIdx') rows[rowIndex][field] = value === '' ? '' : Number(value);
-    else if (field === 'fromAya' || field === 'toAya') rows[rowIndex][field] = Number(value || 1);
-    else rows[rowIndex][field] = value;
+    if (field === 'surahIdx') {
+      const parsed = teacherParseNumericInput(value, -1);
+      rows[rowIndex][field] = parsed.empty ? '' : parsed.value;
+    } else if (field === 'fromAya' || field === 'toAya') {
+      const parsed = teacherParseNumericInput(value, 1);
+      rows[rowIndex][field] = parsed.empty ? '' : parsed.value;
+    } else if (field === 'grade') {
+      const parsed = teacherParseNumericInput(value, 1);
+      rows[rowIndex][field] = String(clamp(parsed.value, 1, 10));
+    } else {
+      rows[rowIndex][field] = value;
+    }
     renderTeacherWorkspace();
   }
 
@@ -11213,8 +11238,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const renderRows = (type, entries) => entries.map((entry, i) => `
         <div class="tw-entry-row">
           <select onchange="teacherSetEntryField('${type}', ${i}, 'surahIdx', this.value)">${teacherSurahOptionsHtml(entry.surahIdx)}</select>
-          <input type="number" min="1" value="${Number(entry.fromAya || 1)}" onchange="teacherSetEntryField('${type}', ${i}, 'fromAya', this.value)" />
-          <input type="number" min="1" value="${Number(entry.toAya || 1)}" onchange="teacherSetEntryField('${type}', ${i}, 'toAya', this.value)" />
+          <input type="number" min="1" inputmode="numeric" placeholder="1" value="${escapeAttr(teacherAyaDisplayValue(entry.fromAya))}" onchange="teacherSetEntryField('${type}', ${i}, 'fromAya', this.value)" />
+          <input type="number" min="1" inputmode="numeric" placeholder="1" value="${escapeAttr(teacherAyaDisplayValue(entry.toAya))}" onchange="teacherSetEntryField('${type}', ${i}, 'toAya', this.value)" />
           ${i > 0 ? `<button type="button" class="del" onclick="teacherRemoveEntry('${type}', ${i})">✕</button>` : '<span></span>'}
         </div>
         <div class="tw-grade-row">
