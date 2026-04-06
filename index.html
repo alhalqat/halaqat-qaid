@@ -10384,6 +10384,21 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 .tw-summary-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:8px; }
 .tw-summary-box { border:1px solid #e2e8f0; border-radius:12px; padding:8px; background:#fff; }
 .tw-summary-box b { font-size:24px; color:#14532d; display:block; margin-top:4px; }
+.tw-summary-tools { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.tw-student-chooser { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
+.tw-student-chip { border:1px solid #cbd5e1; border-radius:999px; padding:4px 10px; background:#fff; color:#334155; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+.tw-student-chip.off { background:#f8fafc; color:#94a3b8; text-decoration:line-through; }
+.tw-table-wrap { margin-top:10px; border:1px solid #e2e8f0; border-radius:12px; overflow:auto; background:#fff; }
+.tw-summary-table { width:100%; border-collapse:collapse; min-width:760px; }
+.tw-summary-table th, .tw-summary-table td { border-top:1px solid #e2e8f0; padding:8px; text-align:right; font-size:13px; vertical-align:top; }
+.tw-summary-table thead th { background:#f8fafc; border-top:0; font-weight:800; color:#334155; }
+.tw-summary-table td .muted { font-size:12px; }
+.tw-row-hide { border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#334155; padding:4px 8px; cursor:pointer; font-family:inherit; font-weight:700; }
+.tw-row-hide.off { border-color:#94a3b8; color:#94a3b8; text-decoration:line-through; }
+.tw-halaqa-report { border:1px solid #dbe7db; border-radius:12px; background:#fff; margin-top:8px; overflow:hidden; }
+.tw-halaqa-report > summary { cursor:pointer; list-style:none; padding:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; background:#f8fff9; font-weight:800; color:#166534; }
+.tw-halaqa-report > summary::-webkit-details-marker { display:none; }
+.tw-halaqa-report .body { padding:8px 10px 10px; }
 .tw-bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:45; background:#ffffff; border-top:1px solid #dbe7db; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
 .tw-nav-btn { border:1px solid #d1d5db; border-radius:11px; background:#fff; padding:8px 6px; font-size:13px; font-weight:800; cursor:pointer; color:#334155; position:relative; font-family:inherit; }
 .tw-nav-btn.active { border-color:#14532d; background:#dcfce7; color:#14532d; }
@@ -10413,6 +10428,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
   .tw-entry-row { grid-template-columns:1fr 1fr; }
   .tw-entry-row .del { width:100%; height:34px; }
   .tw-summary-grid { grid-template-columns:1fr 1fr; }
+  .tw-summary-table { min-width:640px; }
 }
     `;
     document.head.appendChild(style);
@@ -10430,6 +10446,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         examDrafts: {},
         completedByDate: {},
         summary: null,
+        summaryHiddenStudentIds: {},
         autoReturnToken: '',
       };
     }
@@ -10573,6 +10590,172 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     const flow = teacherFlow();
     if (!flow.completedByDate[dateISO]) flow.completedByDate[dateISO] = {};
     flow.completedByDate[dateISO][halaqaId] = true;
+  }
+
+  function teacherSummarySelectionKey(halaqaId, dateISO = teacherDateISO()) {
+    return `${String(halaqaId || '').trim()}__${String(dateISO || '').trim()}`;
+  }
+
+  function teacherSummaryHiddenSet(halaqaId, dateISO = teacherDateISO()) {
+    const flow = teacherFlow();
+    const key = teacherSummarySelectionKey(halaqaId, dateISO);
+    const list = Array.isArray(flow.summaryHiddenStudentIds[key]) ? flow.summaryHiddenStudentIds[key] : [];
+    return new Set(list.map((id) => String(id || '').trim()).filter(Boolean));
+  }
+
+  function teacherStoreSummaryHiddenSet(halaqaId, dateISO, setObj) {
+    const flow = teacherFlow();
+    const key = teacherSummarySelectionKey(halaqaId, dateISO);
+    const cleaned = [...new Set([...setObj].map((id) => String(id || '').trim()).filter(Boolean))];
+    if (cleaned.length) flow.summaryHiddenStudentIds[key] = cleaned;
+    else delete flow.summaryHiddenStudentIds[key];
+  }
+
+  function teacherToggleSummaryStudent(halaqaId, dateISO, studentId) {
+    const studentKey = String(studentId || '').trim();
+    if (!studentKey) return;
+    const hidden = teacherSummaryHiddenSet(halaqaId, dateISO);
+    if (hidden.has(studentKey)) hidden.delete(studentKey);
+    else hidden.add(studentKey);
+    teacherStoreSummaryHiddenSet(halaqaId, dateISO, hidden);
+    renderTeacherWorkspace();
+  }
+
+  function teacherSummarySetMode(halaqaId, dateISO, mode = 'all') {
+    const students = teacherHalaqaStudents(halaqaId);
+    if (!students.length) return;
+    const allIds = students.map((s) => String(s.id || '').trim()).filter(Boolean);
+    const next = new Set(mode === 'none' ? allIds : []);
+    teacherStoreSummaryHiddenSet(halaqaId, dateISO, next);
+    renderTeacherWorkspace();
+  }
+
+  function teacherDayLogsForStudent(halaqaId, studentId, dateISO = teacherDateISO()) {
+    return sortLogsByRecency(
+      (state.db.logs || []).filter((l) =>
+        l.halaqaId === halaqaId && l.studentId === studentId && l.date === dateISO
+      )
+    );
+  }
+
+  function teacherEntryText(logs, type) {
+    const rows = (logs || []).filter((l) => l.type === type);
+    if (!rows.length) return '—';
+    return rows.map((l) => `${l.surahName || '-'} (${l.fromAya || '-'}-${l.toAya || '-'})`).join(' + ');
+  }
+
+  function teacherGradesText(logs) {
+    const grades = [...new Set((logs || []).map((l) => String(l.grade || '').trim()).filter(Boolean))];
+    return grades.join(' / ') || '—';
+  }
+
+  function teacherNotesText(logs, draft) {
+    const notes = [...new Set((logs || []).map((l) => String(l.notes || '').trim()).filter(Boolean))];
+    const fallback = String(draft?.note || '').trim();
+    if (!notes.length && fallback) notes.push(fallback);
+    return notes.join(' | ') || '—';
+  }
+
+  function teacherDailyTableRows(halaqaId, dateISO = teacherDateISO()) {
+    return teacherHalaqaStudents(halaqaId).map((student, idx) => {
+      const draft = teacherGetDraft(halaqaId, student.id, dateISO, true);
+      const logs = teacherDayLogsForStudent(halaqaId, student.id, dateISO);
+      const attendance = getRollcall(student.id, halaqaId, dateISO)?.status || String(draft?.attendance || '');
+      const status = teacherStatusFromDraft(draft);
+      return {
+        index: idx + 1,
+        student,
+        draft,
+        logs,
+        attendance,
+        attendanceLabel: teacherAttendanceLabel(attendance),
+        statusLabel: status.label,
+        hifdhText: attendance === 'absent' ? '—' : teacherEntryText(logs, 'hifdh'),
+        revisionText: attendance === 'absent' ? '—' : teacherEntryText(logs, 'revision'),
+        gradesText: attendance === 'absent' ? '—' : teacherGradesText(logs),
+        notesText: teacherNotesText(logs, draft),
+      };
+    });
+  }
+
+  function teacherRenderDailyTable(halaqaId, dateISO = teacherDateISO()) {
+    const rows = teacherDailyTableRows(halaqaId, dateISO);
+    if (!rows.length) return '<p class="muted">لا يوجد طلاب في الحلقة.</p>';
+    const hidden = teacherSummaryHiddenSet(halaqaId, dateISO);
+    const visibleRows = rows.filter((row) => !hidden.has(String(row.student.id || '')));
+    const hiddenCount = Math.max(0, rows.length - visibleRows.length);
+    return `
+      <div class="tw-summary-tools">
+        <button class="btn btn-light" onclick="teacherSummarySetMode('${halaqaId}','${dateISO}','all')">إظهار الكل</button>
+        <button class="btn btn-light" onclick="teacherSummarySetMode('${halaqaId}','${dateISO}','none')">إخفاء الكل</button>
+        <span class="tw-pill">المعروض: ${visibleRows.length}/${rows.length}</span>
+        ${hiddenCount ? `<span class="tw-pill">المخفي: ${hiddenCount}</span>` : ''}
+      </div>
+      <div class="tw-student-chooser">
+        ${rows.map((row) => {
+          const hiddenStudent = hidden.has(String(row.student.id || ''));
+          return `<button type="button" class="tw-student-chip ${hiddenStudent ? 'off' : ''}" onclick="teacherToggleSummaryStudent('${halaqaId}','${dateISO}','${row.student.id}')">${escapeAttr(teacherFirstWord(row.student.name))}</button>`;
+        }).join('')}
+      </div>
+      <div class="tw-table-wrap">
+        <table class="tw-summary-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الطالب</th>
+              <th>الحضور</th>
+              <th>الحفظ</th>
+              <th>المراجعة</th>
+              <th>التقدير</th>
+              <th>الملاحظات</th>
+              <th>عرض</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${visibleRows.length ? visibleRows.map((row) => `
+              <tr>
+                <td>${row.index}</td>
+                <td>${escapeAttr(row.student.name || '-')}</td>
+                <td><div>${escapeAttr(row.attendanceLabel || '-')}</div><div class="muted">${escapeAttr(row.statusLabel || '')}</div></td>
+                <td>${escapeAttr(row.hifdhText)}</td>
+                <td>${escapeAttr(row.revisionText)}</td>
+                <td>${escapeAttr(row.gradesText)}</td>
+                <td>${escapeAttr(row.notesText)}</td>
+                <td><button type="button" class="tw-row-hide" onclick="teacherToggleSummaryStudent('${halaqaId}','${dateISO}','${row.student.id}')">إخفاء</button></td>
+              </tr>
+            `).join('') : '<tr><td colspan="8" class="muted">تم إخفاء كل الطلاب من المعاينة الحالية.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function teacherRenderDailySummaryByHalaqa(halaqas, dateISO = teacherDateISO()) {
+    return `
+      <div class="tw-card">
+        <div class="tw-head">
+          <div>
+            <h3>ملخص اليوم التفصيلي</h3>
+            <p>افتح الحلقة المطلوبة، ثم أخفِ أي طالب قبل تصوير الشاشة</p>
+          </div>
+          <span class="tw-pill">${dateISO}</span>
+        </div>
+        ${halaqas.map((h, idx) => {
+          const progress = teacherHalaqaProgress(h.id, dateISO);
+          return `
+            <details class="tw-halaqa-report" ${idx === 0 ? 'open' : ''}>
+              <summary>
+                <span>${escapeAttr(h.circleName || '-')}</span>
+                <span class="tw-pill">${progress.completed}/${progress.students.length}</span>
+              </summary>
+              <div class="body">
+                ${teacherRenderDailyTable(h.id, dateISO)}
+              </div>
+            </details>
+          `;
+        }).join('')}
+      </div>
+    `;
   }
 
   function teacherJumpStudent(index, options = {}) {
@@ -10752,20 +10935,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       flow.view = 'summary';
       flow.summary = { halaqaId: halaqa.id, dateISO, studentId: student.id };
       toast('تم إنهاء الحلقة بنجاح');
-      const multipleHalaqas = visibleHalaqas().length > 1;
-      if (multipleHalaqas && teacherHasUnfinishedHalaqas(dateISO)) {
-        const token = uid('auto');
-        flow.autoReturnToken = token;
-        setTimeout(() => {
-          const current = teacherFlow();
-          if (!isTeacher()) return;
-          if (current.autoReturnToken !== token) return;
-          if (current.view !== 'summary') return;
-          current.view = 'list';
-          current.activeHalaqaId = '';
-          renderTeacherWorkspace();
-        }, 1300);
-      }
+      flow.autoReturnToken = '';
       renderTeacherWorkspace();
       return;
     }
@@ -10981,6 +11151,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           return acc;
         }, { present: 0, absent: 0, excused: 0, remoteDrop: 0, unset: 0 });
         const hasOther = halaqas.some((h) => h.id !== halaqa.id && !teacherIsHalaqaDone(h.id, dateISO));
+        const summaryTable = teacherRenderDailyTable(halaqa.id, flow.summary.dateISO || dateISO);
         return `
           <div class="tw-card">
             <div class="tw-head">
@@ -10995,6 +11166,15 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
               <div class="tw-summary-box"><span>الغائبون</span><b>${byAttendance.absent}</b></div>
               <div class="tw-summary-box"><span>المستأذنون</span><b>${byAttendance.excused}</b></div>
               <div class="tw-summary-box"><span>عن بُعد/منقطع</span><b>${byAttendance.remoteDrop}</b></div>
+            </div>
+            <div class="tw-card" style="margin-top:10px; border-style:dashed;">
+              <div class="tw-head">
+                <div>
+                  <h3>جدول طلاب الحلقة</h3>
+                  <p>اخفِ أي طالب من الجدول قبل مشاركة لقطة الشاشة</p>
+                </div>
+              </div>
+              ${summaryTable}
             </div>
             <div class="tw-actions">
               <button class="btn btn-ok" onclick="teacherSendSummaryWhatsapp()">إرسال تقرير اليوم واتساب</button>
@@ -11128,10 +11308,14 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       </div>
       <div class="tw-card">
         <div class="tw-head">
-          <div><h3>ملخص اليوم (كل الحلقات)</h3></div>
+          <div>
+            <h3>ملخص اليوم (كل الحلقات)</h3>
+            <p>الملخص التالي يفتح جدول كل حلقة مع أدوات إخفاء الطلاب للتصوير</p>
+          </div>
           <span class="tw-pill done">${total.completed} / ${total.students}</span>
         </div>
       </div>
+      ${teacherRenderDailySummaryByHalaqa(halaqas, dateISO)}
     `;
   }
 
@@ -11325,6 +11509,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
   window.teacherUndoLastAdvance = teacherUndoLastAdvance;
   window.teacherJumpStudent = teacherJumpStudent;
   window.teacherSendSummaryWhatsapp = teacherSendSummaryWhatsapp;
+  window.teacherToggleSummaryStudent = teacherToggleSummaryStudent;
+  window.teacherSummarySetMode = teacherSummarySetMode;
   window.teacherDismissAlert = teacherDismissAlert;
   window.teacherOpenExamSession = teacherOpenExamSession;
   window.teacherCloseExamSession = teacherCloseExamSession;
