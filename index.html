@@ -10797,7 +10797,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     renderTeacherWorkspace();
   }
 
-  function teacherSetEntryField(type, rowIndex, field, value) {
+  function teacherSetEntryField(type, rowIndex, field, value, silent = false) {
     const flow = teacherFlow();
     const dateISO = teacherDateISO();
     const students = teacherHalaqaStudents(flow.activeHalaqaId);
@@ -10819,7 +10819,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     } else {
       rows[rowIndex][field] = value;
     }
-    renderTeacherWorkspace();
+    if (!silent) renderTeacherWorkspace();
   }
 
   function teacherAddEntry(type) {
@@ -10849,7 +10849,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     renderTeacherWorkspace();
   }
 
-  function teacherSetNote(text) {
+  function teacherSetNote(text, silent = false) {
     const flow = teacherFlow();
     const dateISO = teacherDateISO();
     const students = teacherHalaqaStudents(flow.activeHalaqaId);
@@ -10858,6 +10858,36 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     const draft = teacherGetDraft(flow.activeHalaqaId, student.id, dateISO, true);
     if (!draft) return;
     draft.note = String(text || '');
+    if (!silent) renderTeacherWorkspace();
+  }
+
+  function teacherSetEntryFieldLive(type, rowIndex, field, value) {
+    teacherSetEntryField(type, rowIndex, field, value, true);
+  }
+
+  function teacherSetNoteLive(text) {
+    teacherSetNote(text, true);
+  }
+
+  function teacherSyncVisibleInputsToDraft() {
+    const flow = teacherFlow();
+    const dateISO = teacherDateISO();
+    const students = teacherHalaqaStudents(flow.activeHalaqaId);
+    const student = students[flow.studentIndex];
+    if (!student) return;
+    const draft = teacherGetDraft(flow.activeHalaqaId, student.id, dateISO, true);
+    if (!draft) return;
+
+    document.querySelectorAll('[data-tw-entry="1"]').forEach((el) => {
+      const type = String(el.getAttribute('data-entry-type') || '').trim();
+      const field = String(el.getAttribute('data-entry-field') || '').trim();
+      const idx = Number(el.getAttribute('data-entry-index') || -1);
+      if (!type || !field || !Number.isFinite(idx) || idx < 0) return;
+      teacherSetEntryField(type, idx, field, el.value, true);
+    });
+
+    const noteEl = document.getElementById('twNote');
+    if (noteEl) teacherSetNote(noteEl.value, true);
   }
 
   function teacherSyncAbsentCount(studentId) {
@@ -10948,6 +10978,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
   function teacherSaveAndNext() {
     const flow = teacherFlow();
+    teacherSyncVisibleInputsToDraft();
     const result = teacherPersistCurrentStudent();
     if (!result) return;
     const { halaqa, students, student, dateISO } = result;
@@ -11237,9 +11268,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const showUndo = flow.undo && flow.undo.halaqaId === active.id && idx === Number(flow.undo.index || -1) + 1;
       const renderRows = (type, entries) => entries.map((entry, i) => `
         <div class="tw-entry-row">
-          <select onchange="teacherSetEntryField('${type}', ${i}, 'surahIdx', this.value)">${teacherSurahOptionsHtml(entry.surahIdx)}</select>
-          <input type="number" min="1" inputmode="numeric" placeholder="1" value="${escapeAttr(teacherAyaDisplayValue(entry.fromAya))}" onchange="teacherSetEntryField('${type}', ${i}, 'fromAya', this.value)" />
-          <input type="number" min="1" inputmode="numeric" placeholder="1" value="${escapeAttr(teacherAyaDisplayValue(entry.toAya))}" onchange="teacherSetEntryField('${type}', ${i}, 'toAya', this.value)" />
+          <select data-tw-entry="1" data-entry-type="${type}" data-entry-index="${i}" data-entry-field="surahIdx" onchange="teacherSetEntryField('${type}', ${i}, 'surahIdx', this.value)">${teacherSurahOptionsHtml(entry.surahIdx)}</select>
+          <input type="text" inputmode="numeric" dir="ltr" data-tw-entry="1" data-entry-type="${type}" data-entry-index="${i}" data-entry-field="fromAya" placeholder="1" value="${escapeAttr(teacherAyaDisplayValue(entry.fromAya))}" oninput="teacherSetEntryFieldLive('${type}', ${i}, 'fromAya', this.value)" onchange="teacherSetEntryField('${type}', ${i}, 'fromAya', this.value)" />
+          <input type="text" inputmode="numeric" dir="ltr" data-tw-entry="1" data-entry-type="${type}" data-entry-index="${i}" data-entry-field="toAya" placeholder="1" value="${escapeAttr(teacherAyaDisplayValue(entry.toAya))}" oninput="teacherSetEntryFieldLive('${type}', ${i}, 'toAya', this.value)" onchange="teacherSetEntryField('${type}', ${i}, 'toAya', this.value)" />
           ${i > 0 ? `<button type="button" class="del" onclick="teacherRemoveEntry('${type}', ${i})">✕</button>` : '<span></span>'}
         </div>
         <div class="tw-grade-row">
@@ -11283,7 +11314,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           </div>
           <div class="tw-note">
             <div class="field-label">ملاحظة</div>
-            <textarea placeholder="ملاحظة اختيارية" onchange="teacherSetNote(this.value)">${escapeAttr(draft.note || '')}</textarea>
+            <textarea id="twNote" placeholder="ملاحظة اختيارية" oninput="teacherSetNoteLive(this.value)" onchange="teacherSetNote(this.value)">${escapeAttr(draft.note || '')}</textarea>
           </div>
           <div class="tw-actions">
             <button class="btn btn-light" ${idx === 0 ? 'disabled' : ''} onclick="teacherPrevStudent()">◀ السابق</button>
@@ -11526,9 +11557,11 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
   window.teacherBackToHalaqas = teacherBackToHalaqas;
   window.teacherSetAttendance = teacherSetAttendance;
   window.teacherSetEntryField = teacherSetEntryField;
+  window.teacherSetEntryFieldLive = teacherSetEntryFieldLive;
   window.teacherAddEntry = teacherAddEntry;
   window.teacherRemoveEntry = teacherRemoveEntry;
   window.teacherSetNote = teacherSetNote;
+  window.teacherSetNoteLive = teacherSetNoteLive;
   window.teacherSaveAndNext = teacherSaveAndNext;
   window.teacherPrevStudent = teacherPrevStudent;
   window.teacherUndoLastAdvance = teacherUndoLastAdvance;
