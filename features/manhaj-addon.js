@@ -2069,13 +2069,21 @@
       var key = String(btn.dataset.nav || 'halaqas');
       if (key === 'manhaj') {
         UI.teacherTab = 'manhaj';
+        var s = teacherManhajState();
+        if (!String(s.halaqaId || '').trim()) s.view = 'list';
         if (typeof window.teacherSetBottomTab === 'function') window.teacherSetBottomTab('halaqas');
-        queueTeacherRefresh();
+        refreshTeacherView();
         return;
       }
       UI.teacherTab = 'halaqas';
+      if (key === 'halaqas') {
+        var ms = teacherManhajState();
+        ms.view = 'list';
+        ms.halaqaId = '';
+        ms.studentIndex = 0;
+      }
       if (typeof window.teacherSetBottomTab === 'function') window.teacherSetBottomTab(key);
-      queueTeacherRefresh();
+      refreshTeacherView();
     });
   }
 
@@ -2132,7 +2140,20 @@
     var shell = cardsRoot.querySelector('.tw-shell');
     if (!shell) return;
     if (UI.teacherTab === 'manhaj') {
-      shell.innerHTML = renderTeacherManhajTab();
+      try {
+        shell.innerHTML = renderTeacherManhajTab();
+      } catch (err) {
+        console.error('Manhaj render failed', err);
+        shell.innerHTML = [
+          '<div class="tw-card">',
+          '  <h3>تعذر تحميل تبويب المنهج</h3>',
+          '  <p class="muted" style="margin-top:8px;">' + esc(err && err.message ? err.message : String(err || 'خطأ غير معروف')) + '</p>',
+          '  <div class="tw-actions" style="margin-top:10px;">',
+          '    <button type="button" class="btn btn-light" onclick="location.reload()">إعادة تحميل الصفحة</button>',
+          '  </div>',
+          '</div>'
+        ].join('');
+      }
     }
     updatePersistentTeacherNavState();
   }
