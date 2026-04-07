@@ -20,7 +20,9 @@
   };
 
   function hasRuntime() {
-    return typeof window !== 'undefined' && typeof window.state === 'object' && !!window.state;
+    if (typeof window === 'undefined') return false;
+    if (typeof state !== 'undefined' && !!state && typeof state === 'object') return true;
+    return typeof window.state === 'object' && !!window.state;
   }
 
   function safeUser() {
