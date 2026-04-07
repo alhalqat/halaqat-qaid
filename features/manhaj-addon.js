@@ -310,14 +310,58 @@
     return Number(s && s.a ? s.a : 1);
   }
 
-  function normalizeEntry(raw) {
-    var surahIdx = Number(raw && raw.surahIdx);
-    if (!Number.isFinite(surahIdx) || surahIdx < 0 || surahIdx >= getSurahData().length) {
-      surahIdx = 0;
+  function normalizeArabicText(value) {
+    return String(value == null ? '' : value)
+      .trim()
+      .replace(/[ًٌٍَُِّْـ]/g, '')
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+
+  function findSurahIdxByName(name) {
+    var target = normalizeArabicText(name);
+    if (!target) return -1;
+    var data = getSurahData();
+    for (var i = 0; i < data.length; i += 1) {
+      var row = data[i] || {};
+      if (normalizeArabicText(row.name) === target) return i;
     }
+    return -1;
+  }
+
+  function resolveSurahIdx(raw) {
+    var dataLen = getSurahData().length;
+    if (!dataLen) return 0;
+    var base = raw && typeof raw === 'object' ? raw : {};
+    var nameCandidate = base.surahName || base.name || base.surah_title || '';
+    var byName = findSurahIdxByName(nameCandidate);
+    if (byName >= 0) return byName;
+
+    var hasSurahNumberField = base.surahNumber != null || base.surahNo != null || base.surahN != null;
+    var numberFields = [base.surahNumber, base.surahNo, base.surahN, base.surahNum];
+    for (var i = 0; i < numberFields.length; i += 1) {
+      var nNum = Number(numberFields[i]);
+      if (Number.isFinite(nNum) && nNum >= 1 && nNum <= dataLen) return Math.floor(nNum) - 1;
+    }
+
+    var indexFields = [base.surahIdx, base.surahIndex, base.surahId, base.surah_id, base.surah];
+    for (var j = 0; j < indexFields.length; j += 1) {
+      var n = Number(indexFields[j]);
+      if (!Number.isFinite(n)) continue;
+      if (n >= 0 && n < dataLen) return Math.floor(n);
+      if (hasSurahNumberField && n >= 1 && n <= dataLen) return Math.floor(n) - 1;
+      if (n >= 1 && n <= dataLen && j === 0 && Number(n) === dataLen) return Math.floor(n) - 1;
+    }
+    return 0;
+  }
+
+  function normalizeEntry(raw) {
+    var surahIdx = resolveSurahIdx(raw || {});
     var maxAya = maxAyaForSurahIdx(surahIdx);
-    var fromAya = clampNum(toInt(raw && raw.fromAya, 1), 1, maxAya);
-    var toAya = clampNum(toInt(raw && raw.toAya, maxAya), 1, maxAya);
+    var fromRaw = raw && (raw.fromAya != null ? raw.fromAya : (raw.from != null ? raw.from : (raw.startAya != null ? raw.startAya : raw.start)));
+    var toRaw = raw && (raw.toAya != null ? raw.toAya : (raw.to != null ? raw.to : (raw.endAya != null ? raw.endAya : raw.end)));
+    var fromAya = clampNum(toInt(fromRaw, 1), 1, maxAya);
+    var toAya = clampNum(toInt(toRaw, maxAya), 1, maxAya);
     return {
       id: String((raw && raw.id) || makeId('mrow')),
       surahIdx: surahIdx,
@@ -337,11 +381,17 @@
 
   function normalizeLesson(raw, index) {
     var base = raw && typeof raw === 'object' ? raw : {};
+    var hifdhRaw = Array.isArray(base.hifdh) ? base.hifdh
+      : (Array.isArray(base.hifdhEntries) ? base.hifdhEntries
+      : (Array.isArray(base.hifz) ? base.hifz : []));
+    var revisionRaw = Array.isArray(base.revision) ? base.revision
+      : (Array.isArray(base.revisionEntries) ? base.revisionEntries
+      : (Array.isArray(base.murajaah) ? base.murajaah : []));
     return {
       id: String(base.id || makeId('lesson')),
       title: String(base.title || ('الدرس ' + String(Number(index || 0) + 1))),
-      hifdh: (Array.isArray(base.hifdh) ? base.hifdh : []).map(normalizeEntry),
-      revision: (Array.isArray(base.revision) ? base.revision : []).map(normalizeEntry),
+      hifdh: hifdhRaw.map(normalizeEntry),
+      revision: revisionRaw.map(normalizeEntry),
     };
   }
 
