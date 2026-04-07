@@ -84,6 +84,24 @@
     return Number.isFinite(n) ? n : Number(fallback || 0);
   }
 
+  function listFromUnknown(raw) {
+    if (Array.isArray(raw)) return raw.slice();
+    if (!raw || typeof raw !== 'object') return [];
+    return Object.keys(raw)
+      .sort(function (a, b) {
+        var an = Number(a);
+        var bn = Number(b);
+        var aNum = Number.isFinite(an);
+        var bNum = Number.isFinite(bn);
+        if (aNum && bNum) return an - bn;
+        if (aNum) return -1;
+        if (bNum) return 1;
+        return String(a).localeCompare(String(b), 'ar');
+      })
+      .map(function (key) { return raw[key]; })
+      .filter(function (v) { return v != null; });
+  }
+
   function clampNum(value, min, max) {
     if (typeof window.clamp === 'function') return window.clamp(Number(value || 0), Number(min), Number(max));
     var n = Number(value || 0);
@@ -103,7 +121,9 @@
     if (!state.db.settings[STORE_KEY] || typeof state.db.settings[STORE_KEY] !== 'object') {
       state.db.settings[STORE_KEY] = { plans: [] };
     }
-    if (!Array.isArray(state.db.settings[STORE_KEY].plans)) state.db.settings[STORE_KEY].plans = [];
+    if (!Array.isArray(state.db.settings[STORE_KEY].plans)) {
+      state.db.settings[STORE_KEY].plans = listFromUnknown(state.db.settings[STORE_KEY].plans);
+    }
     return state.db.settings[STORE_KEY];
   }
 
@@ -381,12 +401,12 @@
 
   function normalizeLesson(raw, index) {
     var base = raw && typeof raw === 'object' ? raw : {};
-    var hifdhRaw = Array.isArray(base.hifdh) ? base.hifdh
-      : (Array.isArray(base.hifdhEntries) ? base.hifdhEntries
-      : (Array.isArray(base.hifz) ? base.hifz : []));
-    var revisionRaw = Array.isArray(base.revision) ? base.revision
-      : (Array.isArray(base.revisionEntries) ? base.revisionEntries
-      : (Array.isArray(base.murajaah) ? base.murajaah : []));
+    var hifdhRaw = listFromUnknown(base.hifdh);
+    if (!hifdhRaw.length) hifdhRaw = listFromUnknown(base.hifdhEntries);
+    if (!hifdhRaw.length) hifdhRaw = listFromUnknown(base.hifz);
+    var revisionRaw = listFromUnknown(base.revision);
+    if (!revisionRaw.length) revisionRaw = listFromUnknown(base.revisionEntries);
+    if (!revisionRaw.length) revisionRaw = listFromUnknown(base.murajaah);
     return {
       id: String(base.id || makeId('lesson')),
       title: String(base.title || ('الدرس ' + String(Number(index || 0) + 1))),
@@ -395,10 +415,22 @@
     };
   }
 
+  function planEntriesCount(plan) {
+    var p = normalizePlan(plan || {});
+    return p.lessons.reduce(function (sum, lesson) {
+      var h = Array.isArray(lesson && lesson.hifdh) ? lesson.hifdh.length : 0;
+      var r = Array.isArray(lesson && lesson.revision) ? lesson.revision.length : 0;
+      return sum + h + r;
+    }, 0);
+  }
+
   function normalizePlan(raw) {
     var base = raw && typeof raw === 'object' ? raw : {};
     var lessonCount = clampNum(toInt(base.plannedLessons, 1), 1, 120);
-    var lessons = (Array.isArray(base.lessons) ? base.lessons : []).map(function (l, idx) {
+    var rawLessons = listFromUnknown(base.lessons);
+    if (!rawLessons.length) rawLessons = listFromUnknown(base.lessonRows);
+    if (!rawLessons.length) rawLessons = listFromUnknown(base.planLessons);
+    var lessons = rawLessons.map(function (l, idx) {
       return normalizeLesson(l, idx);
     });
     while (lessons.length < lessonCount) lessons.push(seedLesson(lessons.length));
@@ -419,7 +451,12 @@
     var list = getPlans()
       .map(normalizePlan)
       .filter(function (p) { return String(p.halaqaId) === String(halaqaId); })
-      .sort(function (a, b) { return String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')); });
+      .sort(function (a, b) {
+        var aCount = planEntriesCount(a);
+        var bCount = planEntriesCount(b);
+        if (aCount !== bCount) return bCount - aCount;
+        return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+      });
     return list[0] || null;
   }
 
