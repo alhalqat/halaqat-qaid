@@ -9205,6 +9205,13 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 .ops-report-note textarea { width:100%; min-height:72px; }
 .ops-note-print { margin-top:6px; color:#334155; white-space:pre-wrap; }
 .ops-report-foot { border-top:1px solid #e2e8f0; padding-top:8px; font-size:12px; color:#64748b; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.ops-date-nav { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.ops-date-nav input[type="date"] { max-width:170px; }
+.ops-mini-actions { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.ops-mini-actions .btn { padding:4px 8px; font-size:12px; }
+.ops-entry-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:8px; }
+.ops-entry-grid .field-label { font-size:12px; color:#334155; margin-bottom:4px; font-weight:700; }
+.ops-entry-grid textarea { min-height:70px; grid-column:1 / -1; }
 @media (max-width:980px){
   .ops-sec-grid { grid-template-columns:1fr; }
   .ops-kpi-grid { grid-template-columns:1fr 1fr; }
@@ -9212,6 +9219,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
   .ops-report-kpis { grid-template-columns:1fr 1fr; }
   .ops-report-charts { grid-template-columns:1fr; }
   .ops-form-grid { grid-template-columns:1fr; }
+  .ops-entry-grid { grid-template-columns:1fr 1fr; }
 }
 @media print {
   .no-print { display:none !important; }
@@ -9232,7 +9240,13 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           tab: 'today',
           reasonModal: { open: false, halaqaId: '' },
           createModalOpen: false,
+          dateISO: todayISO(),
+          editModal: { open: false, studentId: '' },
         };
+      }
+      if (!state.adminHalaqaFlow.dateISO) state.adminHalaqaFlow.dateISO = todayISO();
+      if (!state.adminHalaqaFlow.editModal || typeof state.adminHalaqaFlow.editModal !== 'object') {
+        state.adminHalaqaFlow.editModal = { open: false, studentId: '' };
       }
       return state.adminHalaqaFlow;
     }
@@ -9370,6 +9384,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       flow.tab = 'today';
       flow.reasonModal = { open: false, halaqaId: '' };
       flow.createModalOpen = false;
+      flow.editModal = { open: false, studentId: '' };
+      flow.dateISO = todayISO();
       state.section = flow.section;
       renderHalaqas();
     }
@@ -9379,7 +9395,28 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       flow.view = 'section';
       flow.halaqaId = '';
       flow.reasonModal = { open: false, halaqaId: '' };
+      flow.editModal = { open: false, studentId: '' };
+      flow.dateISO = todayISO();
       renderHalaqas();
+    }
+
+    function adminHalaqaDateISO() {
+      const flow = adminHalaqaFlow();
+      flow.dateISO = normalizeISODate(flow.dateISO || todayISO(), todayISO());
+      return flow.dateISO;
+    }
+
+    function adminHalaqaSetDate(dateISO) {
+      const flow = adminHalaqaFlow();
+      flow.dateISO = normalizeISODate(dateISO || todayISO(), todayISO());
+      flow.reasonModal = { open: false, halaqaId: '' };
+      flow.editModal = { open: false, studentId: '' };
+      renderHalaqas();
+    }
+
+    function adminHalaqaShiftDate(days) {
+      const base = adminHalaqaDateISO();
+      adminHalaqaSetDate(addDaysISO(base, Number(days || 0)));
     }
 
     function adminHalaqaOpenDetail(halaqaId) {
@@ -9392,6 +9429,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       flow.view = 'detail';
       flow.tab = 'today';
       flow.reasonModal = { open: false, halaqaId: '' };
+      flow.editModal = { open: false, studentId: '' };
+      flow.dateISO = adminHalaqaDateISO();
+      state.currentHalaqaId = halaqa.id;
       renderHalaqas();
     }
 
@@ -9400,12 +9440,15 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       flow.view = 'list';
       flow.tab = 'today';
       flow.reasonModal = { open: false, halaqaId: '' };
+      flow.editModal = { open: false, studentId: '' };
+      state.currentHalaqaId = null;
       renderHalaqas();
     }
 
     function adminHalaqaSetTab(tab) {
       const flow = adminHalaqaFlow();
       flow.tab = ['today', 'week', 'students', 'settings'].includes(tab) ? tab : 'today';
+      flow.editModal = { open: false, studentId: '' };
       renderHalaqas();
     }
 
@@ -9425,6 +9468,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const flow = adminHalaqaFlow();
       const halaqaId = String(flow.reasonModal?.halaqaId || '').trim();
       if (!halaqaId) return toast('تعذر تحديد الحلقة', 'err');
+      const targetDate = flow.view === 'detail' ? adminHalaqaDateISO() : todayISO();
       const reasonTypeRaw = String($('opsReasonType')?.value || 'teacher_excused').trim();
       const text = String($('opsReasonText')?.value || '').trim();
       let status = 'other';
@@ -9438,7 +9482,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       } else {
         status = 'other';
       }
-      const result = upsertHalaqaDayNote(halaqaId, todayISO(), { status, reason, studentsPresent: false });
+      const result = upsertHalaqaDayNote(halaqaId, targetDate, { status, reason, studentsPresent: false });
       if (!result.changed) return toast('لا يوجد تغيير للحفظ');
       saveDB();
       rebuildIndexes();
@@ -9607,8 +9651,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       return out;
     }
 
-    function adminHalaqaWeekTabHtml(halaqa) {
-      const range = weekRangeFromDate(todayISO());
+    function adminHalaqaWeekTabHtml(halaqa, refDateISO = todayISO()) {
+      const range = weekRangeFromDate(normalizeISODate(refDateISO, todayISO()));
       const days = adminHalaqaDaysInRange(range);
       const scheduleDays = new Set(Array.isArray(halaqa.scheduleDays) && halaqa.scheduleDays.length ? halaqa.scheduleDays : (SCHEDULE_PRESETS[halaqa.scheduleType || 'sun-wed'] || []));
       const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
@@ -9655,6 +9699,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         .slice()
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
       return `
+        <div class="ops-v2-actions no-print" style="margin-bottom:8px;">
+          <button class="btn btn-light" onclick="adminHalaqaPrintStudentsPage()">طباعة صفحة الطلاب</button>
+        </div>
         <div class="ops-table-wrap">
           <table class="ops-table">
             <thead>
@@ -9729,13 +9776,258 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       `;
     }
 
+    function adminSurahOptionsHtml(selectedIdx = '') {
+      const selected = selectedIdx === '' ? '' : String(Number(selectedIdx));
+      const rows = SURAH_DATA.slice().reverse();
+      return `<option value="">بدون</option>${rows.map((s) => `<option value="${s.n - 1}" ${String(s.n - 1) === selected ? 'selected' : ''}>${s.n}. ${escapeAttr(s.name)} (${s.a})</option>`).join('')}`;
+    }
+
+    function adminParseIntInput(value, fallback = 1) {
+      const raw = toEnglishDigits(String(value ?? '').trim()).replace(/[^\d]/g, '');
+      if (!raw) return Number(fallback || 1);
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : Number(fallback || 1);
+    }
+
+    function adminAttendanceOptionsHtml(selectedKey = '') {
+      const selected = String(selectedKey || '').trim();
+      return `<option value="">اختر الحضور</option>${ATTENDANCE.map((a) => `<option value="${a.key}" ${a.key === selected ? 'selected' : ''}>${a.label}</option>`).join('')}`;
+    }
+
+    function adminHalaqaOpenEditModal(studentId) {
+      const flow = adminHalaqaFlow();
+      flow.editModal = { open: true, studentId: String(studentId || '') };
+      renderHalaqas();
+    }
+
+    function adminHalaqaCloseEditModal() {
+      const flow = adminHalaqaFlow();
+      flow.editModal = { open: false, studentId: '' };
+      renderHalaqas();
+    }
+
+    function adminHalaqaBuildEditLog(halaqa, student, dateISO, attendance, type, surahIdx, fromAya, toAya, grade, note) {
+      if (surahIdx === '' || surahIdx === null || typeof surahIdx === 'undefined') return null;
+      const idx = Number(surahIdx);
+      if (!Number.isFinite(idx) || idx < 0 || idx >= SURAH_DATA.length) return null;
+      const surah = SURAH_DATA[idx];
+      const maxAya = Number(surah?.a || 1);
+      const from = clamp(adminParseIntInput(fromAya, 1), 1, maxAya);
+      const to = clamp(adminParseIntInput(toAya, 1), 1, maxAya);
+      const g = String(clamp(adminParseIntInput(grade, 1), 1, 10));
+      return {
+        id: uid('log'),
+        date: dateISO,
+        syncStatus: navigator.onLine ? 'synced' : 'pending',
+        section: halaqa.section,
+        halaqaId: halaqa.id,
+        studentId: student.id,
+        createdAt: new Date().toISOString(),
+        attendance,
+        grade: g,
+        type,
+        surahIdx: idx,
+        surahName: surah.name,
+        fromAya: from,
+        toAya: to,
+        ayaCount: ayaCount(from, to),
+        pages: { faces: calcFaces(idx, from, to) },
+        dateMode: 'gregorian',
+        hijriDate: '',
+        notes: String(note || '').trim(),
+        adminNote: '',
+        knightScore: computeKnightScore({ type, attendance }),
+      };
+    }
+
+    function adminHalaqaSaveEntryEdit() {
+      const flow = adminHalaqaFlow();
+      const halaqa = (state.db.halaqas || []).find((h) => h.id === flow.halaqaId);
+      if (!halaqa) return toast('الحلقة غير موجودة', 'err');
+      const studentId = String(flow.editModal?.studentId || '').trim();
+      const student = (state.db.students || []).find((s) => s.id === studentId && s.halaqaId === halaqa.id);
+      if (!student) return toast('الطالب غير موجود', 'err');
+      const dateISO = adminHalaqaDateISO();
+      const attendance = String($('opsEditAttendance')?.value || '').trim();
+      if (!attendance) return toast('اختر حالة الحضور', 'err');
+      const note = String($('opsEditNote')?.value || '').trim();
+      const hifdhSurahIdx = String($('opsEditHifdhSurah')?.value || '').trim();
+      const revisionSurahIdx = String($('opsEditRevisionSurah')?.value || '').trim();
+
+      state.db.logs = (state.db.logs || []).filter((l) =>
+        !(l.halaqaId === halaqa.id && l.studentId === student.id && l.date === dateISO)
+      );
+      upsertRollcall(student.id, halaqa.id, dateISO, attendance);
+
+      if (attendance !== 'absent' && attendance !== 'dropped') {
+        const hifdhLog = adminHalaqaBuildEditLog(
+          halaqa,
+          student,
+          dateISO,
+          attendance,
+          'hifdh',
+          hifdhSurahIdx,
+          $('opsEditHifdhFrom')?.value,
+          $('opsEditHifdhTo')?.value,
+          $('opsEditHifdhGrade')?.value,
+          note
+        );
+        const revisionLog = adminHalaqaBuildEditLog(
+          halaqa,
+          student,
+          dateISO,
+          attendance,
+          'revision',
+          revisionSurahIdx,
+          $('opsEditRevisionFrom')?.value,
+          $('opsEditRevisionTo')?.value,
+          $('opsEditRevisionGrade')?.value,
+          note
+        );
+        if (revisionLog) state.db.logs.unshift(revisionLog);
+        if (hifdhLog) state.db.logs.unshift(hifdhLog);
+      }
+
+      rebuildIndexes();
+      recomputeStudentMetrics(student.id);
+      const targetStudent = state.db.students.find((s) => s.id === student.id);
+      if (targetStudent) {
+        targetStudent.absentCount = (state.db.rollcall || []).filter((r) => r.studentId === student.id && r.status === 'absent').length;
+      }
+      saveDB();
+      flow.editModal = { open: false, studentId: '' };
+      renderHalaqas();
+      toast('تم حفظ تعديل سجل الطالب');
+    }
+
+    function adminHalaqaEditModalHtml(halaqa, snapshot) {
+      const flow = adminHalaqaFlow();
+      const studentId = String(flow.editModal?.studentId || '').trim();
+      const target = (snapshot.rows || []).find((row) => String(row.student?.id || '') === studentId);
+      if (!flow.editModal?.open || !target) return '';
+      const hifdh = target.hifdh || {};
+      const revision = target.revision || {};
+      return `
+        <div class="ops-modal-backdrop no-print" onclick="if(event.target===this) adminHalaqaCloseEditModal()">
+          <div class="ops-modal">
+            <div class="ops-modal-head">
+              <h3>تعديل سجل الطالب: ${escapeAttr(target.student.name || '-')}</h3>
+              <button class="btn btn-light" onclick="adminHalaqaCloseEditModal()">✕</button>
+            </div>
+            <div class="muted" style="font-size:12px; margin-top:6px;">التاريخ: ${snapshot.dateISO}</div>
+            <div class="ops-entry-grid">
+              <div>
+                <div class="field-label">الحضور</div>
+                <select id="opsEditAttendance">${adminAttendanceOptionsHtml(target.attendance || '')}</select>
+              </div>
+              <div>
+                <div class="field-label">سورة الحفظ</div>
+                <select id="opsEditHifdhSurah">${adminSurahOptionsHtml(hifdh.surahIdx ?? '')}</select>
+              </div>
+              <div>
+                <div class="field-label">من آية (حفظ)</div>
+                <input id="opsEditHifdhFrom" inputmode="numeric" value="${escapeAttr(String(hifdh.fromAya || '1'))}" />
+              </div>
+              <div>
+                <div class="field-label">إلى آية (حفظ)</div>
+                <input id="opsEditHifdhTo" inputmode="numeric" value="${escapeAttr(String(hifdh.toAya || '1'))}" />
+              </div>
+              <div>
+                <div class="field-label">تقدير الحفظ</div>
+                <input id="opsEditHifdhGrade" inputmode="numeric" value="${escapeAttr(String(hifdh.grade || '1'))}" />
+              </div>
+              <div>
+                <div class="field-label">سورة المراجعة</div>
+                <select id="opsEditRevisionSurah">${adminSurahOptionsHtml(revision.surahIdx ?? '')}</select>
+              </div>
+              <div>
+                <div class="field-label">من آية (مراجعة)</div>
+                <input id="opsEditRevisionFrom" inputmode="numeric" value="${escapeAttr(String(revision.fromAya || '1'))}" />
+              </div>
+              <div>
+                <div class="field-label">إلى آية (مراجعة)</div>
+                <input id="opsEditRevisionTo" inputmode="numeric" value="${escapeAttr(String(revision.toAya || '1'))}" />
+              </div>
+              <div>
+                <div class="field-label">تقدير المراجعة</div>
+                <input id="opsEditRevisionGrade" inputmode="numeric" value="${escapeAttr(String(revision.grade || '1'))}" />
+              </div>
+              <div style="grid-column:1 / -1;">
+                <div class="field-label">ملاحظة المعلم</div>
+                <textarea id="opsEditNote" placeholder="ملاحظة اختيارية">${escapeAttr(target.notesText === '—' ? '' : target.notesText)}</textarea>
+              </div>
+            </div>
+            <div class="ops-v2-actions" style="margin-top:10px;">
+              <button class="btn btn-primary" onclick="adminHalaqaSaveEntryEdit()">حفظ التعديل</button>
+              <button class="btn btn-light" onclick="adminHalaqaCloseEditModal()">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function adminHalaqaPrintStudentsPage() {
+      const flow = adminHalaqaFlow();
+      const halaqa = (state.db.halaqas || []).find((h) => h.id === flow.halaqaId);
+      if (!halaqa) return toast('اختر الحلقة أولاً', 'err');
+      const students = (state.indexes?.studentsByHalaqa?.[halaqa.id] || [])
+        .slice()
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+      const dateISO = adminHalaqaDateISO();
+      const w = window.open('', '_blank');
+      if (!w) return toast('اسمح بفتح نافذة الطباعة', 'err');
+      w.document.write(`
+        <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="utf-8" />
+            <title>كشف طلاب الحلقة - ${escapeAttr(halaqa.circleName || '-')}</title>
+            <style>
+              body{font-family:Tajawal,Arial,sans-serif;padding:18px;color:#0f172a}
+              h2{margin:0 0 6px 0;color:#14532d}
+              .muted{color:#64748b;font-size:12px}
+              table{width:100%;border-collapse:collapse;margin-top:10px}
+              th,td{border:1px solid #e2e8f0;padding:8px;text-align:right;font-size:13px}
+              th{background:#f8fafc}
+            </style>
+          </head>
+          <body>
+            <h2>كشف طلاب الحلقة</h2>
+            <div class="muted">الحلقة: ${escapeAttr(halaqa.circleName || '-')} • القسم: ${adminSectionLabel(halaqa.section)} • التاريخ المرجعي: ${dateISO}</div>
+            <div class="muted">المعلم: ${escapeAttr(halaqa.teacherName || '-')} • الوقت: ${halaqaTimeLabel(halaqa)} • الأيام: ${scheduleTypeLabel(halaqa)}</div>
+            <table>
+              <thead><tr><th>#</th><th>الاسم</th><th>الهوية</th><th>المرحلة</th><th>الغيابات</th><th>النقاط</th><th>آخر حفظ</th></tr></thead>
+              <tbody>
+                ${students.length ? students.map((student, idx) => `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    <td>${escapeAttr(student.name || '-')}</td>
+                    <td>${escapeAttr(student.nationalId || '-')}</td>
+                    <td>${escapeAttr(student.grade || '-')}</td>
+                    <td>${Number(student.absentCount || 0)}</td>
+                    <td>${Number(student.points || 0)}</td>
+                    <td>${student.lastHifdhSurah ? `${escapeAttr(student.lastHifdhSurah)} (${escapeAttr(student.lastHifdhAya || '-')})` : '—'}</td>
+                  </tr>
+                `).join('') : '<tr><td colspan="7">لا يوجد طلاب في الحلقة.</td></tr>'}
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `);
+      w.document.close();
+      setTimeout(() => w.print(), 260);
+    }
+
     function adminHalaqaDetailContent(halaqa, snapshot) {
       const flow = adminHalaqaFlow();
-      if (flow.tab === 'week') return adminHalaqaWeekTabHtml(halaqa);
+      const dateISO = snapshot?.dateISO || adminHalaqaDateISO();
+      if (flow.tab === 'week') return adminHalaqaWeekTabHtml(halaqa, dateISO);
       if (flow.tab === 'students') return adminHalaqaStudentsTabHtml(halaqa);
       if (flow.tab === 'settings') return adminHalaqaSettingsTabHtml(halaqa);
       const rows = snapshot.rows || [];
       return `
+        <div class="ops-v2-actions no-print" style="margin-bottom:8px;">
+          <button class="btn btn-light" onclick="adminHalaqaOpenReasonModal('${halaqa.id}')">⚠ سجّل سبب لليوم المحدد</button>
+        </div>
         <div class="ops-table-wrap">
           <table class="ops-table">
             <thead>
@@ -9749,6 +10041,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
                 <th>سورة المراجعة</th>
                 <th>تقدير المراجعة</th>
                 <th>ملاحظة المعلم</th>
+                <th class="no-print">تعديل</th>
               </tr>
             </thead>
             <tbody>
@@ -9768,8 +10061,13 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
                   <td>${row.revision ? escapeAttr(row.revision.surahName || '-') : '—'}</td>
                   <td>${adminGradeDot(row.revision?.grade || '')}</td>
                   <td>${escapeAttr(row.notesText || '—')}</td>
+                  <td class="no-print">
+                    <div class="ops-mini-actions">
+                      <button class="btn btn-light" onclick="adminHalaqaOpenEditModal('${row.student.id}')">تعديل</button>
+                    </div>
+                  </td>
                 </tr>
-              `).join('') : '<tr><td colspan="9" class="muted">لا توجد بيانات اليوم لهذه الحلقة.</td></tr>'}
+              `).join('') : '<tr><td colspan="10" class="muted">لا توجد بيانات لهذا اليوم في هذه الحلقة.</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -9807,11 +10105,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         `;
       }).join('') || '<tr><td colspan="8" class="muted">لا توجد حلقات في هذا القسم.</td></tr>';
 
+      const reasonDateLabel = flow.view === 'detail' ? adminHalaqaDateISO() : todayISO();
       const reasonModalHtml = flow.reasonModal?.open ? `
         <div class="ops-modal-backdrop no-print" onclick="if(event.target===this) adminHalaqaCloseReasonModal()">
           <div class="ops-modal">
             <div class="ops-modal-head">
-              <h3>سبب عدم إقامة الحلقة اليوم</h3>
+              <h3>سبب عدم إقامة الحلقة (${reasonDateLabel})</h3>
               <button class="btn btn-light" onclick="adminHalaqaCloseReasonModal()">✕</button>
             </div>
             <div class="field-label" style="margin-top:10px;">السبب</div>
@@ -9924,9 +10223,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         flow.halaqaId = '';
         return adminHalaqaRenderList(section);
       }
-      const snapshot = adminHalaqaTodaySnapshot(halaqa, todayISO());
+      const activeDate = adminHalaqaDateISO();
+      const snapshot = adminHalaqaTodaySnapshot(halaqa, activeDate);
       const tab = ['today', 'week', 'students', 'settings'].includes(flow.tab) ? flow.tab : 'today';
       flow.tab = tab;
+      const today = todayISO();
+      const editModalHtml = adminHalaqaEditModalHtml(halaqa, snapshot);
       cards.className = '';
       cards.innerHTML = `
         <div class="ops-v2-shell">
@@ -9939,12 +10241,20 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
               <div class="ops-v2-actions no-print">
                 <button class="btn btn-light" onclick="adminHalaqaBackToList()">↩ الحلقات</button>
                 <button class="btn btn-light" onclick="adminHalaqaSwitchSection()">⇄ تبديل القسم</button>
+                <button class="btn btn-light" onclick="adminHalaqaPrintStudentsPage()">طباعة صفحة الطلاب</button>
               </div>
             </div>
             <div class="ops-quick">
               <b>حاضر: ${snapshot.presentCount}</b>
               <b>غائب: ${snapshot.absentCount}</b>
               <b>إجمالي: ${snapshot.students.length}</b>
+            </div>
+            <div class="ops-date-nav no-print">
+              <button class="btn btn-light" onclick="adminHalaqaShiftDate(-1)">اليوم السابق</button>
+              <input type="date" value="${activeDate}" onchange="adminHalaqaSetDate(this.value)" />
+              <button class="btn btn-light" onclick="adminHalaqaShiftDate(1)">اليوم التالي</button>
+              <button class="btn btn-light" onclick="adminHalaqaSetDate('${today}')">اليوم</button>
+              <span class="badge">${toHijriLabelFromISO(activeDate) || ''}</span>
             </div>
           </div>
           <div class="ops-tabs no-print">
@@ -9954,6 +10264,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             <button class="ops-tab-btn ${tab === 'settings' ? 'active' : ''}" onclick="adminHalaqaSetTab('settings')">الإعدادات</button>
           </div>
           ${adminHalaqaDetailContent(halaqa, snapshot)}
+          ${editModalHtml}
         </div>
       `;
     }
