@@ -131,13 +131,19 @@
     return String(section) === 'womens' ? 'البنات' : 'البنين';
   }
 
+  function getSurahData() {
+    if (Array.isArray(window.SURAH_DATA)) return window.SURAH_DATA;
+    if (typeof SURAH_DATA !== 'undefined' && Array.isArray(SURAH_DATA)) return SURAH_DATA;
+    return [];
+  }
+
   function surahListDesc() {
-    var data = Array.isArray(window.SURAH_DATA) ? window.SURAH_DATA.slice() : [];
+    var data = getSurahData().slice();
     return data.sort(function (a, b) { return Number(b.n || 0) - Number(a.n || 0); });
   }
 
   function surahByIdx(idx) {
-    var data = Array.isArray(window.SURAH_DATA) ? window.SURAH_DATA : [];
+    var data = getSurahData();
     var n = Number(idx);
     if (!Number.isFinite(n) || n < 0 || n >= data.length) return null;
     return data[n];
@@ -156,7 +162,7 @@
 
   function normalizeEntry(raw) {
     var surahIdx = Number(raw && raw.surahIdx);
-    if (!Number.isFinite(surahIdx) || surahIdx < 0 || surahIdx >= (Array.isArray(window.SURAH_DATA) ? window.SURAH_DATA.length : 0)) {
+    if (!Number.isFinite(surahIdx) || surahIdx < 0 || surahIdx >= getSurahData().length) {
       surahIdx = 0;
     }
     var maxAya = maxAyaForSurahIdx(surahIdx);
@@ -804,7 +810,7 @@
     if (!lesson) return;
     var part = UI.picker.part === 'revision' ? 'revision' : 'hifdh';
     var idx = Number(surahIdx);
-    if (!Number.isFinite(idx) || idx < 0 || idx >= (Array.isArray(window.SURAH_DATA) ? window.SURAH_DATA.length : 0)) return;
+    if (!Number.isFinite(idx) || idx < 0 || idx >= getSurahData().length) return;
     var maxAya = maxAyaForSurahIdx(idx);
     lesson[part].push({
       id: makeId('mrow'),
