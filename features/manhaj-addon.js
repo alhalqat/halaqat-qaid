@@ -7,6 +7,11 @@
     builderOpen: false,
     previewOpen: false,
     editingPlanId: '',
+    selectedProgressPlanId: '',
+    progressRowsByPlan: {},
+    progressLoading: false,
+    progressError: '',
+    progressLoadToken: '',
     draft: null,
     picker: {
       open: false,
@@ -17,6 +22,10 @@
     },
     teacherTab: 'halaqas',
     teacherHalaqaId: '',
+    teacherPendingAction: 'normal',
+    teacherRefreshQueued: false,
+    lessonCache: {},
+    lessonFetchPending: {},
   };
 
   function hasRuntime() {
@@ -92,6 +101,98 @@
 
   function saveAddon() {
     if (typeof window.saveDB === 'function') window.saveDB();
+  }
+
+  function getRealtimeDatabaseRef(path) {
+    try {
+      if (typeof database !== 'undefined' && database && typeof database.ref === 'function') {
+        return database.ref(String(path || '').replace(/^\/+/, ''));
+      }
+    } catch (_e) {}
+    try {
+      if (window.database && typeof window.database.ref === 'function') {
+        return window.database.ref(String(path || '').replace(/^\/+/, ''));
+      }
+    } catch (_e2) {}
+    return null;
+  }
+
+  function getCachedLesson(studentId, fallback) {
+    var key = String(studentId || '');
+    if (!key) return Number(fallback || 1);
+    if (Object.prototype.hasOwnProperty.call(UI.lessonCache, key)) {
+      var cached = Number(UI.lessonCache[key]);
+      if (Number.isFinite(cached) && cached >= 1) return Math.floor(cached);
+    }
+    return Number(fallback || 1);
+  }
+
+  function setCachedLesson(studentId, lessonNumber) {
+    var key = String(studentId || '');
+    if (!key) return;
+    var n = Number(lessonNumber || 1);
+    UI.lessonCache[key] = Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+  }
+
+  function readCurrentLessonFromFirebase(studentId, options) {
+    var opts = options || {};
+    var key = String(studentId || '');
+    if (!key) return Promise.resolve(1);
+    if (!opts.fresh && Object.prototype.hasOwnProperty.call(UI.lessonCache, key)) {
+      return Promise.resolve(getCachedLesson(key, 1));
+    }
+    if (UI.lessonFetchPending[key]) return UI.lessonFetchPending[key];
+
+    var ref = getRealtimeDatabaseRef('students/' + key + '/currentLesson');
+    if (!ref) {
+      var fallback = getCachedLesson(key, 1);
+      setCachedLesson(key, fallback);
+      return Promise.resolve(fallback);
+    }
+
+    UI.lessonFetchPending[key] = ref.once('value')
+      .then(function (snapshot) {
+        var raw = snapshot && typeof snapshot.val === 'function' ? snapshot.val() : 1;
+        var n = Number(raw);
+        var lesson = Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+        setCachedLesson(key, lesson);
+        return lesson;
+      })
+      .catch(function () {
+        var fallback = getCachedLesson(key, 1);
+        setCachedLesson(key, fallback);
+        return fallback;
+      })
+      .finally(function () {
+        delete UI.lessonFetchPending[key];
+      });
+
+    return UI.lessonFetchPending[key];
+  }
+
+  function writeCurrentLessonToFirebase(studentId, lessonNumber) {
+    var key = String(studentId || '');
+    if (!key) return Promise.resolve(false);
+    var target = clampNum(Number(lessonNumber || 1), 1, 9999);
+    var ref = getRealtimeDatabaseRef('students/' + key + '/currentLesson');
+    if (!ref) return Promise.resolve(false);
+    return ref.set(target)
+      .then(function () {
+        setCachedLesson(key, target);
+        return true;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
+  function queueTeacherRefresh() {
+    if (UI.teacherRefreshQueued) return;
+    UI.teacherRefreshQueued = true;
+    setTimeout(function () {
+      UI.teacherRefreshQueued = false;
+      refreshTeacherView();
+    }, 0);
   }
 
   function allHalaqas() {
@@ -365,6 +466,55 @@
     return 'حفظ: ' + hifdh + ' | مراجعة: ' + revision;
   }
 
+  function lessonEntryText(entry) {
+    var row = normalizeEntry(entry || {});
+    var surah = surahByIdx(row.surahIdx);
+    if (!surah) return '—';
+    return surah.name + ' ' + row.fromAya + '-' + row.toAya;
+  }
+
+  function lessonPartText(lesson, part) {
+    var rows = Array.isArray(lesson && lesson[part]) ? lesson[part] : [];
+    if (!rows.length) return '—';
+    return rows.map(function (row) { return lessonEntryText(row); }).join(' + ');
+  }
+
+  function pickLessonMainSurahName(lesson) {
+    var hifdh = Array.isArray(lesson && lesson.hifdh) ? lesson.hifdh : [];
+    var revision = Array.isArray(lesson && lesson.revision) ? lesson.revision : [];
+    var row = hifdh[0] || revision[0] || null;
+    if (!row) return '—';
+    var surah = surahByIdx(row.surahIdx);
+    return surah ? surah.name : '—';
+  }
+
+  function statusByPercent(percent) {
+    var p = Number(percent || 0);
+    if (p >= 70) return { label: 'منتظم', cls: 'ok' };
+    if (p >= 35) return { label: 'يمكن تحسين', cls: 'warn' };
+    return { label: 'متأخر', cls: 'late' };
+  }
+
+  function planTotalLessons(plan) {
+    var p = normalizePlan(plan || {});
+    return Math.max(1, Number(p.lessons.length || p.plannedLessons || 1));
+  }
+
+  function normalizeLessonNumberForPlan(plan, lessonNumber) {
+    var total = planTotalLessons(plan);
+    var raw = Number(lessonNumber || 1);
+    var n = Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+    if (n > total) n = total;
+    return n;
+  }
+
+  function lessonRowForPlan(plan, lessonNumber) {
+    var p = normalizePlan(plan || {});
+    if (!p.lessons.length) return null;
+    var n = normalizeLessonNumberForPlan(p, lessonNumber);
+    return p.lessons[n - 1] || null;
+  }
+
   function initDraft(planId) {
     var source = null;
     var plans = getPlans();
@@ -412,6 +562,114 @@
     UI.draft.plannedLessons = count;
     while (UI.draft.lessons.length < count) UI.draft.lessons.push(seedLesson(UI.draft.lessons.length));
     if (UI.draft.lessons.length > count) UI.draft.lessons = UI.draft.lessons.slice(0, count);
+  }
+
+  function buildPlanProgressRow(plan, student, lessonNumber) {
+    var p = normalizePlan(plan || {});
+    var total = planTotalLessons(p);
+    var currentLesson = normalizeLessonNumberForPlan(p, lessonNumber);
+    var current = lessonRowForPlan(p, currentLesson);
+    var percent = total > 0 ? clampNum(Math.round(((currentLesson - 1) / total) * 100), 0, 100) : 0;
+    var status = statusByPercent(percent);
+    return {
+      student: student,
+      currentLesson: currentLesson,
+      totalLessons: total,
+      currentSurahName: pickLessonMainSurahName(current),
+      percent: percent,
+      statusLabel: status.label,
+      statusCls: status.cls,
+    };
+  }
+
+  function ensureProgressRowsLoaded(plan) {
+    var p = normalizePlan(plan || {});
+    if (!p.id || !p.halaqaId) return;
+    var planId = String(p.id);
+    if (UI.progressRowsByPlan[planId] && Array.isArray(UI.progressRowsByPlan[planId])) return;
+    if (UI.progressLoading && UI.progressLoadToken && UI.progressLoadToken.indexOf(planId + ':') === 0) return;
+
+    UI.progressLoading = true;
+    UI.progressError = '';
+    var token = planId + ':' + makeId('load');
+    UI.progressLoadToken = token;
+
+    var students = sortedStudentsForHalaqa(p.halaqaId);
+    Promise.all(students.map(function (student) {
+      return readCurrentLessonFromFirebase(student.id, { fresh: true })
+        .then(function (lessonNumber) {
+          return buildPlanProgressRow(p, student, lessonNumber);
+        });
+    }))
+      .then(function (rows) {
+        if (UI.progressLoadToken !== token) return;
+        UI.progressRowsByPlan[planId] = rows;
+      })
+      .catch(function () {
+        if (UI.progressLoadToken !== token) return;
+        UI.progressError = 'تعذر قراءة تقدم الطلاب من Firebase حالياً.';
+      })
+      .finally(function () {
+        if (UI.progressLoadToken !== token) return;
+        UI.progressLoading = false;
+        refreshSupervisionView();
+      });
+  }
+
+  function supervisionProgressSectionHtml(plans) {
+    var list = Array.isArray(plans) ? plans : [];
+    if (!list.length) {
+      return '<div class="card"><h3 style="margin-bottom:8px;">تقدم الطلاب</h3><p class="muted">لا توجد مناهج لعرض التقدم.</p></div>';
+    }
+
+    if (!UI.selectedProgressPlanId || !list.some(function (p) { return String(p.id) === String(UI.selectedProgressPlanId); })) {
+      UI.selectedProgressPlanId = String(list[0].id || '');
+    }
+
+    var selected = list.find(function (p) { return String(p.id) === String(UI.selectedProgressPlanId); }) || list[0];
+    if (!selected) return '';
+
+    ensureProgressRowsLoaded(selected);
+    var rows = UI.progressRowsByPlan[String(selected.id)] || [];
+
+    var rowsHtml = rows.length
+      ? rows.map(function (row, idx) {
+          return [
+            '<tr>',
+            '  <td>' + String(idx + 1) + '</td>',
+            '  <td>' + esc(row.student && row.student.name ? row.student.name : '-') + '</td>',
+            '  <td>درس ' + Number(row.currentLesson) + ' من ' + Number(row.totalLessons) + '</td>',
+            '  <td>' + esc(row.currentSurahName || '—') + '</td>',
+            '  <td><div class="manhaj-mini-progress"><span style="width:' + Number(row.percent) + '%"></span></div><div style="font-size:12px; margin-top:4px;">' + Number(row.percent) + '%</div></td>',
+            '  <td><span class="manhaj-status-pill ' + esc(row.statusCls) + '">' + esc(row.statusLabel) + '</span></td>',
+            '</tr>'
+          ].join('');
+        }).join('')
+      : '<tr><td colspan="6" class="muted">لا توجد بيانات تقدم حتى الآن.</td></tr>';
+
+    return [
+      '<div class="card">',
+      '  <div class="row between" style="gap:8px; flex-wrap:wrap;">',
+      '    <h3 style="margin:0;">تقدم الطلاب</h3>',
+      '    <div class="field-block" style="min-width:260px;">',
+      '      <div class="field-label">اختر المنهج</div>',
+      '      <select onchange="manhajSelectProgressPlan(this.value)">',
+      list.map(function (p) {
+        return '<option value="' + esc(String(p.id || '')) + '" ' + (String(p.id) === String(selected.id) ? 'selected' : '') + '>' + esc(p.name || '-') + '</option>';
+      }).join(''),
+      '      </select>',
+      '    </div>',
+      '  </div>',
+      '  ' + (UI.progressLoading ? '<p class="muted" style="margin-top:8px;">جار قراءة التقدم من Firebase...</p>' : ''),
+      '  ' + (UI.progressError ? '<p style="color:#b91c1c; margin-top:8px;">' + esc(UI.progressError) + '</p>' : ''),
+      '  <div class="manhaj-progress-table-wrap" style="margin-top:8px;">',
+      '    <table class="manhaj-progress-table">',
+      '      <thead><tr><th>#</th><th>اسم الطالب</th><th>الدرس الحالي</th><th>السورة الحالية</th><th>التقدم</th><th>الحالة</th></tr></thead>',
+      '      <tbody>' + rowsHtml + '</tbody>',
+      '    </table>',
+      '  </div>',
+      '</div>'
+    ].join('');
   }
 
   function renderSupervisionAddon() {
@@ -499,6 +757,7 @@
       : '<div class="card"><p class="muted">لا توجد مناهج محفوظة حتى الآن.</p></div>';
 
     var builderHtml = UI.builderOpen ? builderOverlayHtml() : '';
+    var progressHtml = supervisionProgressSectionHtml(plans);
 
     return [
       '<div class="card">',
@@ -514,6 +773,7 @@
       '  <h3 style="margin-bottom:8px;">قائمة المناهج</h3>',
       '  <div class="manhaj-plan-list">' + listHtml + '</div>',
       '</div>',
+      progressHtml,
       builderHtml
     ].join('');
   }
@@ -742,6 +1002,12 @@
     refreshSupervisionView();
   }
 
+  function manhajSelectProgressPlan(planId) {
+    UI.selectedProgressPlanId = String(planId || '');
+    UI.progressError = '';
+    refreshSupervisionView();
+  }
+
   function manhajOpenBuilder() {
     initDraft('');
     refreshSupervisionView();
@@ -890,6 +1156,8 @@
     else plans.unshift(plan);
 
     ensureStore().plans = plans;
+    UI.progressRowsByPlan = {};
+    UI.progressError = '';
     saveAddon();
 
     UI.editingPlanId = plan.id;
@@ -937,6 +1205,153 @@
     );
     w.document.close();
     setTimeout(function () { w.print(); }, 260);
+  }
+
+  function teacherTodaySessionKey(halaqaId) {
+    return String(halaqaId || '') + '__' + today();
+  }
+
+  function teacherEnsureDraftExists(ctx) {
+    if (!ctx || !ctx.flow || !ctx.student || !ctx.halaqa) return null;
+    if (!ctx.flow.sessions || typeof ctx.flow.sessions !== 'object') ctx.flow.sessions = {};
+    var key = teacherTodaySessionKey(ctx.halaqa.id);
+    if (!ctx.flow.sessions[key] || typeof ctx.flow.sessions[key] !== 'object') ctx.flow.sessions[key] = { students: {} };
+    if (!ctx.flow.sessions[key].students || typeof ctx.flow.sessions[key].students !== 'object') {
+      ctx.flow.sessions[key].students = {};
+    }
+    if (!ctx.flow.sessions[key].students[ctx.student.id]) {
+      ctx.flow.sessions[key].students[ctx.student.id] = {
+        attendance: '',
+        hifdhEntries: [{ id: makeId('trow'), surahIdx: '', fromAya: 1, toAya: 1, grade: '1' }],
+        revisionEntries: [{ id: makeId('trow'), surahIdx: '', fromAya: 1, toAya: 1, grade: '1' }],
+        note: '',
+      };
+    }
+    ctx.draft = ctx.flow.sessions[key].students[ctx.student.id];
+    return ctx.draft;
+  }
+
+  function teacherEvalContext() {
+    if (!isTeacherUser() || !state.teacherFlow || String(state.teacherFlow.view || '') !== 'evaluate') return null;
+    var flow = state.teacherFlow;
+    var halaqa = halaqaById(flow.activeHalaqaId);
+    if (!halaqa) return null;
+    var students = sortedStudentsForHalaqa(halaqa.id);
+    if (!students.length) return null;
+    var idx = clampNum(Number(flow.studentIndex || 0), 0, students.length - 1);
+    var student = students[idx];
+    var ctx = { flow: flow, halaqa: halaqa, students: students, student: student, index: idx, draft: null };
+    teacherEnsureDraftExists(ctx);
+    return ctx;
+  }
+
+  function mapLessonEntryToDraftRow(entry, fallbackId) {
+    var row = normalizeEntry(entry || {});
+    return {
+      id: String((entry && entry.id) || fallbackId || makeId('trow')),
+      surahIdx: Number(row.surahIdx),
+      fromAya: Number(row.fromAya),
+      toAya: Number(row.toAya),
+      grade: '1',
+    };
+  }
+
+  function applyLessonTemplateToDraft(ctx, plan, lessonNumber) {
+    if (!ctx || !ctx.draft) return false;
+    var p = normalizePlan(plan || {});
+    var lessonNo = normalizeLessonNumberForPlan(p, lessonNumber);
+    var lesson = lessonRowForPlan(p, lessonNo);
+    if (!lesson) return false;
+    var marker = String(p.id || '') + ':' + String(lessonNo);
+    if (String(ctx.draft.__manhajLessonMarker || '') === marker) return false;
+
+    var hRows = (Array.isArray(lesson.hifdh) ? lesson.hifdh : []).map(function (row, idx) {
+      return mapLessonEntryToDraftRow(row, makeId('mh' + idx));
+    });
+    var rRows = (Array.isArray(lesson.revision) ? lesson.revision : []).map(function (row, idx) {
+      return mapLessonEntryToDraftRow(row, makeId('mr' + idx));
+    });
+
+    ctx.draft.hifdhEntries = hRows.length ? hRows : [{ id: makeId('trow'), surahIdx: '', fromAya: 1, toAya: 1, grade: '1' }];
+    ctx.draft.revisionEntries = rRows.length ? rRows : [{ id: makeId('trow'), surahIdx: '', fromAya: 1, toAya: 1, grade: '1' }];
+    ctx.draft.__manhajLessonMarker = marker;
+    return true;
+  }
+
+  function rangeOverlap(aFrom, aTo, bFrom, bTo) {
+    var left = Math.max(Number(aFrom || 0), Number(bFrom || 0));
+    var right = Math.min(Number(aTo || 0), Number(bTo || 0));
+    if (right < left) return 0;
+    return right - left + 1;
+  }
+
+  function requirementStatus(requiredEntry, actualRows) {
+    var req = normalizeEntry(requiredEntry || {});
+    var rows = Array.isArray(actualRows) ? actualRows : [];
+    var best = { full: false, partial: false };
+    rows.forEach(function (row) {
+      var parsed = normalizeEntry(row || {});
+      if (Number(parsed.surahIdx) !== Number(req.surahIdx)) return;
+      if (parsed.fromAya <= req.fromAya && parsed.toAya >= req.toAya) best.full = true;
+      if (rangeOverlap(parsed.fromAya, parsed.toAya, req.fromAya, req.toAya) > 0) best.partial = true;
+    });
+    if (best.full) return { cls: 'done', label: 'أتم المطلوب' };
+    if (best.partial) return { cls: 'partial', label: 'حفظ جزءاً' };
+    return { cls: 'none', label: 'لم يحفظ' };
+  }
+
+  function buildRequirementItems(partRows, actualRows) {
+    var rows = Array.isArray(partRows) ? partRows : [];
+    return rows.map(function (entry) {
+      var parsed = normalizeEntry(entry || {});
+      var status = requirementStatus(parsed, actualRows);
+      return '<div class="manhaj-req-item ' + status.cls + '">' + esc(lessonEntryText(parsed)) + ' <span>• ' + esc(status.label) + '</span></div>';
+    }).join('') || '<div class="manhaj-req-item none">لا يوجد مطلوب</div>';
+  }
+
+  function renderTeacherLessonBannerAndIndicators(cardsRoot, ctx, plan, lessonNumber) {
+    if (!cardsRoot || !ctx || !plan) return;
+    Array.prototype.slice.call(cardsRoot.querySelectorAll('.manhaj-student-banner,.manhaj-req-box,.manhaj-action-row')).forEach(function (el) { el.remove(); });
+
+    var lesson = lessonRowForPlan(plan, lessonNumber);
+    if (!lesson) return;
+
+    var anchor = cardsRoot.querySelector('.tw-student-name');
+    if (anchor && anchor.parentElement) {
+      var banner = document.createElement('div');
+      banner.className = 'manhaj-student-banner';
+      banner.innerHTML = '<b>درس ' + Number(lessonNumber) + '</b> — الحفظ: ' + esc(lessonPartText(lesson, 'hifdh')) + ' — المراجعة: ' + esc(lessonPartText(lesson, 'revision'));
+      anchor.parentElement.insertBefore(banner, anchor);
+    }
+
+    var sections = cardsRoot.querySelectorAll('.tw-entry-section');
+    var hifdhSection = sections[0] || null;
+    var revisionSection = sections[1] || null;
+    var draft = ctx.draft || {};
+    if (hifdhSection) {
+      var box1 = document.createElement('div');
+      box1.className = 'manhaj-req-box';
+      box1.innerHTML = '<div class="manhaj-req-title">مطلوب المنهج (الحفظ)</div>' + buildRequirementItems(lesson.hifdh, draft.hifdhEntries);
+      hifdhSection.insertBefore(box1, hifdhSection.firstChild.nextSibling || null);
+    }
+    if (revisionSection) {
+      var box2 = document.createElement('div');
+      box2.className = 'manhaj-req-box';
+      box2.innerHTML = '<div class="manhaj-req-title">مطلوب المنهج (المراجعة)</div>' + buildRequirementItems(lesson.revision, draft.revisionEntries);
+      revisionSection.insertBefore(box2, revisionSection.firstChild.nextSibling || null);
+    }
+
+    var actionWrap = cardsRoot.querySelector('.tw-actions');
+    if (actionWrap) {
+      var saveNextBtn = actionWrap.querySelector('.btn.btn-primary');
+      if (saveNextBtn) saveNextBtn.style.display = 'none';
+      var row = document.createElement('div');
+      row.className = 'manhaj-action-row';
+      row.innerHTML = '' +
+        '<button type="button" class="btn btn-ok" onclick="manhajTeacherCompleteLesson()">أتم الدرس ✓</button>' +
+        '<button type="button" class="btn btn-primary" onclick="manhajTeacherSaveIncomplete()">لم يكمل ←</button>';
+      actionWrap.appendChild(row);
+    }
   }
 
   function renderTeacherManhajTab() {
@@ -1011,28 +1426,79 @@
 
   function injectTeacherBanner(cardsRoot) {
     if (!cardsRoot) return;
-    Array.prototype.slice.call(cardsRoot.querySelectorAll('.manhaj-student-banner')).forEach(function (el) { el.remove(); });
+    Array.prototype.slice.call(cardsRoot.querySelectorAll('.manhaj-student-banner,.manhaj-req-box,.manhaj-action-row')).forEach(function (el) { el.remove(); });
+    var mainSaveBtn = cardsRoot.querySelector('.tw-actions .btn.btn-primary');
+    if (mainSaveBtn) mainSaveBtn.style.display = '';
 
     if (UI.teacherTab === 'manhaj') return;
     if (!state.teacherFlow || String(state.teacherFlow.view || '') !== 'evaluate') return;
 
-    var halaqaId = String(state.teacherFlow.activeHalaqaId || '');
-    if (!halaqaId) return;
-    var plan = planForHalaqa(halaqaId);
+    var ctx = teacherEvalContext();
+    if (!ctx || !ctx.halaqa || !ctx.student) return;
+    var plan = planForHalaqa(ctx.halaqa.id);
     if (!plan) return;
+    var expectedStudentId = String(ctx.student.id || '');
+    var expectedHalaqaId = String(ctx.halaqa.id || '');
+    var expectedIndex = Number(ctx.index || 0);
 
-    var students = sortedStudentsForHalaqa(halaqaId);
-    if (!students.length) return;
-    var idx = clampNum(Number(state.teacherFlow.studentIndex || 0), 0, students.length - 1);
-    var student = students[idx];
-    var progress = progressForStudentInPlan(plan, student.id);
-    var anchor = cardsRoot.querySelector('.tw-student-name');
-    if (!anchor || !anchor.parentElement) return;
+    readCurrentLessonFromFirebase(ctx.student.id, { fresh: false }).then(function (lessonNumber) {
+      var live = teacherEvalContext();
+      if (!live || !live.student || !live.halaqa) return;
+      if (String(live.student.id || '') !== expectedStudentId) return;
+      if (String(live.halaqa.id || '') !== expectedHalaqaId) return;
+      if (Number(live.index || 0) !== expectedIndex) return;
 
-    var banner = document.createElement('div');
-    banner.className = 'manhaj-student-banner';
-    banner.innerHTML = '<b>درس الطالب الحالي:</b> ' + esc(progress.currentLessonLabel) + ' <span class="badge">التقدم: ' + Number(progress.percent) + '%</span>';
-    anchor.parentElement.insertBefore(banner, anchor);
+      var currentLesson = normalizeLessonNumberForPlan(plan, lessonNumber);
+      var changed = applyLessonTemplateToDraft(live, plan, currentLesson);
+      if (changed) {
+        queueTeacherRefresh();
+        return;
+      }
+      renderTeacherLessonBannerAndIndicators(cardsRoot, live, plan, currentLesson);
+    });
+  }
+
+  async function manhajTeacherSaveIncomplete() {
+    UI.teacherPendingAction = 'incomplete';
+    if (typeof window.teacherSaveAndNext === 'function') await window.teacherSaveAndNext();
+  }
+
+  async function manhajTeacherCompleteLesson() {
+    UI.teacherPendingAction = 'complete';
+    if (typeof window.teacherSaveAndNext === 'function') await window.teacherSaveAndNext();
+  }
+
+  function patchTeacherSaveAndNextAction() {
+    var original = window.teacherSaveAndNext;
+    if (typeof original !== 'function') return;
+    if (original.__manhajActionWrapped) return;
+
+    var wrapped = async function manhajSaveAndNextWrapper() {
+      var action = String(UI.teacherPendingAction || 'normal');
+      UI.teacherPendingAction = 'normal';
+      var before = teacherEvalContext();
+      var beforeIndex = before ? Number(before.flow.studentIndex || 0) : -1;
+      var beforeView = before ? String(before.flow.view || '') : '';
+      var beforeHalaqa = before ? String(before.halaqa.id || '') : '';
+
+      await original.apply(this, arguments);
+
+      if (action !== 'complete' || !before || !before.student) return;
+      var flow = state.teacherFlow || {};
+      var moved = String(flow.view || '') !== beforeView
+        || Number(flow.studentIndex || 0) !== beforeIndex
+        || String(flow.activeHalaqaId || '') !== beforeHalaqa;
+      if (!moved) return;
+
+      var current = await readCurrentLessonFromFirebase(before.student.id, { fresh: true });
+      var ok = await writeCurrentLessonToFirebase(before.student.id, Number(current || 1) + 1);
+      if (!ok && typeof window.toast === 'function') {
+        window.toast('تم حفظ التقييم لكن تعذر تحديث رقم الدرس في Firebase', 'err');
+      }
+    };
+    wrapped.__manhajActionWrapped = true;
+    wrapped.__manhajActionOriginal = original;
+    window.teacherSaveAndNext = wrapped;
   }
 
   function ensureTeacherNavButton(cardsRoot) {
@@ -1193,6 +1659,14 @@
       '.manhaj-plan-row{border:1px solid #e2e8f0;border-radius:12px;padding:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;}',
       '.manhaj-plan-title{font-weight:900;color:#14532d;}',
       '.manhaj-plan-meta{font-size:12px;color:#64748b;margin-top:4px;}',
+      '.manhaj-progress-table-wrap{border:1px solid #e2e8f0;border-radius:12px;overflow:auto;background:#fff;}',
+      '.manhaj-progress-table{width:100%;border-collapse:collapse;min-width:760px;}',
+      '.manhaj-progress-table th,.manhaj-progress-table td{border-top:1px solid #e2e8f0;padding:8px;text-align:right;font-size:13px;vertical-align:middle;}',
+      '.manhaj-progress-table thead th{border-top:0;background:#f8fafc;color:#334155;font-weight:800;}',
+      '.manhaj-status-pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800;}',
+      '.manhaj-status-pill.ok{background:#dcfce7;color:#166534;}',
+      '.manhaj-status-pill.warn{background:#fef9c3;color:#854d0e;}',
+      '.manhaj-status-pill.late{background:#fee2e2;color:#991b1b;}',
       '.manhaj-overlay{position:fixed;inset:0;z-index:120;background:rgba(2,6,23,.56);padding:18px;overflow:auto;}',
       '.manhaj-overlay-card{max-width:1200px;margin:0 auto;background:#fff;border-radius:14px;border:1px solid #dbe7db;padding:12px;position:relative;}',
       '.manhaj-draft-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;}',
@@ -1220,6 +1694,14 @@
       '.manhaj-mini-progress{height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;}',
       '.manhaj-mini-progress span{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);}',
       '.manhaj-student-banner{margin-bottom:8px;border:1px solid #86efac;background:#f0fdf4;border-radius:10px;padding:8px;color:#166534;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}',
+      '.manhaj-req-box{margin-top:6px;margin-bottom:8px;border:1px dashed #d1d5db;border-radius:10px;padding:8px;background:#f8fafc;}',
+      '.manhaj-req-title{font-size:12px;font-weight:800;color:#334155;margin-bottom:6px;}',
+      '.manhaj-req-item{font-size:12px;padding:4px 6px;border-radius:8px;background:#e2e8f0;color:#334155;display:flex;justify-content:space-between;gap:6px;margin-bottom:4px;}',
+      '.manhaj-req-item.done{background:#dcfce7;color:#166534;}',
+      '.manhaj-req-item.partial{background:#fef9c3;color:#854d0e;}',
+      '.manhaj-req-item.none{background:#f1f5f9;color:#64748b;}',
+      '.manhaj-action-row{display:flex;gap:8px;flex-wrap:wrap;flex:1 1 240px;}',
+      '.manhaj-action-row .btn{flex:1 1 160px;}',
       '.manhaj-parent-head{display:flex;align-items:center;gap:12px;margin-top:10px;}',
       '.manhaj-parent-circle{--p:0;width:96px;height:96px;border-radius:999px;background:conic-gradient(#16a34a calc(var(--p) * 1%), #e2e8f0 0);display:grid;place-items:center;}',
       '.manhaj-parent-circle span{width:74px;height:74px;border-radius:999px;background:#fff;display:grid;place-items:center;font-weight:900;color:#14532d;}',
@@ -1244,6 +1726,7 @@
 
   function exposeApi() {
     window.manhajSetSupervisionTab = manhajSetSupervisionTab;
+    window.manhajSelectProgressPlan = manhajSelectProgressPlan;
     window.manhajOpenBuilder = manhajOpenBuilder;
     window.manhajEditPlan = manhajEditPlan;
     window.manhajCloseBuilder = manhajCloseBuilder;
@@ -1261,6 +1744,8 @@
     window.manhajTogglePreview = manhajTogglePreview;
     window.manhajPrintDraft = manhajPrintDraft;
     window.manhajSetTeacherHalaqa = manhajSetTeacherHalaqa;
+    window.manhajTeacherSaveIncomplete = manhajTeacherSaveIncomplete;
+    window.manhajTeacherCompleteLesson = manhajTeacherCompleteLesson;
   }
 
   function init() {
@@ -1268,6 +1753,7 @@
     ensureStore();
     injectStyles();
     exposeApi();
+    patchTeacherSaveAndNextAction();
 
     wrapFunction('renderSupervision', renderSupervisionAddon);
     wrapFunction('renderHalaqas', renderTeacherAddon);
