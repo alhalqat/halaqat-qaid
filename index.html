@@ -6157,6 +6157,14 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       toast('تم حذف آخر سجل');
     }
 
+    function formatStudentDuplicateLocation(student) {
+      const h = state.indexes?.halaqaById?.[student.halaqaId] || null;
+      const sectionText = student.section === 'womens' ? 'البنات' : 'البنين';
+      const halaqaText = h?.circleName || 'بدون حلقة';
+      const idText = compactName(student.nationalId) ? ` • هوية: ${student.nationalId}` : '';
+      return `${student.name} — ${halaqaText} (${sectionText})${idText}`;
+    }
+
     function createStudent() {
       if (!canManageStudents()) return toast('غير مسموح', 'err');
       const name = $('newStudentName').value.trim();
@@ -6169,6 +6177,28 @@ function getConsecutiveAbsences(studentId, halaqaId) {
       const h = state.indexes?.halaqaById?.[halaqaId] || null;
       if (!h) return toast('اختر حلقة صحيحة', 'err');
       if (section !== h.section) return toast('القسم المختار لا يطابق قسم الحلقة', 'err');
+
+      const keyName = compactName(name);
+      const keyNationalId = compactName(nationalId);
+      const sameNameStudents = (state.db.students || []).filter((s) => compactName(s.name) === keyName);
+      if (sameNameStudents.length) {
+        const exactDuplicate = keyNationalId
+          ? sameNameStudents.find((s) => compactName(s.nationalId) === keyNationalId)
+          : null;
+        if (exactDuplicate) {
+          return toast('هذا الطالب موجود مسبقاً بنفس الاسم ورقم الهوية', 'err');
+        }
+
+        const preview = sameNameStudents
+          .slice(0, 4)
+          .map((s) => `- ${formatStudentDuplicateLocation(s)}`)
+          .join('\n');
+        const more = sameNameStudents.length > 4 ? `\n- ... +${sameNameStudents.length - 4} سجلات أخرى` : '';
+        const msg = `تنبيه: الاسم "${name}" موجود مسبقاً في المنصة (${sameNameStudents.length}).\n${preview}${more}\n\nهل تريد المتابعة وإضافة الطالب بنفس الاسم؟`;
+        if (!confirm(msg)) {
+          return toast('تم إلغاء الإضافة لتجنب تكرار الاسم');
+        }
+      }
 
       state.db.students.push({
         id: uid('s'),
