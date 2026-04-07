@@ -13307,6 +13307,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
   window.teacherSaveExamStudent = teacherSaveExamStudent;
 })();
   </script>
-  <script src="./features/manhaj-addon.js?v=20260407e"></script>
+  <nav id="manhajPersistentTeacherNav" class="tw-bottom-nav manhaj-fixed-nav no-print hidden">
+    <button type="button" class="tw-nav-btn" data-nav="halaqas">الحلقات</button>
+    <button type="button" class="tw-nav-btn" data-nav="alerts">التنبيهات<span class="tw-nav-badge" style="display:none;"></span></button>
+    <button type="button" class="tw-nav-btn" data-nav="exams">الاختبارات</button>
+    <button type="button" class="tw-nav-btn" data-nav="manhaj">المنهج</button>
+  </nav>
+  <script src="./features/manhaj-addon.js?v=20260407f"></script>
 </body>
 </html>

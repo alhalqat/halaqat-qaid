@@ -1450,16 +1450,17 @@
             '  <td><button type="button" class="manhaj-link-btn" onclick="manhajStartStudentEval(\'' + esc(halaqa.id) + '\',\'' + esc(row.student.id) + '\')">' + esc(row.student.name || '-') + '</button></td>',
             '  <td>درس ' + Number(row.currentLesson) + '</td>',
             '  <td><div class="manhaj-mini-progress"><span style="width:' + Number(row.percent) + '%"></span></div><div style="font-size:12px; margin-top:4px;">' + Number(row.percent) + '%</div></td>',
+            '  <td><button type="button" class="btn btn-light" onclick="manhajStartStudentEval(\'' + esc(halaqa.id) + '\',\'' + esc(row.student.id) + '\')">بدء التقييم</button></td>',
             '</tr>'
           ].join('');
         }).join('')
-      : '<tr><td colspan="3" class="muted">' + (loading ? 'جار تحميل التقدم...' : 'لا توجد بيانات تقدم') + '</td></tr>';
+      : '<tr><td colspan="4" class="muted">' + (loading ? 'جار تحميل التقدم...' : 'لا توجد بيانات تقدم') + '</td></tr>';
 
     return [
       error ? '<p style="color:#b91c1c; font-size:12px; margin-bottom:6px;">' + esc(error) + '</p>' : '',
       '<div class="manhaj-progress-table-wrap">',
       '  <table class="manhaj-progress-table">',
-      '    <thead><tr><th>اسم الطالب</th><th>درسه الحالي</th><th>التقدم</th></tr></thead>',
+      '    <thead><tr><th>اسم الطالب</th><th>درسه الحالي</th><th>التقدم</th><th>إجراء</th></tr></thead>',
       '    <tbody>' + rowsHtml + '</tbody>',
       '  </table>',
       '</div>'
@@ -1644,6 +1645,32 @@
     return document.getElementById('manhajPersistentTeacherNav');
   }
 
+  function bindPersistentTeacherNav(nav) {
+    if (!nav || nav.dataset.bound === '1') return;
+    nav.dataset.bound = '1';
+    nav.addEventListener('click', function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest('.tw-nav-btn') : null;
+      if (!btn) return;
+      var key = String(btn.dataset.nav || 'halaqas');
+      if (key === 'manhaj') {
+        UI.teacherTab = 'manhaj';
+        if (typeof window.teacherSetBottomTab === 'function') window.teacherSetBottomTab('halaqas');
+        queueTeacherRefresh();
+        return;
+      }
+      UI.teacherTab = 'halaqas';
+      if (typeof window.teacherSetBottomTab === 'function') window.teacherSetBottomTab(key);
+      queueTeacherRefresh();
+    });
+  }
+
+  function stripLegacyTeacherNav(cardsRoot) {
+    if (!cardsRoot) return;
+    Array.prototype.slice.call(cardsRoot.querySelectorAll('.tw-bottom-nav')).forEach(function (nav) {
+      nav.remove();
+    });
+  }
+
   function updatePersistentTeacherNavState() {
     var nav = persistentTeacherNavRoot();
     if (!nav) return;
@@ -1673,22 +1700,9 @@
         + '<button type="button" class="tw-nav-btn" data-nav="alerts">التنبيهات<span class="tw-nav-badge" style="display:none;"></span></button>'
         + '<button type="button" class="tw-nav-btn" data-nav="exams">الاختبارات</button>'
         + '<button type="button" class="tw-nav-btn" data-nav="manhaj">المنهج</button>';
-      nav.addEventListener('click', function (ev) {
-        var btn = ev.target && ev.target.closest ? ev.target.closest('.tw-nav-btn') : null;
-        if (!btn) return;
-        var key = String(btn.dataset.nav || 'halaqas');
-        if (key === 'manhaj') {
-          UI.teacherTab = 'manhaj';
-          if (typeof window.teacherSetBottomTab === 'function') window.teacherSetBottomTab('halaqas');
-          queueTeacherRefresh();
-          return;
-        }
-        UI.teacherTab = 'halaqas';
-        if (typeof window.teacherSetBottomTab === 'function') window.teacherSetBottomTab(key);
-        queueTeacherRefresh();
-      });
       document.body.appendChild(nav);
     }
+    bindPersistentTeacherNav(nav);
     var visible = isTeacherUser() && state.session && state.session.type === 'staff';
     nav.classList.toggle('hidden', !visible);
     updatePersistentTeacherNavState();
@@ -1699,6 +1713,7 @@
     if (!isTeacherUser()) return;
     var cardsRoot = document.getElementById('halaqaCards');
     if (!cardsRoot) return;
+    stripLegacyTeacherNav(cardsRoot);
     var shell = cardsRoot.querySelector('.tw-shell');
     if (!shell) return;
 
