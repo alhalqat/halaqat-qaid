@@ -26,6 +26,11 @@
     teacherRefreshQueued: false,
     lessonCache: {},
     lessonFetchPending: {},
+    curriculumProgressCache: {},
+    curriculumProgressPending: {},
+    teacherProgressRowsByPlan: {},
+    teacherProgressLoadingByPlan: {},
+    teacherProgressErrorByPlan: {},
   };
 
   function hasRuntime() {
@@ -193,6 +198,43 @@
       UI.teacherRefreshQueued = false;
       refreshTeacherView();
     }, 0);
+  }
+
+  function curriculumProgressKey(curriculumId, studentId) {
+    return String(curriculumId || '') + '__' + String(studentId || '');
+  }
+
+  function readCurriculumLessonFromFirebase(curriculumId, studentId, options) {
+    var opts = options || {};
+    var cid = String(curriculumId || '');
+    var sid = String(studentId || '');
+    if (!cid || !sid) return Promise.resolve(1);
+    var key = curriculumProgressKey(cid, sid);
+    if (!opts.fresh && Object.prototype.hasOwnProperty.call(UI.curriculumProgressCache, key)) {
+      var c = Number(UI.curriculumProgressCache[key]);
+      return Promise.resolve(Number.isFinite(c) && c >= 1 ? Math.floor(c) : 1);
+    }
+    if (UI.curriculumProgressPending[key]) return UI.curriculumProgressPending[key];
+
+    var ref = getRealtimeDatabaseRef('curricula/' + cid + '/studentProgress/' + sid + '/currentLesson');
+    if (!ref) return Promise.resolve(1);
+
+    UI.curriculumProgressPending[key] = ref.once('value')
+      .then(function (snapshot) {
+        var raw = snapshot && typeof snapshot.val === 'function' ? snapshot.val() : 1;
+        var n = Number(raw);
+        var lesson = Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+        UI.curriculumProgressCache[key] = lesson;
+        return lesson;
+      })
+      .catch(function () {
+        return 1;
+      })
+      .finally(function () {
+        delete UI.curriculumProgressPending[key];
+      });
+
+    return UI.curriculumProgressPending[key];
   }
 
   function allHalaqas() {
@@ -1354,74 +1396,98 @@
     }
   }
 
-  function renderTeacherManhajTab() {
-    var halaqas = visibleHalaqaList();
-    if (!halaqas.length) return '<div class="tw-card">لا توجد حلقات مخصصة للمعلم.</div>';
+  function teacherPlansForManhajTab() {
+    return visibleHalaqaList()
+      .map(function (h) { return { halaqa: h, plan: planForHalaqa(h.id) }; })
+      .filter(function (item) { return !!item.plan; })
+      .sort(function (a, b) {
+        return String(a.halaqa && a.halaqa.circleName || '').localeCompare(String(b.halaqa && b.halaqa.circleName || ''), 'ar');
+      });
+  }
 
-    if (!UI.teacherHalaqaId || !halaqaById(UI.teacherHalaqaId)) {
-      UI.teacherHalaqaId = String(halaqas[0].id || '');
-    }
+  function ensureTeacherProgressRowsLoaded(plan, halaqa) {
+    if (!plan || !halaqa) return;
+    var pid = String(plan.id || '');
+    if (!pid) return;
+    if (UI.teacherProgressRowsByPlan[pid] && Array.isArray(UI.teacherProgressRowsByPlan[pid])) return;
+    if (UI.teacherProgressLoadingByPlan[pid]) return;
 
-    var selectedHalaqaId = String(UI.teacherHalaqaId || '');
-    var selectedHalaqa = halaqaById(selectedHalaqaId);
-    var plan = selectedHalaqa ? planForHalaqa(selectedHalaqa.id) : null;
+    UI.teacherProgressLoadingByPlan[pid] = true;
+    UI.teacherProgressErrorByPlan[pid] = '';
+    var students = sortedStudentsForHalaqa(halaqa.id);
+    var totalLessons = planTotalLessons(plan);
 
-    var halaqaOptions = halaqas.map(function (h) {
-      var selected = String(h.id) === selectedHalaqaId;
-      return '<option value="' + esc(h.id) + '" ' + (selected ? 'selected' : '') + '>' + esc(h.circleName || '-') + '</option>';
-    }).join('');
+    Promise.all(students.map(function (student) {
+      return readCurriculumLessonFromFirebase(pid, student.id, { fresh: true })
+        .then(function (lesson) {
+          var current = normalizeLessonNumberForPlan(plan, lesson);
+          var percent = totalLessons > 0 ? clampNum(Math.round((current / totalLessons) * 100), 0, 100) : 0;
+          return { student: student, currentLesson: current, percent: percent };
+        });
+    }))
+      .then(function (rows) {
+        UI.teacherProgressRowsByPlan[pid] = rows;
+      })
+      .catch(function () {
+        UI.teacherProgressErrorByPlan[pid] = 'تعذر قراءة تقدم الطلاب من Firebase';
+      })
+      .finally(function () {
+        UI.teacherProgressLoadingByPlan[pid] = false;
+        refreshTeacherView();
+      });
+  }
 
-    if (!plan) {
-      return [
-        '<div class="tw-card">',
-        '  <div class="tw-head"><h3>تبويب المنهج</h3><span class="tw-pill">عرض فقط</span></div>',
-        '  <div class="field-block" style="margin-top:8px;">',
-        '    <div class="field-label">الحلقة</div>',
-        '    <select onchange="manhajSetTeacherHalaqa(this.value)">' + halaqaOptions + '</select>',
-        '  </div>',
-        '  <p class="muted" style="margin-top:10px;">لا يوجد منهج مسند لهذه الحلقة حتى الآن. يمكن للإدارة/الإشراف إضافته من تبويب المناهج.</p>',
-        '</div>'
-      ].join('');
-    }
-
-    var students = sortedStudentsForHalaqa(selectedHalaqa.id);
-    var rows = students.map(function (student, idx) {
-      var prog = progressForStudentInPlan(plan, student.id);
-      return [
-        '<tr>',
-        '  <td>' + String(idx + 1) + '</td>',
-        '  <td>' + esc(student.name || '-') + '</td>',
-        '  <td>' + esc(prog.currentLessonLabel) + '</td>',
-        '  <td>',
-        '    <div class="manhaj-mini-progress"><span style="width:' + Number(prog.percent) + '%"></span></div>',
-        '    <div style="margin-top:4px; font-size:12px;">' + Number(prog.percent) + '%</div>',
-        '  </td>',
-        '  <td>' + Number(prog.completedLessons) + '/' + Number(prog.totalLessons) + '</td>',
-        '</tr>'
-      ].join('');
-    }).join('') || '<tr><td colspan="5" class="muted">لا يوجد طلاب في الحلقة.</td></tr>';
+  function renderTeacherQuickProgressTable(plan, halaqa) {
+    var pid = String(plan.id || '');
+    ensureTeacherProgressRowsLoaded(plan, halaqa);
+    var rows = UI.teacherProgressRowsByPlan[pid] || [];
+    var loading = !!UI.teacherProgressLoadingByPlan[pid];
+    var error = UI.teacherProgressErrorByPlan[pid] || '';
+    var rowsHtml = rows.length
+      ? rows.map(function (row) {
+          return [
+            '<tr>',
+            '  <td><button type="button" class="manhaj-link-btn" onclick="manhajStartStudentEval(\'' + esc(halaqa.id) + '\',\'' + esc(row.student.id) + '\')">' + esc(row.student.name || '-') + '</button></td>',
+            '  <td>درس ' + Number(row.currentLesson) + '</td>',
+            '  <td><div class="manhaj-mini-progress"><span style="width:' + Number(row.percent) + '%"></span></div><div style="font-size:12px; margin-top:4px;">' + Number(row.percent) + '%</div></td>',
+            '</tr>'
+          ].join('');
+        }).join('')
+      : '<tr><td colspan="3" class="muted">' + (loading ? 'جار تحميل التقدم...' : 'لا توجد بيانات تقدم') + '</td></tr>';
 
     return [
-      '<div class="tw-card">',
-      '  <div class="tw-head">',
-      '    <div>',
-      '      <h3>المنهج</h3>',
-      '      <p>متابعة تقدم الطلاب على المنهج المعتمد للحلقة</p>',
-      '    </div>',
-      '    <span class="tw-pill">' + esc(plan.name || '-') + '</span>',
-      '  </div>',
-      '  <div class="field-block" style="margin-top:8px;">',
-      '    <div class="field-label">الحلقة</div>',
-      '    <select onchange="manhajSetTeacherHalaqa(this.value)">' + halaqaOptions + '</select>',
-      '  </div>',
-      '  <div class="tw-table-wrap" style="margin-top:10px;">',
-      '    <table class="tw-summary-table">',
-      '      <thead><tr><th>#</th><th>الطالب</th><th>الدرس الحالي</th><th>التقدم</th><th>المكتمل</th></tr></thead>',
-      '      <tbody>' + rows + '</tbody>',
-      '    </table>',
-      '  </div>',
+      error ? '<p style="color:#b91c1c; font-size:12px; margin-bottom:6px;">' + esc(error) + '</p>' : '',
+      '<div class="manhaj-progress-table-wrap">',
+      '  <table class="manhaj-progress-table">',
+      '    <thead><tr><th>اسم الطالب</th><th>درسه الحالي</th><th>التقدم</th></tr></thead>',
+      '    <tbody>' + rowsHtml + '</tbody>',
+      '  </table>',
       '</div>'
     ].join('');
+  }
+
+  function renderTeacherManhajTab() {
+    var pairs = teacherPlansForManhajTab();
+    if (!pairs.length) {
+      return '<div class="tw-card"><h3>المنهج</h3><p class="muted" style="margin-top:8px;">لا توجد حلقات لها منهج مسند لهذا المعلم.</p></div>';
+    }
+
+    return pairs.map(function (item) {
+      var h = item.halaqa;
+      var p = item.plan;
+      return [
+        '<div class="tw-card manhaj-teacher-card">',
+        '  <div class="tw-head">',
+        '    <div>',
+        '      <h3>' + esc(h.circleName || '-') + '</h3>',
+        '      <p>المنهج: ' + esc(p.name || '-') + ' • الدروس: ' + Number(planTotalLessons(p)) + '</p>',
+        '    </div>',
+        '    <button type="button" class="btn btn-primary" onclick="manhajStartHalaqaEval(\'' + esc(h.id) + '\')">بدء التقييم</button>',
+        '  </div>',
+        '  <div style="margin-top:8px;">' + renderTeacherQuickProgressTable(p, h) + '</div>',
+        '</div>'
+      ].join('');
+    }).join('');
   }
 
   function injectTeacherBanner(cardsRoot) {
@@ -1430,7 +1496,7 @@
     var mainSaveBtn = cardsRoot.querySelector('.tw-actions .btn.btn-primary');
     if (mainSaveBtn) mainSaveBtn.style.display = '';
 
-    if (UI.teacherTab === 'manhaj') return;
+    if (UI.teacherTab !== 'manhaj') return;
     if (!state.teacherFlow || String(state.teacherFlow.view || '') !== 'evaluate') return;
 
     var ctx = teacherEvalContext();
@@ -1468,6 +1534,46 @@
     if (typeof window.teacherSaveAndNext === 'function') await window.teacherSaveAndNext();
   }
 
+  function manhajStartHalaqaEval(halaqaId) {
+    UI.teacherTab = 'manhaj';
+    if (typeof window.teacherSetBottomTab === 'function') {
+      window.teacherSetBottomTab('halaqas');
+    }
+    if (typeof window.teacherOpenHalaqaFlow === 'function') {
+      window.teacherOpenHalaqaFlow(String(halaqaId || ''));
+    } else {
+      var flow = state.teacherFlow || {};
+      flow.tab = 'halaqas';
+      flow.activeHalaqaId = String(halaqaId || '');
+      flow.view = 'evaluate';
+      flow.studentIndex = 0;
+      flow.undo = null;
+      state.currentHalaqaId = flow.activeHalaqaId;
+    }
+    queueTeacherRefresh();
+  }
+
+  function manhajStartStudentEval(halaqaId, studentId) {
+    var hid = String(halaqaId || '');
+    var sid = String(studentId || '');
+    if (!hid || !sid) return;
+    UI.teacherTab = 'manhaj';
+    if (typeof window.teacherSetBottomTab === 'function') {
+      window.teacherSetBottomTab('halaqas');
+    }
+    var flow = state.teacherFlow || {};
+    var students = sortedStudentsForHalaqa(hid);
+    var idx = students.findIndex(function (s) { return String(s.id) === sid; });
+    flow.tab = 'halaqas';
+    flow.activeHalaqaId = hid;
+    flow.view = 'evaluate';
+    flow.studentIndex = idx >= 0 ? idx : 0;
+    flow.undo = null;
+    flow.summary = null;
+    state.currentHalaqaId = hid;
+    queueTeacherRefresh();
+  }
+
   function patchTeacherSaveAndNextAction() {
     var original = window.teacherSaveAndNext;
     if (typeof original !== 'function') return;
@@ -1482,6 +1588,7 @@
       var beforeHalaqa = before ? String(before.halaqa.id || '') : '';
 
       await original.apply(this, arguments);
+      if (UI.teacherTab === 'manhaj') queueTeacherRefresh();
 
       if (action !== 'complete' || !before || !before.student) return;
       var flow = state.teacherFlow || {};
@@ -1495,75 +1602,120 @@
       if (!ok && typeof window.toast === 'function') {
         window.toast('تم حفظ التقييم لكن تعذر تحديث رقم الدرس في Firebase', 'err');
       }
+      if (UI.teacherTab === 'manhaj') queueTeacherRefresh();
     };
     wrapped.__manhajActionWrapped = true;
     wrapped.__manhajActionOriginal = original;
     window.teacherSaveAndNext = wrapped;
   }
 
-  function ensureTeacherNavButton(cardsRoot) {
-    var nav = cardsRoot.querySelector('.tw-bottom-nav');
-    if (!nav) return null;
-    nav.style.gridTemplateColumns = 'repeat(4,minmax(0,1fr))';
+  function patchTeacherUiRenderHooks() {
+    var names = [
+      'teacherSetBottomTab',
+      'teacherOpenHalaqaFlow',
+      'teacherBackToHalaqas',
+      'teacherPrevStudent',
+      'teacherJumpStudent',
+      'teacherUndoLastAdvance',
+      'teacherSetAttendance',
+      'teacherSetEntryField',
+      'teacherSetEntryFieldLive',
+      'teacherAddEntry',
+      'teacherRemoveEntry',
+      'teacherSetNote',
+      'teacherSetNoteLive'
+    ];
+    names.forEach(function (name) {
+      var original = window[name];
+      if (typeof original !== 'function') return;
+      if (original.__manhajUiWrapped) return;
+      var wrapped = function manhajUiHookWrapper() {
+        var out = original.apply(this, arguments);
+        if (UI.teacherTab === 'manhaj' || name === 'teacherSetBottomTab') queueTeacherRefresh();
+        return out;
+      };
+      wrapped.__manhajUiWrapped = true;
+      wrapped.__manhajUiOriginal = original;
+      window[name] = wrapped;
+    });
+  }
 
-    if (!nav.dataset.manhajHooked) {
-      nav.dataset.manhajHooked = '1';
+  function persistentTeacherNavRoot() {
+    return document.getElementById('manhajPersistentTeacherNav');
+  }
+
+  function updatePersistentTeacherNavState() {
+    var nav = persistentTeacherNavRoot();
+    if (!nav) return;
+    var flow = state.teacherFlow || {};
+    var active = UI.teacherTab === 'manhaj' ? 'manhaj' : String(flow.tab || 'halaqas');
+    Array.prototype.slice.call(nav.querySelectorAll('.tw-nav-btn')).forEach(function (btn) {
+      btn.classList.toggle('active', String(btn.dataset.nav) === active);
+    });
+    var badge = nav.querySelector('[data-nav="alerts"] .tw-nav-badge');
+    if (badge) {
+      var unread = (typeof window.visibleAnnouncementsForUser === 'function' && typeof window.currentUser === 'function')
+        ? (window.visibleAnnouncementsForUser(window.currentUser() || {}).length || 0)
+        : 0;
+      badge.textContent = unread > 0 ? String(unread) : '';
+      badge.style.display = unread > 0 ? 'grid' : 'none';
+    }
+  }
+
+  function ensurePersistentTeacherNav() {
+    var nav = persistentTeacherNavRoot();
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.id = 'manhajPersistentTeacherNav';
+      nav.className = 'tw-bottom-nav manhaj-fixed-nav no-print hidden';
+      nav.innerHTML = ''
+        + '<button type="button" class="tw-nav-btn" data-nav="halaqas">الحلقات</button>'
+        + '<button type="button" class="tw-nav-btn" data-nav="alerts">التنبيهات<span class="tw-nav-badge" style="display:none;"></span></button>'
+        + '<button type="button" class="tw-nav-btn" data-nav="exams">الاختبارات</button>'
+        + '<button type="button" class="tw-nav-btn" data-nav="manhaj">المنهج</button>';
       nav.addEventListener('click', function (ev) {
         var btn = ev.target && ev.target.closest ? ev.target.closest('.tw-nav-btn') : null;
         if (!btn) return;
-        if (btn.dataset && btn.dataset.twAddon === 'manhaj') return;
-        UI.teacherTab = 'halaqas';
-      });
-    }
-
-    var btn = nav.querySelector('[data-tw-addon="manhaj"]');
-    if (!btn) {
-      btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'tw-nav-btn';
-      btn.dataset.twAddon = 'manhaj';
-      btn.textContent = 'المنهج';
-      btn.onclick = function () {
-        UI.teacherTab = 'manhaj';
-        if (!UI.teacherHalaqaId) {
-          var list = visibleHalaqaList();
-          UI.teacherHalaqaId = list[0] ? String(list[0].id || '') : '';
+        var key = String(btn.dataset.nav || 'halaqas');
+        if (key === 'manhaj') {
+          UI.teacherTab = 'manhaj';
+          if (typeof window.teacherSetBottomTab === 'function') window.teacherSetBottomTab('halaqas');
+          queueTeacherRefresh();
+          return;
         }
-        refreshTeacherView();
-      };
-      nav.appendChild(btn);
+        UI.teacherTab = 'halaqas';
+        if (typeof window.teacherSetBottomTab === 'function') window.teacherSetBottomTab(key);
+        queueTeacherRefresh();
+      });
+      document.body.appendChild(nav);
     }
-
-    return btn;
+    var visible = isTeacherUser() && state.session && state.session.type === 'staff';
+    nav.classList.toggle('hidden', !visible);
+    updatePersistentTeacherNavState();
   }
 
   function renderTeacherAddon() {
+    ensurePersistentTeacherNav();
     if (!isTeacherUser()) return;
     var cardsRoot = document.getElementById('halaqaCards');
     if (!cardsRoot) return;
     var shell = cardsRoot.querySelector('.tw-shell');
     if (!shell) return;
 
-    var navBtn = ensureTeacherNavButton(cardsRoot);
-    if (UI.teacherTab === 'manhaj') {
-      var nav = cardsRoot.querySelector('.tw-bottom-nav');
-      if (nav) {
-        Array.prototype.slice.call(nav.querySelectorAll('.tw-nav-btn')).forEach(function (b) {
-          b.classList.remove('active');
-        });
+    injectTeacherBanner(cardsRoot);
+    var flow = state.teacherFlow || {};
+    if (UI.teacherTab === 'manhaj' && String(flow.tab || '') === 'halaqas') {
+      if (String(flow.view || '') !== 'evaluate') {
+        shell.innerHTML = renderTeacherManhajTab();
+      } else {
+        injectTeacherBanner(cardsRoot);
       }
-      if (navBtn) navBtn.classList.add('active');
-      shell.innerHTML = renderTeacherManhajTab();
-    } else if (navBtn) {
-      navBtn.classList.remove('active');
-      injectTeacherBanner(cardsRoot);
     }
+    updatePersistentTeacherNavState();
   }
 
   function manhajSetTeacherHalaqa(halaqaId) {
-    UI.teacherHalaqaId = String(halaqaId || '');
-    if (UI.teacherTab !== 'manhaj') UI.teacherTab = 'manhaj';
-    refreshTeacherView();
+    manhajStartHalaqaEval(halaqaId);
   }
 
   function renderParentManhajSection() {
@@ -1663,10 +1815,13 @@
       '.manhaj-progress-table{width:100%;border-collapse:collapse;min-width:760px;}',
       '.manhaj-progress-table th,.manhaj-progress-table td{border-top:1px solid #e2e8f0;padding:8px;text-align:right;font-size:13px;vertical-align:middle;}',
       '.manhaj-progress-table thead th{border-top:0;background:#f8fafc;color:#334155;font-weight:800;}',
+      '.manhaj-link-btn{background:none;border:0;color:#14532d;font-weight:800;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;}',
+      '.manhaj-link-btn:hover{color:#166534;}',
       '.manhaj-status-pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800;}',
       '.manhaj-status-pill.ok{background:#dcfce7;color:#166534;}',
       '.manhaj-status-pill.warn{background:#fef9c3;color:#854d0e;}',
       '.manhaj-status-pill.late{background:#fee2e2;color:#991b1b;}',
+      '.manhaj-teacher-card{border-style:solid;}',
       '.manhaj-overlay{position:fixed;inset:0;z-index:120;background:rgba(2,6,23,.56);padding:18px;overflow:auto;}',
       '.manhaj-overlay-card{max-width:1200px;margin:0 auto;background:#fff;border-radius:14px;border:1px solid #dbe7db;padding:12px;position:relative;}',
       '.manhaj-draft-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;}',
@@ -1702,6 +1857,8 @@
       '.manhaj-req-item.none{background:#f1f5f9;color:#64748b;}',
       '.manhaj-action-row{display:flex;gap:8px;flex-wrap:wrap;flex:1 1 240px;}',
       '.manhaj-action-row .btn{flex:1 1 160px;}',
+      '#halaqaCards .tw-bottom-nav{display:none !important;}',
+      '.manhaj-fixed-nav{z-index:70;grid-template-columns:repeat(4,minmax(0,1fr));}',
       '.manhaj-parent-head{display:flex;align-items:center;gap:12px;margin-top:10px;}',
       '.manhaj-parent-circle{--p:0;width:96px;height:96px;border-radius:999px;background:conic-gradient(#16a34a calc(var(--p) * 1%), #e2e8f0 0);display:grid;place-items:center;}',
       '.manhaj-parent-circle span{width:74px;height:74px;border-radius:999px;background:#fff;display:grid;place-items:center;font-weight:900;color:#14532d;}',
@@ -1744,6 +1901,8 @@
     window.manhajTogglePreview = manhajTogglePreview;
     window.manhajPrintDraft = manhajPrintDraft;
     window.manhajSetTeacherHalaqa = manhajSetTeacherHalaqa;
+    window.manhajStartHalaqaEval = manhajStartHalaqaEval;
+    window.manhajStartStudentEval = manhajStartStudentEval;
     window.manhajTeacherSaveIncomplete = manhajTeacherSaveIncomplete;
     window.manhajTeacherCompleteLesson = manhajTeacherCompleteLesson;
   }
@@ -1754,10 +1913,12 @@
     injectStyles();
     exposeApi();
     patchTeacherSaveAndNextAction();
+    patchTeacherUiRenderHooks();
 
     wrapFunction('renderSupervision', renderSupervisionAddon);
     wrapFunction('renderHalaqas', renderTeacherAddon);
     wrapFunction('renderParentView', renderParentManhajSection);
+    wrapFunction('renderAll', ensurePersistentTeacherNav);
 
     try {
       if (typeof window.renderSupervision === 'function' && state.tab === 'supervision') renderSupervisionAddon();
