@@ -782,13 +782,27 @@
       };
       setTodaySessionRecord(curriculumId, studentId, sessionDate, payload);
 
-      if (idx >= students.length - 1) {
+      var peerMaxLesson = 1;
+      for (var p = 0; p < students.length; p += 1) {
+        var peerId = String(students[p].id || '');
+        if (!peerId || peerId === studentId) continue;
+        var peerCurrent = Number(flow.progressByStudent[peerId] && flow.progressByStudent[peerId].currentLesson);
+        if (Number.isFinite(peerCurrent) && peerCurrent > peerMaxLesson) peerMaxLesson = peerCurrent;
+      }
+      var keepSameStudent = Number(nextLesson) < Number(peerMaxLesson);
+
+      if (keepSameStudent) {
+        flow.studentIndex = idx;
+        flow.view = 'evaluate';
+      } else if (idx >= students.length - 1) {
         flow.view = 'overview';
         flow.studentIndex = 0;
       } else {
         flow.studentIndex = idx + 1;
       }
-      toast(effectiveCompleted ? 'تم حفظ الجلسة وإتمام الدرس' : 'تم حفظ الجلسة بدون ترقية الدرس');
+      var saveMsg = effectiveCompleted ? 'تم حفظ الجلسة وإتمام الدرس' : 'تم حفظ الجلسة بدون ترقية الدرس';
+      if (keepSameStudent) saveMsg += ' — الطالب ما زال متأخراً وتم إبقاؤه في نفس الشاشة';
+      toast(saveMsg);
     } catch (err) {
       var code = String(err && err.code ? err.code : 'unknown');
       var message = String(err && err.message ? err.message : 'unknown');
