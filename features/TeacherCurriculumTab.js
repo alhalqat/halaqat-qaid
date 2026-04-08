@@ -549,6 +549,12 @@
     });
   }
 
+  function cancelProgressLoading() {
+    var flow = teacherCurriculumFlow();
+    flow.progressLoadToken = 'cancel__' + String(Date.now());
+    flow.loadingProgress = false;
+  }
+
   function studentLessonNumber(curriculum, studentId) {
     var flow = teacherCurriculumFlow();
     var p = flow.progressByStudent[String(studentId)] || null;
@@ -871,8 +877,9 @@
       '      <h3>' + esc(pair.halaqa.circleName || '-') + '</h3>',
       '      <p>المنهج: ' + esc(pair.curriculum.name || '-') + '</p>',
       '    </div>',
-      '    <div class="row" style="gap:6px;">',
-      '      <button type="button" class="btn btn-light" onclick="teacherCurriculumBackToList()">↩ الحلقات</button>',
+      '    <div class="row" style="gap:6px; flex-wrap:wrap;">',
+      '      <button type="button" class="btn btn-light" onclick="teacherCurriculumGoMainHalaqas()">↩ الحلقات الرئيسية</button>',
+      '      <button type="button" class="btn btn-light" onclick="teacherCurriculumBackToList()">قائمة مناهج المعلم</button>',
       '      <button type="button" class="btn btn-primary" onclick="teacherCurriculumStartEvaluation()">بدء التقييم</button>',
       '    </div>',
       '  </div>',
@@ -957,7 +964,10 @@
       '      <h3>تقييم المنهج</h3>',
       '      <p>' + esc(pair.halaqa.circleName || '-') + ' • الطالب ' + Number(idx + 1) + ' من ' + Number(students.length) + '</p>',
       '    </div>',
-      '    <button type="button" class="btn btn-light" onclick="teacherCurriculumBackToOverview()">↩ التقدم</button>',
+      '    <div class="row" style="gap:6px; flex-wrap:wrap;">',
+      '      <button type="button" class="btn btn-light" onclick="teacherCurriculumGoMainHalaqas()">↩ الحلقات الرئيسية</button>',
+      '      <button type="button" class="btn btn-light" onclick="teacherCurriculumBackToOverview()">↩ التقدم</button>',
+      '    </div>',
       '  </div>',
       '  <div class="tw-progress" style="margin-top:10px;">',
       '    <div class="tw-head"><b>شريط تقدم الطلاب</b><span class="tw-pill">درس ' + Number(lessonNo) + '</span></div>',
@@ -1068,6 +1078,7 @@
   function selectHalaqa(halaqaId, curriculumId) {
     var flow = teacherCurriculumFlow();
     if (flow.saving) return;
+    cancelProgressLoading();
     flow.view = 'overview';
     flow.halaqaId = String(halaqaId || '');
     flow.curriculumId = String(curriculumId || '');
@@ -1079,6 +1090,7 @@
   function backToList() {
     var flow = teacherCurriculumFlow();
     if (flow.saving) return;
+    cancelProgressLoading();
     flow.view = 'list';
     flow.halaqaId = '';
     flow.curriculumId = '';
@@ -1086,9 +1098,25 @@
     rerenderTeacherWorkspace();
   }
 
+  function goMainHalaqas() {
+    var flow = teacherCurriculumFlow();
+    if (flow.saving) return;
+    cancelProgressLoading();
+    flow.view = 'list';
+    flow.halaqaId = '';
+    flow.curriculumId = '';
+    flow.studentIndex = 0;
+    if (typeof window.teacherSetBottomTab === 'function') {
+      window.teacherSetBottomTab('halaqas');
+      return;
+    }
+    rerenderTeacherWorkspace();
+  }
+
   function backToOverview() {
     var flow = teacherCurriculumFlow();
     if (flow.saving) return;
+    cancelProgressLoading();
     if (!flow.curriculumId) return backToList();
     flow.view = 'overview';
     flow.studentIndex = 0;
@@ -1130,6 +1158,7 @@
     window.teacherCurriculumReload = reload;
     window.teacherCurriculumSelectHalaqa = selectHalaqa;
     window.teacherCurriculumBackToList = backToList;
+    window.teacherCurriculumGoMainHalaqas = goMainHalaqas;
     window.teacherCurriculumBackToOverview = backToOverview;
     window.teacherCurriculumStartEvaluation = startEvaluation;
     window.teacherCurriculumOpenStudent = openStudent;

@@ -2441,6 +2441,7 @@ localStorage.setItem = function(key, value) {
             <button class="tab-btn" data-tab="supervision">الإشراف</button>
             <button class="tab-btn" data-tab="exams">📝 الاختبارات</button>
             <button class="tab-btn" data-tab="reports">التقارير</button>
+            <button class="tab-btn" data-tab="printpacks">🖨️ الطباعة</button>
             <button class="tab-btn" data-tab="board">المجلس</button>
             <button class="tab-btn" data-tab="knights">الفرسان</button>
             <button class="tab-btn" data-tab="settings">الإعدادات</button>
@@ -2739,6 +2740,29 @@ localStorage.setItem = function(key, value) {
         <div class="card">
           <h3 id="reportDetailTitle" style="margin-bottom:8px">تفاصيل التقرير</h3>
           <div id="reportDetailPanel"></div>
+        </div>
+      </section>
+
+      <section id="view-printpacks" class="hidden grid">
+        <div class="card">
+          <h2 style="margin-bottom:8px;">طباعة وتصدير الحلقات</h2>
+          <p class="muted">قسم مخصص لطباعة حلقات البنين والبنات كل قسم على حدة، وتصدير الملف بصيغة Excel.</p>
+          <div class="row" style="gap:8px; flex-wrap:wrap; margin-top:10px;">
+            <button class="btn btn-light" onclick="adminPrintPackSection('mens')">طباعة حلقات البنين</button>
+            <button class="btn btn-light" onclick="adminPrintPackSection('womens')">طباعة حلقات البنات</button>
+            <button class="btn btn-primary" onclick="adminExportPackSectionExcel('mens')">Excel البنين</button>
+            <button class="btn btn-primary" onclick="adminExportPackSectionExcel('womens')">Excel البنات</button>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3 style="margin-bottom:8px;">معاينة البنين</h3>
+            <div id="printPackMensPreview"></div>
+          </div>
+          <div class="card">
+            <h3 style="margin-bottom:8px;">معاينة البنات</h3>
+            <div id="printPackWomensPreview"></div>
+          </div>
         </div>
       </section>
 
@@ -5806,7 +5830,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      if (isBoardMember() && tab !== 'board') tab = 'board';
 	      state.tab = tab;
 	      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-	      ['halaqas','daily','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== tab));
+	      ['halaqas','daily','students','staff','supervision','exams','reports','printpacks','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== tab));
 	      renderAll();
 	    }
 
@@ -10685,6 +10709,237 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       `;
     }
 
+    function adminPrintPackAllowedSections() {
+      const u = currentUser();
+      if (!u) return [];
+      if (u.role === 'admin') return ['mens', 'womens'];
+      return [];
+    }
+
+    function adminPrintPackStudentsForHalaqa(halaqaId) {
+      const indexed = state.indexes?.studentsByHalaqa?.[halaqaId];
+      const rows = Array.isArray(indexed)
+        ? indexed.slice()
+        : (state.db.students || []).filter((s) => String(s.halaqaId) === String(halaqaId));
+      return rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+    }
+
+    function adminPrintPackBuildData(section) {
+      const normalized = normalizeSection(section);
+      const allowed = adminPrintPackAllowedSections();
+      if (!allowed.includes(normalized)) return null;
+
+      const halaqas = (state.db.halaqas || [])
+        .filter((h) => normalizeSection(h.section) === normalized)
+        .slice()
+        .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+
+      const rows = [];
+      let serial = 1;
+      let studentsTotal = 0;
+      halaqas.forEach((halaqa) => {
+        const students = adminPrintPackStudentsForHalaqa(halaqa.id);
+        const studentsCount = students.length;
+        studentsTotal += studentsCount;
+        if (!students.length) {
+          rows.push({
+            serial: serial++,
+            halaqaName: halaqa.circleName || '-',
+            teacherName: halaqa.teacherName || '-',
+            timeLabel: halaqaTimeLabel(halaqa),
+            scheduleLabel: scheduleTypeLabel(halaqa),
+            studentsCount: 0,
+            studentName: '—',
+            grade: '—',
+            nationalId: '—',
+            guardianPhone: '—',
+          });
+          return;
+        }
+        students.forEach((student) => {
+          rows.push({
+            serial: serial++,
+            halaqaName: halaqa.circleName || '-',
+            teacherName: halaqa.teacherName || '-',
+            timeLabel: halaqaTimeLabel(halaqa),
+            scheduleLabel: scheduleTypeLabel(halaqa),
+            studentsCount,
+            studentName: student.name || '-',
+            grade: student.grade || '-',
+            nationalId: student.nationalId || '-',
+            guardianPhone: student.guardianPhone || '-',
+          });
+        });
+      });
+
+      return {
+        section: normalized,
+        sectionLabel: adminSectionLabel(normalized),
+        halaqas,
+        rows,
+        totals: {
+          halaqas: halaqas.length,
+          students: studentsTotal,
+        },
+      };
+    }
+
+    function adminPrintPackRowsTableHtml(report) {
+      const rowsHtml = (report.rows || []).map((row) => `
+        <tr>
+          <td>${row.serial}</td>
+          <td>${escapeAttr(row.halaqaName || '-')}</td>
+          <td>${escapeAttr(row.teacherName || '-')}</td>
+          <td>${escapeAttr(row.timeLabel || '-')}</td>
+          <td>${escapeAttr(row.scheduleLabel || '-')}</td>
+          <td>${Number(row.studentsCount || 0)}</td>
+          <td>${escapeAttr(row.studentName || '-')}</td>
+          <td>${escapeAttr(row.grade || '-')}</td>
+          <td>${escapeAttr(row.nationalId || '-')}</td>
+          <td>${escapeAttr(row.guardianPhone || '-')}</td>
+        </tr>
+      `).join('');
+      return `
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الحلقة</th>
+              <th>المعلم</th>
+              <th>الوقت</th>
+              <th>الأيام</th>
+              <th>عدد طلاب الحلقة</th>
+              <th>الطالب</th>
+              <th>المرحلة</th>
+              <th>الهوية</th>
+              <th>جوال ولي الأمر</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml || '<tr><td colspan="10" class="muted">لا توجد بيانات</td></tr>'}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function adminPrintPackPreviewHtml(section) {
+      const report = adminPrintPackBuildData(section);
+      if (!report) return '<p class="muted">غير مسموح بعرض هذا القسم.</p>';
+      if (!report.halaqas.length) return '<p class="muted">لا توجد حلقات في هذا القسم.</p>';
+      return `
+        <div class="row" style="gap:8px; margin-bottom:8px;">
+          <span class="badge badge-green">الحلقات: ${report.totals.halaqas}</span>
+          <span class="badge">الطلاب: ${report.totals.students}</span>
+        </div>
+        <div class="report-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>الحلقة</th>
+                <th>المعلم</th>
+                <th>الوقت</th>
+                <th>الأيام</th>
+                <th>عدد الطلاب</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${report.halaqas.map((halaqa, idx) => {
+                const count = adminPrintPackStudentsForHalaqa(halaqa.id).length;
+                return `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    <td>${escapeAttr(halaqa.circleName || '-')}</td>
+                    <td>${escapeAttr(halaqa.teacherName || '-')}</td>
+                    <td>${escapeAttr(halaqaTimeLabel(halaqa))}</td>
+                    <td>${escapeAttr(scheduleTypeLabel(halaqa))}</td>
+                    <td>${count}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function adminPrintPackSection(section) {
+      const report = adminPrintPackBuildData(section);
+      if (!report) return toast('غير مسموح', 'err');
+      const w = window.open('', '_blank');
+      if (!w) return toast('اسمح بفتح نافذة الطباعة', 'err');
+      const tableHtml = adminPrintPackRowsTableHtml(report);
+      w.document.write(`
+        <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="utf-8" />
+            <title>طباعة حلقات ${escapeAttr(report.sectionLabel)}</title>
+            <style>
+              body{font-family:Tajawal,Arial,sans-serif;padding:16px;color:#0f172a}
+              h2{margin:0 0 8px 0;color:#14532d}
+              .meta{margin-bottom:10px;color:#64748b;font-size:13px}
+              table{width:100%;border-collapse:collapse}
+              th,td{border:1px solid #e2e8f0;padding:8px;text-align:right;font-size:12px;vertical-align:top}
+              th{background:#f8fafc}
+            </style>
+          </head>
+          <body>
+            <h2>تقرير حلقات ${escapeAttr(report.sectionLabel)}</h2>
+            <div class="meta">إجمالي الحلقات: ${report.totals.halaqas} • إجمالي الطلاب: ${report.totals.students} • التاريخ: ${todayISO()}</div>
+            ${tableHtml}
+          </body>
+        </html>
+      `);
+      w.document.close();
+      setTimeout(() => w.print(), 260);
+    }
+
+    function adminExportPackSectionExcel(section) {
+      const report = adminPrintPackBuildData(section);
+      if (!report) return toast('غير مسموح', 'err');
+      const tableHtml = adminPrintPackRowsTableHtml(report);
+      const html = `
+        <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              body{font-family:Tajawal,Arial,sans-serif}
+              table{width:100%;border-collapse:collapse}
+              th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;vertical-align:top}
+              th{background:#f8fafc}
+            </style>
+          </head>
+          <body>
+            <h2>تقرير حلقات ${escapeAttr(report.sectionLabel)}</h2>
+            <div>إجمالي الحلقات: ${report.totals.halaqas} - إجمالي الطلاب: ${report.totals.students} - التاريخ: ${todayISO()}</div>
+            ${tableHtml}
+          </body>
+        </html>
+      `;
+      const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `حلقات_${safeFilePart(report.sectionLabel)}_${todayISO()}.xls`;
+      a.click();
+      const url = a.href;
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+      toast(`تم تصدير Excel لقسم ${report.sectionLabel}`, 'ok');
+    }
+
+    function renderPrintPacks() {
+      const u = currentUser();
+      if (!u) return;
+      const mensPreview = $('printPackMensPreview');
+      const womensPreview = $('printPackWomensPreview');
+      if (u.role !== 'admin') {
+        if (mensPreview) mensPreview.innerHTML = '<p class="muted">غير مسموح بعرض هذا القسم.</p>';
+        if (womensPreview) womensPreview.innerHTML = '<p class="muted">غير مسموح بعرض هذا القسم.</p>';
+        return;
+      }
+      if (mensPreview) mensPreview.innerHTML = adminPrintPackPreviewHtml('mens');
+      if (womensPreview) womensPreview.innerHTML = adminPrintPackPreviewHtml('womens');
+    }
+
     const _legacyOpenHalaqa = openHalaqa;
     const _legacyCloseHalaqa = closeHalaqa;
     openHalaqa = function(id) {
@@ -11390,6 +11645,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         supervision: { title: 'الإشراف', sub: 'توثيق ملاحظات المشرف على أداء المعلم ومتابعة التحسين.' },
         exams: { title: 'الاختبارات', sub: 'المعلم يرفع الدرجات، ثم يعتمدها المشرف/الإدارة.' },
         reports: { title: 'التقارير', sub: 'متابعة الأداء الأسبوعي والشهري على مستوى الطالب والحلقة والقسم.' },
+        printpacks: { title: 'الطباعة والتصدير', sub: 'طباعة جميع حلقات البنين والبنات كل قسم على حدة مع تصدير Excel.' },
         board: { title: 'بوابة المجلس', sub: 'ملخص أسبوعي استراتيجي لرئيس المجلس والأعضاء.' },
         knights: { title: 'منصة الفرسان', sub: 'تكريم أفضل الطلاب أسبوعياً وشهرياً مع بطاقة نشر جاهزة.' },
         settings: { title: 'الإعدادات', sub: 'الشعار والنسخ الاحتياطي وخيارات التشغيل.' },
@@ -11520,6 +11776,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      const supervisionTab = document.querySelector('[data-tab="supervision"]');
 	      const examsTab = document.querySelector('[data-tab="exams"]');
 	      const reportsTab = document.querySelector('[data-tab="reports"]');
+	      const printpacksTab = document.querySelector('[data-tab="printpacks"]');
 	      const dailyTab = document.querySelector('[data-tab="daily"]');
 	      const boardTab = document.querySelector('[data-tab="board"]');
 	      const knightsTab = document.querySelector('[data-tab="knights"]');
@@ -11534,6 +11791,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      supervisionTab.style.display = (u.role === 'admin' || u.role === 'supervisor') ? 'inline-block' : 'none';
       examsTab.style.display = canAccessExams() ? 'inline-block' : 'none';
       reportsTab.style.display = isTeacher() ? 'none' : 'inline-block';
+      printpacksTab.style.display = isAdmin() ? 'inline-block' : 'none';
       boardTab.style.display = (u.role === 'admin' || u.role === 'supervisor' || u.role === 'board') ? 'inline-block' : 'none';
       knightsTab.style.display = isTeacher() ? 'none' : 'inline-block';
       settingsTab.style.display = isAdmin() ? 'inline-block' : 'none';
@@ -11546,6 +11804,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	        supervisionTab.style.display = 'none';
         examsTab.style.display = 'none';
 	        reportsTab.style.display = 'none';
+        printpacksTab.style.display = 'none';
         boardTab.style.display = 'none';
         knightsTab.style.display = 'none';
         settingsTab.style.display = 'none';
@@ -11554,8 +11813,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      if (!isAdmin() && (state.tab === 'staff' || state.tab === 'settings')) state.tab = 'halaqas';
 	      if (!(u.role === 'admin' || u.role === 'supervisor') && state.tab === 'daily') state.tab = 'halaqas';
 	      if (!(u.role === 'admin' || u.role === 'supervisor') && state.tab === 'supervision') state.tab = 'halaqas';
+	      if (!isAdmin() && state.tab === 'printpacks') state.tab = 'halaqas';
 	      if (!canAccessExams() && state.tab === 'exams') state.tab = 'halaqas';
-      if (isTeacher() && (state.tab === 'reports' || state.tab === 'board' || state.tab === 'knights')) state.tab = 'halaqas';
+      if (isTeacher() && (state.tab === 'reports' || state.tab === 'printpacks' || state.tab === 'board' || state.tab === 'knights')) state.tab = 'halaqas';
       if (!(u.role === 'admin' || u.role === 'supervisor' || u.role === 'board') && state.tab === 'board') state.tab = 'halaqas';
       if (u.role === 'board') {
         state.tab = 'board';
@@ -11569,7 +11829,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
 	      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
 	      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === state.section));
-	      ['halaqas','daily','students','staff','supervision','exams','reports','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== state.tab));
+	      ['halaqas','daily','students','staff','supervision','exams','reports','printpacks','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== state.tab));
 
       $('sessionLabel').textContent = `المستخدم: ${u.name} | الدور: ${u.role}`;
       renderWorkflowBanner();
@@ -11582,6 +11842,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       renderSupervision();
       renderExams();
       renderReports();
+      renderPrintPacks();
       renderBoardReport();
       renderKnights();
       renderSettings();
@@ -11870,6 +12131,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.selectParentStudent = selectParentStudent;
     window.exportParentCertificate = exportParentCertificate;
     window.exportKnightCard = exportKnightCard;
+    window.adminPrintPackSection = adminPrintPackSection;
+    window.adminExportPackSectionExcel = adminExportPackSectionExcel;
     window.syncPendingLogs = syncPendingLogs;
     window.copySurahToAll = copySurahToAll;
 	    window.filterSurahOptions = filterSurahOptions; window.saveBothEntries = saveBothEntries; window.copyWeeklyReportToWhatsapp = copyWeeklyReportToWhatsapp; window.closeHalaqaWithSummary = closeHalaqaWithSummary;
@@ -13315,6 +13578,6 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 })();
   </script>
   <script src="./features/manhaj-addon.js?v=20260408-7"></script>
-  <script src="./features/TeacherCurriculumTab.js?v=20260408-7"></script>
+  <script src="./features/TeacherCurriculumTab.js?v=20260408-8"></script>
 </body>
 </html>
