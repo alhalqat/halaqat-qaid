@@ -362,7 +362,8 @@
     flow.error = '';
     rerenderTeacherWorkspace();
     return fetchCurriculaFromFirebase().then(function (cloudRows) {
-      var rows = cloudRows.length ? cloudRows : localFallbackCurricula();
+      var localRows = localFallbackCurricula();
+      var rows = localRows.length ? localRows : cloudRows;
       rows = rows
         .filter(function (c) { return c.id && c.halaqaId; })
         .sort(function (a, b) {

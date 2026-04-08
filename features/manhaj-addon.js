@@ -898,6 +898,7 @@
             '  </div>',
             '  <div class="row" style="gap:6px;">',
             '    <button class="btn btn-light" onclick="manhajEditPlan(\'' + esc(String(p.id)) + '\')">تعديل</button>',
+            '    <button class="btn btn-danger" onclick="manhajDeletePlan(\'' + esc(String(p.id)) + '\')">حذف</button>',
             '  </div>',
             '</div>'
           ].join('');
@@ -1164,6 +1165,81 @@
   function manhajEditPlan(planId) {
     initDraft(planId);
     refreshSupervisionView();
+  }
+
+  function clearPlanCaches(planId) {
+    var pid = String(planId || '');
+    if (!pid) return;
+    delete UI.progressRowsByPlan[pid];
+    delete UI.teacherProgressRowsByPlan[pid];
+    delete UI.teacherProgressLoadingByPlan[pid];
+    delete UI.teacherProgressErrorByPlan[pid];
+    if (String(UI.selectedProgressPlanId || '') === pid) UI.selectedProgressPlanId = '';
+    if (String(UI.editingPlanId || '') === pid) {
+      UI.editingPlanId = '';
+      UI.builderOpen = false;
+      UI.previewOpen = false;
+      UI.picker.open = false;
+      UI.draft = null;
+    }
+
+    Object.keys(UI.curriculumProgressCache || {}).forEach(function (key) {
+      if (key.indexOf(pid + '__') === 0) delete UI.curriculumProgressCache[key];
+    });
+    Object.keys(UI.curriculumProgressPending || {}).forEach(function (key) {
+      if (key.indexOf(pid + '__') === 0) delete UI.curriculumProgressPending[key];
+    });
+  }
+
+  function deletePlanFromFirebase(planId) {
+    var pid = String(planId || '').trim();
+    if (!pid) return Promise.resolve(false);
+    var ref = getRealtimeDatabaseRef('curricula/' + pid);
+    if (!ref) return Promise.resolve(false);
+    return ref.remove()
+      .then(function () { return true; })
+      .catch(function () { return false; });
+  }
+
+  async function manhajDeletePlan(planId) {
+    var pid = String(planId || '').trim();
+    if (!pid) return;
+    var plans = getPlans().map(normalizePlan);
+    var target = null;
+    for (var i = 0; i < plans.length; i += 1) {
+      if (String(plans[i].id) === pid) {
+        target = plans[i];
+        break;
+      }
+    }
+    if (!target) {
+      if (typeof window.toast === 'function') window.toast('المنهج غير موجود', 'err');
+      return;
+    }
+
+    var h = halaqaById(target.halaqaId);
+    var msg = 'تأكيد حذف المنهج "' + String(target.name || 'المنهج') + '" نهائياً؟';
+    if (h) msg += '\nالحلقة: ' + String(h.circleName || '-');
+    if (!window.confirm(msg)) return;
+
+    ensureStore().plans = plans.filter(function (p) { return String(p.id) !== pid; });
+    clearPlanCaches(pid);
+    saveAddon();
+
+    var cloudDeleted = await deletePlanFromFirebase(pid);
+    if (window.TeacherCurriculumTab && typeof window.TeacherCurriculumTab.reload === 'function') {
+      try {
+        window.TeacherCurriculumTab.reload();
+      } catch (_e) {}
+    }
+
+    if (typeof window.toast === 'function') {
+      if (cloudDeleted) window.toast('تم حذف المنهج نهائياً');
+      else window.toast('تم حذف المنهج محلياً. إن استمر ظهوره عند المعلم، حدّث الصفحة.', 'ok');
+    }
+    refreshSupervisionView();
+    refreshTeacherView();
+    if (typeof window.renderParentView === 'function') window.renderParentView();
   }
 
   function manhajCloseBuilder() {
@@ -2352,6 +2428,7 @@
     window.manhajSelectProgressPlan = manhajSelectProgressPlan;
     window.manhajOpenBuilder = manhajOpenBuilder;
     window.manhajEditPlan = manhajEditPlan;
+    window.manhajDeletePlan = manhajDeletePlan;
     window.manhajCloseBuilder = manhajCloseBuilder;
     window.manhajSetDraftField = manhajSetDraftField;
     window.manhajSetDraftLessonsCount = manhajSetDraftLessonsCount;
