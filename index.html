@@ -2441,6 +2441,7 @@ localStorage.setItem = function(key, value) {
             <button class="tab-btn" data-tab="supervision">الإشراف</button>
             <button class="tab-btn" data-tab="exams">📝 الاختبارات</button>
             <button class="tab-btn" data-tab="reports">التقارير</button>
+            <button class="tab-btn" data-tab="curriculumadmin">📚 المنهج</button>
             <button class="tab-btn" data-tab="printpacks">🖨️ الطباعة</button>
             <button class="tab-btn" data-tab="board">المجلس</button>
             <button class="tab-btn" data-tab="knights">الفرسان</button>
@@ -2740,6 +2741,60 @@ localStorage.setItem = function(key, value) {
         <div class="card">
           <h3 id="reportDetailTitle" style="margin-bottom:8px">تفاصيل التقرير</h3>
           <div id="reportDetailPanel"></div>
+        </div>
+      </section>
+
+      <section id="view-curriculumadmin" class="hidden grid">
+        <div class="card no-print">
+          <h2 style="margin-bottom:8px;">إدارة المنهج (لوحة الإدارة)</h2>
+          <p class="muted">متابعة مستوى كل طالب، التحضير اليومي، تعديل الدرس الحالي، والطباعة/التصدير من صفحة واحدة.</p>
+          <div class="grid grid-4" style="margin-top:10px;">
+            <div class="field-block">
+              <div class="field-label">القسم</div>
+              <select id="adminCurriculumSection" onchange="adminCurriculumSetSection(this.value)"></select>
+            </div>
+            <div class="field-block">
+              <div class="field-label">الحلقة</div>
+              <select id="adminCurriculumHalaqa" onchange="adminCurriculumSetHalaqa(this.value)"></select>
+            </div>
+            <div class="field-block">
+              <div class="field-label">التاريخ</div>
+              <input id="adminCurriculumDate" type="date" onchange="adminCurriculumSetDate(this.value)" />
+            </div>
+            <div class="field-block">
+              <div class="field-label">المنهج</div>
+              <select id="adminCurriculumPlan" onchange="adminCurriculumSetPlan(this.value)"></select>
+            </div>
+          </div>
+          <div class="row" style="gap:8px; flex-wrap:wrap; margin-top:10px;">
+            <button class="btn btn-light" onclick="adminCurriculumShiftDate(-1)">اليوم السابق</button>
+            <button class="btn btn-light" onclick="adminCurriculumSetDate('')">اليوم</button>
+            <button class="btn btn-light" onclick="adminCurriculumShiftDate(1)">اليوم التالي</button>
+            <button class="btn btn-light" onclick="adminCurriculumRefresh()">تحديث البيانات</button>
+            <button class="btn btn-primary" onclick="adminCurriculumSaveAll()">حفظ كل التعديلات</button>
+            <button class="btn btn-light" onclick="adminCurriculumPrint()">طباعة</button>
+            <button class="btn btn-primary" onclick="adminCurriculumExportExcel()">Excel</button>
+          </div>
+        </div>
+
+        <div id="adminCurriculumSummary" class="grid grid-4"></div>
+
+        <div class="card" style="overflow:auto;">
+          <table class="ops-table">
+            <thead>
+              <tr>
+                <th>الطالب</th>
+                <th>الدرس الحالي</th>
+                <th>نسبة التقدم</th>
+                <th>مطلوب الدرس</th>
+                <th>التحضير</th>
+                <th>ملاحظة اليوم</th>
+                <th>حالة الحفظ</th>
+                <th class="no-print">تنفيذ</th>
+              </tr>
+            </thead>
+            <tbody id="adminCurriculumRows"></tbody>
+          </table>
         </div>
       </section>
 
@@ -5830,7 +5885,7 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      if (isBoardMember() && tab !== 'board') tab = 'board';
 	      state.tab = tab;
 	      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-	      ['halaqas','daily','students','staff','supervision','exams','reports','printpacks','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== tab));
+	      ['halaqas','daily','students','staff','supervision','exams','reports','curriculumadmin','printpacks','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== tab));
 	      renderAll();
 	    }
 
@@ -10709,6 +10764,710 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       `;
     }
 
+    function adminCurriculumFlow() {
+      if (!state.adminCurriculumFlow || typeof state.adminCurriculumFlow !== 'object') {
+        state.adminCurriculumFlow = {
+          section: normalizeSection(state.section || 'mens'),
+          halaqaId: '',
+          planId: '',
+          date: todayISO(),
+          loading: false,
+          saveBusy: false,
+          error: '',
+          rows: [],
+          loadedKey: '',
+          loadToken: '',
+        };
+      }
+      const flow = state.adminCurriculumFlow;
+      flow.section = normalizeSection(flow.section || state.section || 'mens');
+      flow.date = normalizeISODate(flow.date || todayISO(), todayISO());
+      if (!Array.isArray(flow.rows)) flow.rows = [];
+      return flow;
+    }
+
+    function adminCurriculumListFromUnknown(raw) {
+      if (Array.isArray(raw)) return raw.slice();
+      if (!raw || typeof raw !== 'object') return [];
+      return Object.keys(raw)
+        .sort((a, b) => {
+          const an = Number(a);
+          const bn = Number(b);
+          const aNum = Number.isFinite(an);
+          const bNum = Number.isFinite(bn);
+          if (aNum && bNum) return an - bn;
+          if (aNum) return -1;
+          if (bNum) return 1;
+          return String(a).localeCompare(String(b), 'ar');
+        })
+        .map((key) => raw[key])
+        .filter((row) => row != null);
+    }
+
+    function adminCurriculumNormalizeEntry(raw) {
+      const base = raw && typeof raw === 'object' ? raw : {};
+      const surahIdxRaw = Number(base.surahIdx ?? base.surahIndex ?? base.surahId ?? base.surah_id ?? 0);
+      const surahIdx = Number.isFinite(surahIdxRaw) ? clamp(Math.floor(surahIdxRaw), 0, SURAH_DATA.length - 1) : 0;
+      const maxAya = Number(SURAH_DATA[surahIdx]?.a || 1);
+      const fromAya = clamp(adminParseIntInput(base.fromAya ?? base.from ?? 1, 1), 1, maxAya);
+      const toAya = clamp(adminParseIntInput(base.toAya ?? base.to ?? maxAya, maxAya), 1, maxAya);
+      return {
+        surahIdx,
+        fromAya,
+        toAya,
+      };
+    }
+
+    function adminCurriculumNormalizeLesson(raw, index = 0) {
+      const base = raw && typeof raw === 'object' ? raw : {};
+      const hifdhRows = adminCurriculumListFromUnknown(base.hifdh ?? base.hifz ?? base.hifdhEntries).map(adminCurriculumNormalizeEntry);
+      const revisionRows = adminCurriculumListFromUnknown(base.revision ?? base.murajaah ?? base.revisionEntries).map(adminCurriculumNormalizeEntry);
+      return {
+        id: String(base.id || uid('lesson')),
+        title: String(base.title || `الدرس ${Number(index) + 1}`),
+        hifdh: hifdhRows,
+        revision: revisionRows,
+      };
+    }
+
+    function adminCurriculumNormalizePlan(raw) {
+      const base = raw && typeof raw === 'object' ? raw : {};
+      const lessonCount = clamp(adminParseIntInput(base.plannedLessons ?? 1, 1), 1, 120);
+      let lessons = adminCurriculumListFromUnknown(base.lessons ?? base.lessonRows ?? base.planLessons)
+        .map((row, idx) => adminCurriculumNormalizeLesson(row, idx));
+      while (lessons.length < lessonCount) lessons.push(adminCurriculumNormalizeLesson({}, lessons.length));
+      if (lessons.length > lessonCount) lessons = lessons.slice(0, lessonCount);
+      return {
+        id: String(base.id || ''),
+        name: String(base.name || 'منهج'),
+        section: normalizeSection(base.section || 'mens'),
+        halaqaId: String(base.halaqaId || ''),
+        plannedLessons: lessonCount,
+        lessons,
+        updatedAt: String(base.updatedAt || ''),
+      };
+    }
+
+    function adminCurriculumAttendanceKey(value) {
+      const key = String(value || '').trim();
+      return ATTENDANCE.some((a) => a.key === key) ? key : '';
+    }
+
+    function adminCurriculumAttendanceLabel(value) {
+      const key = adminCurriculumAttendanceKey(value);
+      return ATTENDANCE.find((a) => a.key === key)?.label || 'غير محدد';
+    }
+
+    function adminCurriculumPlans(section = 'mens', halaqaId = '') {
+      const targetSection = normalizeSection(section);
+      const targetHalaqaId = String(halaqaId || '');
+      const source = state.db?.settings?.manhajAddon?.plans;
+      return adminCurriculumListFromUnknown(source)
+        .map(adminCurriculumNormalizePlan)
+        .filter((plan) => plan.id && normalizeSection(plan.section) === targetSection && (!targetHalaqaId || String(plan.halaqaId) === targetHalaqaId))
+        .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+    }
+
+    function adminCurriculumHalaqas(section = 'mens') {
+      const targetSection = normalizeSection(section);
+      return (state.db?.halaqas || [])
+        .filter((h) => normalizeSection(h.section) === targetSection)
+        .slice()
+        .sort((a, b) => String(a.circleName || '').localeCompare(String(b.circleName || ''), 'ar'));
+    }
+
+    function adminCurriculumCurrentContext() {
+      const flow = adminCurriculumFlow();
+      const halaqas = adminCurriculumHalaqas(flow.section);
+      const halaqa = halaqas.find((h) => String(h.id) === String(flow.halaqaId)) || null;
+      const plans = adminCurriculumPlans(flow.section, halaqa?.id || '');
+      const plan = plans.find((p) => String(p.id) === String(flow.planId)) || null;
+      const totalLessons = Math.max(1, Number(plan?.lessons?.length || plan?.plannedLessons || 1));
+      return { flow, halaqas, halaqa, plans, plan, totalLessons };
+    }
+
+    function adminCurriculumEnsureSelection() {
+      const flow = adminCurriculumFlow();
+      const halaqas = adminCurriculumHalaqas(flow.section);
+      if (!halaqas.length) {
+        flow.halaqaId = '';
+        flow.planId = '';
+        return;
+      }
+      if (!flow.halaqaId || !halaqas.some((h) => String(h.id) === String(flow.halaqaId))) {
+        flow.halaqaId = halaqas[0].id;
+      }
+      const plans = adminCurriculumPlans(flow.section, flow.halaqaId);
+      if (!plans.length) {
+        flow.planId = '';
+        return;
+      }
+      if (!flow.planId || !plans.some((p) => String(p.id) === String(flow.planId))) {
+        flow.planId = plans[0].id;
+      }
+    }
+
+    function adminCurriculumGetRef(path) {
+      try {
+        if (database && typeof database.ref === 'function') return database.ref(String(path || '').replace(/^\/+/, ''));
+      } catch (_e) {}
+      try {
+        if (window.database && typeof window.database.ref === 'function') return window.database.ref(String(path || '').replace(/^\/+/, ''));
+      } catch (_e2) {}
+      return null;
+    }
+
+    function adminCurriculumLessonSummary(plan, lessonNo) {
+      const total = Math.max(1, Number(plan?.lessons?.length || plan?.plannedLessons || 1));
+      const n = clamp(adminParseIntInput(lessonNo, 1), 1, total);
+      const lesson = Array.isArray(plan?.lessons) ? plan.lessons[n - 1] : null;
+      if (!lesson) return { title: `الدرس ${n}`, details: 'لا توجد تفاصيل' };
+      const buildPart = (rows) => {
+        const list = adminCurriculumListFromUnknown(rows).map(adminCurriculumNormalizeEntry);
+        if (!list.length) return '—';
+        return list.map((entry) => {
+          const surah = SURAH_DATA[entry.surahIdx];
+          return `${surah?.name || 'سورة'} (${entry.fromAya}-${entry.toAya})`;
+        }).join(' + ');
+      };
+      return {
+        title: String(lesson.title || `الدرس ${n}`),
+        details: `حفظ: ${buildPart(lesson.hifdh)} | مراجعة: ${buildPart(lesson.revision)}`,
+      };
+    }
+
+    function adminCurriculumProgressPercent(currentLesson, totalLessons) {
+      const total = Math.max(1, Number(totalLessons || 1));
+      const current = clamp(adminParseIntInput(currentLesson, 1), 1, total);
+      return clamp(Math.round((current / total) * 100), 0, 100);
+    }
+
+    function adminCurriculumDateTimeLabel(iso) {
+      const raw = String(iso || '').trim();
+      if (!raw) return '—';
+      try {
+        const dt = new Date(raw);
+        if (Number.isNaN(dt.getTime())) return raw;
+        return dt.toLocaleString('ar-SA');
+      } catch (_e) {
+        return raw;
+      }
+    }
+
+    function adminCurriculumStudentRows(halaqaId) {
+      const indexed = state.indexes?.studentsByHalaqa?.[halaqaId];
+      const rows = Array.isArray(indexed)
+        ? indexed.slice()
+        : (state.db.students || []).filter((s) => String(s.halaqaId) === String(halaqaId));
+      return rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+    }
+
+    async function adminCurriculumReadStudentRow(plan, halaqa, student, dateISO, totalLessons) {
+      const ref = adminCurriculumGetRef(`curricula/${String(plan.id)}/studentProgress/${String(student.id)}`);
+      let rawProgress = null;
+      if (ref) {
+        try {
+          const snap = await ref.once('value');
+          rawProgress = snap && typeof snap.val === 'function' ? snap.val() : null;
+        } catch (_e) {
+          rawProgress = null;
+        }
+      }
+      const progress = rawProgress && typeof rawProgress === 'object' ? rawProgress : {};
+      const sessions = progress.sessions && typeof progress.sessions === 'object' ? progress.sessions : {};
+      const session = sessions[dateISO] && typeof sessions[dateISO] === 'object' ? sessions[dateISO] : null;
+      const currentLesson = clamp(adminParseIntInput(progress.currentLesson ?? 1, 1), 1, totalLessons);
+      return {
+        studentId: String(student.id),
+        studentName: String(student.name || '-'),
+        currentLesson,
+        attendance: adminCurriculumAttendanceKey(session?.attendance || ''),
+        note: String(session?.note || ''),
+        lastSessionDate: String(progress.lastSessionDate || ''),
+        updatedAt: String(progress.updatedAt || ''),
+        dirty: false,
+        saving: false,
+        sessionRaw: session,
+        progressRaw: progress,
+      };
+    }
+
+    async function adminCurriculumLoad(force = false) {
+      const flow = adminCurriculumFlow();
+      if (!isAdmin()) return;
+      adminCurriculumEnsureSelection();
+      const ctx = adminCurriculumCurrentContext();
+      const key = `${ctx.flow.section}|${ctx.flow.halaqaId}|${ctx.flow.planId}|${ctx.flow.date}`;
+      if (!force && flow.loadedKey === key && Array.isArray(flow.rows) && flow.rows.length) return;
+      if (!ctx.halaqa) {
+        flow.rows = [];
+        flow.error = 'لا توجد حلقات في هذا القسم.';
+        flow.loading = false;
+        flow.loadedKey = key;
+        renderAdminCurriculum();
+        return;
+      }
+      if (!ctx.plan) {
+        flow.rows = [];
+        flow.error = 'لا يوجد منهج مسند لهذه الحلقة بعد.';
+        flow.loading = false;
+        flow.loadedKey = key;
+        renderAdminCurriculum();
+        return;
+      }
+
+      const students = adminCurriculumStudentRows(ctx.halaqa.id);
+      if (!students.length) {
+        flow.rows = [];
+        flow.error = 'لا يوجد طلاب في الحلقة المحددة.';
+        flow.loading = false;
+        flow.loadedKey = key;
+        renderAdminCurriculum();
+        return;
+      }
+
+      const token = uid('admcurload');
+      flow.loadToken = token;
+      flow.loading = true;
+      flow.error = '';
+      renderAdminCurriculum();
+
+      try {
+        const rows = await Promise.all(
+          students.map((student) => adminCurriculumReadStudentRow(ctx.plan, ctx.halaqa, student, ctx.flow.date, ctx.totalLessons))
+        );
+        if (flow.loadToken !== token) return;
+        flow.rows = rows;
+        flow.loadedKey = key;
+        flow.loading = false;
+        flow.error = '';
+      } catch (err) {
+        if (flow.loadToken !== token) return;
+        flow.loading = false;
+        flow.rows = [];
+        flow.error = 'تعذر تحميل تقدم المنهج من السحابة.';
+        console.error('adminCurriculumLoad error:', err);
+      }
+      renderAdminCurriculum();
+    }
+
+    function adminCurriculumSetSection(section) {
+      const flow = adminCurriculumFlow();
+      flow.section = normalizeSection(section || flow.section || 'mens');
+      flow.halaqaId = '';
+      flow.planId = '';
+      flow.rows = [];
+      flow.loadedKey = '';
+      adminCurriculumLoad(true);
+    }
+
+    function adminCurriculumSetHalaqa(halaqaId) {
+      const flow = adminCurriculumFlow();
+      flow.halaqaId = String(halaqaId || '');
+      flow.planId = '';
+      flow.rows = [];
+      flow.loadedKey = '';
+      adminCurriculumLoad(true);
+    }
+
+    function adminCurriculumSetPlan(planId) {
+      const flow = adminCurriculumFlow();
+      flow.planId = String(planId || '');
+      flow.rows = [];
+      flow.loadedKey = '';
+      adminCurriculumLoad(true);
+    }
+
+    function adminCurriculumSetDate(dateISO) {
+      const flow = adminCurriculumFlow();
+      flow.date = normalizeISODate(dateISO || todayISO(), todayISO());
+      flow.rows = [];
+      flow.loadedKey = '';
+      adminCurriculumLoad(true);
+    }
+
+    function adminCurriculumShiftDate(days) {
+      const flow = adminCurriculumFlow();
+      flow.date = addDaysISO(normalizeISODate(flow.date || todayISO(), todayISO()), Number(days || 0));
+      flow.rows = [];
+      flow.loadedKey = '';
+      adminCurriculumLoad(true);
+    }
+
+    function adminCurriculumRefresh() {
+      const flow = adminCurriculumFlow();
+      flow.rows = [];
+      flow.loadedKey = '';
+      adminCurriculumLoad(true);
+    }
+
+    function adminCurriculumSetRowField(studentId, field, value) {
+      const flow = adminCurriculumFlow();
+      const ctx = adminCurriculumCurrentContext();
+      const total = Math.max(1, Number(ctx.totalLessons || 1));
+      const row = (flow.rows || []).find((r) => String(r.studentId) === String(studentId));
+      if (!row) return;
+      const key = String(field || '').trim();
+      if (key === 'currentLesson') {
+        row.currentLesson = clamp(adminParseIntInput(value, row.currentLesson || 1), 1, total);
+      } else if (key === 'attendance') {
+        row.attendance = adminCurriculumAttendanceKey(value);
+      } else if (key === 'note') {
+        row.note = String(value || '');
+      }
+      row.dirty = true;
+      renderAdminCurriculum();
+    }
+
+    async function adminCurriculumSaveRow(studentId, options = {}) {
+      if (!isAdmin()) return false;
+      const opts = options || {};
+      const flow = adminCurriculumFlow();
+      const ctx = adminCurriculumCurrentContext();
+      if (!ctx.halaqa || !ctx.plan) {
+        if (!opts.silent) toast('اختر الحلقة والمنهج أولاً', 'err');
+        return false;
+      }
+      const row = (flow.rows || []).find((r) => String(r.studentId) === String(studentId));
+      if (!row || row.saving) return false;
+
+      const cid = String(ctx.plan.id || '').trim();
+      const sid = String(row.studentId || '').trim();
+      const dateISO = normalizeISODate(flow.date || todayISO(), todayISO());
+      if (!cid || !sid || !dateISO || cid === 'undefined' || sid === 'undefined') {
+        if (!opts.silent) toast('تعذر الحفظ: مسار بيانات غير صالح', 'err');
+        return false;
+      }
+
+      const progressRef = adminCurriculumGetRef(`curricula/${cid}/studentProgress/${sid}`);
+      const sessionRef = adminCurriculumGetRef(`curricula/${cid}/studentProgress/${sid}/sessions/${dateISO}`);
+      if (!progressRef || !sessionRef) {
+        if (!opts.silent) toast('تعذر الاتصال بقاعدة البيانات السحابية', 'err');
+        return false;
+      }
+
+      const now = new Date().toISOString();
+      const attendance = adminCurriculumAttendanceKey(row.attendance);
+      const baseProgress = row.progressRaw && typeof row.progressRaw === 'object' ? row.progressRaw : {};
+      const baseSessions = baseProgress.sessions && typeof baseProgress.sessions === 'object' ? { ...baseProgress.sessions } : {};
+      const baseSession = row.sessionRaw && typeof row.sessionRaw === 'object'
+        ? row.sessionRaw
+        : (baseSessions[dateISO] && typeof baseSessions[dateISO] === 'object' ? baseSessions[dateISO] : {});
+
+      const sessionPayload = JSON.parse(JSON.stringify({
+        date: dateISO,
+        at: now,
+        halaqaId: String(ctx.halaqa.id || ''),
+        studentId: sid,
+        lessonNumber: Number(row.currentLesson || 1),
+        completed: !!baseSession.completed,
+        attendance: attendance,
+        hifdh: Array.isArray(baseSession.hifdh) ? baseSession.hifdh : [],
+        revision: Array.isArray(baseSession.revision) ? baseSession.revision : [],
+        note: String(row.note || ''),
+      }));
+
+      const progressUpdate = JSON.parse(JSON.stringify({
+        currentLesson: Number(row.currentLesson || 1),
+        updatedAt: now,
+        lastSessionDate: dateISO,
+      }));
+
+      row.saving = true;
+      if (!opts.suppressRender) renderAdminCurriculum();
+      try {
+        await sessionRef.set(sessionPayload);
+        await progressRef.update(progressUpdate);
+        if (attendance) {
+          upsertRollcall(sid, String(ctx.halaqa.id || ''), dateISO, attendance);
+          saveDB();
+        }
+        row.attendance = attendance;
+        row.dirty = false;
+        row.saving = false;
+        row.updatedAt = now;
+        row.lastSessionDate = dateISO;
+        row.sessionRaw = sessionPayload;
+        row.progressRaw = {
+          ...baseProgress,
+          ...progressUpdate,
+          sessions: {
+            ...baseSessions,
+            [dateISO]: sessionPayload,
+          },
+        };
+        if (!opts.silent) toast(`تم حفظ ${row.studentName}`, 'ok');
+        if (!opts.suppressRender) renderAdminCurriculum();
+        return true;
+      } catch (err) {
+        row.saving = false;
+        if (!opts.silent) {
+          const code = String(err?.code || 'unknown');
+          toast(`تعذر حفظ ${row.studentName} (${code})`, 'err');
+        }
+        console.error('adminCurriculumSaveRow error:', err);
+        if (!opts.suppressRender) renderAdminCurriculum();
+        return false;
+      }
+    }
+
+    async function adminCurriculumSaveAll() {
+      if (!isAdmin()) return;
+      const flow = adminCurriculumFlow();
+      if (flow.saveBusy) return;
+      const dirtyRows = (flow.rows || []).filter((row) => row.dirty);
+      if (!dirtyRows.length) return toast('لا توجد تعديلات غير محفوظة');
+
+      flow.saveBusy = true;
+      renderAdminCurriculum();
+      let success = 0;
+      let failed = 0;
+      for (const row of dirtyRows) {
+        // eslint-disable-next-line no-await-in-loop
+        const ok = await adminCurriculumSaveRow(row.studentId, { silent: true, suppressRender: true });
+        if (ok) success += 1;
+        else failed += 1;
+      }
+      flow.saveBusy = false;
+      renderAdminCurriculum();
+      if (failed) toast(`حفظ ناجح: ${success} | تعذر: ${failed}`, 'err');
+      else toast(`تم حفظ ${success} طالب بنجاح`, 'ok');
+    }
+
+    function adminCurriculumExportRows(ctx) {
+      const flow = adminCurriculumFlow();
+      if (!ctx?.plan || !ctx?.halaqa || !Array.isArray(flow.rows) || !flow.rows.length) return '';
+      return flow.rows.map((row, idx) => {
+        const percent = adminCurriculumProgressPercent(row.currentLesson, ctx.totalLessons);
+        const lesson = adminCurriculumLessonSummary(ctx.plan, row.currentLesson);
+        return `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${escapeAttr(row.studentName || '-')}</td>
+            <td>${Number(row.currentLesson || 1)} / ${Number(ctx.totalLessons || 1)}</td>
+            <td>${percent}%</td>
+            <td>${escapeAttr(lesson.title || '-')}</td>
+            <td>${escapeAttr(lesson.details || '-')}</td>
+            <td>${escapeAttr(adminCurriculumAttendanceLabel(row.attendance))}</td>
+            <td>${escapeAttr(row.note || '-')}</td>
+            <td>${escapeAttr(adminCurriculumDateTimeLabel(row.updatedAt))}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function adminCurriculumPrint() {
+      const ctx = adminCurriculumCurrentContext();
+      const rowsHtml = adminCurriculumExportRows(ctx);
+      if (!rowsHtml) return toast('لا توجد بيانات جاهزة للطباعة', 'err');
+      const w = window.open('', '_blank');
+      if (!w) return toast('اسمح بفتح نافذة الطباعة', 'err');
+      const sectionLabel = adminSectionLabel(ctx.flow.section);
+      w.document.write(`
+        <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="utf-8" />
+            <title>طباعة متابعة المنهج - ${escapeAttr(ctx.halaqa?.circleName || '-')}</title>
+            <style>
+              body{font-family:Tajawal,Arial,sans-serif;padding:16px;color:#0f172a}
+              h2{margin:0 0 8px 0;color:#14532d}
+              .meta{margin-bottom:10px;color:#64748b;font-size:13px}
+              table{width:100%;border-collapse:collapse}
+              th,td{border:1px solid #e2e8f0;padding:8px;text-align:right;font-size:12px;vertical-align:top}
+              th{background:#f8fafc}
+            </style>
+          </head>
+          <body>
+            <h2>متابعة المنهج - ${escapeAttr(ctx.halaqa?.circleName || '-')}</h2>
+            <div class="meta">القسم: ${escapeAttr(sectionLabel)} • المنهج: ${escapeAttr(ctx.plan?.name || '-')} • التاريخ: ${escapeAttr(ctx.flow.date || todayISO())}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>الطالب</th>
+                  <th>الدرس الحالي</th>
+                  <th>التقدم</th>
+                  <th>عنوان الدرس</th>
+                  <th>تفاصيل المطلوب</th>
+                  <th>التحضير</th>
+                  <th>ملاحظة</th>
+                  <th>آخر تحديث</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </body>
+        </html>
+      `);
+      w.document.close();
+      setTimeout(() => w.print(), 260);
+    }
+
+    function adminCurriculumExportExcel() {
+      const ctx = adminCurriculumCurrentContext();
+      const rowsHtml = adminCurriculumExportRows(ctx);
+      if (!rowsHtml) return toast('لا توجد بيانات للتصدير', 'err');
+      const sectionLabel = adminSectionLabel(ctx.flow.section);
+      const html = `
+        <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              body{font-family:Tajawal,Arial,sans-serif}
+              table{width:100%;border-collapse:collapse}
+              th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;vertical-align:top}
+              th{background:#f8fafc}
+            </style>
+          </head>
+          <body>
+            <h2>متابعة المنهج - ${escapeAttr(ctx.halaqa?.circleName || '-')}</h2>
+            <div>القسم: ${escapeAttr(sectionLabel)} - المنهج: ${escapeAttr(ctx.plan?.name || '-')} - التاريخ: ${escapeAttr(ctx.flow.date || todayISO())}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>الطالب</th>
+                  <th>الدرس الحالي</th>
+                  <th>التقدم</th>
+                  <th>عنوان الدرس</th>
+                  <th>تفاصيل المطلوب</th>
+                  <th>التحضير</th>
+                  <th>ملاحظة</th>
+                  <th>آخر تحديث</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </body>
+        </html>
+      `;
+      const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `متابعة_منهج_${safeFilePart(ctx.halaqa?.circleName || 'حلقة')}_${ctx.flow.date || todayISO()}.xls`;
+      a.click();
+      const url = a.href;
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+      toast('تم تصدير Excel للمنهج', 'ok');
+    }
+
+    function renderAdminCurriculum() {
+      if (state.tab !== 'curriculumadmin') return;
+      const view = $('view-curriculumadmin');
+      if (!view) return;
+      const u = currentUser();
+      if (!u || !isAdmin()) {
+        view.innerHTML = '<div class="card">هذه الصفحة متاحة للإدارة فقط.</div>';
+        return;
+      }
+
+      const flow = adminCurriculumFlow();
+      adminCurriculumEnsureSelection();
+      const ctx = adminCurriculumCurrentContext();
+      const dataKey = `${ctx.flow.section}|${ctx.flow.halaqaId}|${ctx.flow.planId}|${ctx.flow.date}`;
+      if (!flow.loading && flow.loadedKey !== dataKey) {
+        adminCurriculumLoad(false);
+      }
+
+      const sectionSelect = $('adminCurriculumSection');
+      const halaqaSelect = $('adminCurriculumHalaqa');
+      const dateInput = $('adminCurriculumDate');
+      const planSelect = $('adminCurriculumPlan');
+      const summaryEl = $('adminCurriculumSummary');
+      const rowsEl = $('adminCurriculumRows');
+      if (!sectionSelect || !halaqaSelect || !dateInput || !planSelect || !summaryEl || !rowsEl) return;
+
+      sectionSelect.innerHTML = `
+        <option value="mens" ${ctx.flow.section === 'mens' ? 'selected' : ''}>البنين</option>
+        <option value="womens" ${ctx.flow.section === 'womens' ? 'selected' : ''}>البنات</option>
+      `;
+      halaqaSelect.innerHTML = ctx.halaqas.length
+        ? ctx.halaqas.map((h) => `<option value="${h.id}" ${String(h.id) === String(ctx.flow.halaqaId) ? 'selected' : ''}>${escapeAttr(h.circleName || '-')} (${escapeAttr(h.teacherName || '-')})</option>`).join('')
+        : '<option value="">لا توجد حلقات</option>';
+      planSelect.innerHTML = ctx.plans.length
+        ? ctx.plans.map((p) => `<option value="${p.id}" ${String(p.id) === String(ctx.flow.planId) ? 'selected' : ''}>${escapeAttr(p.name || 'منهج')} (${Number(p.lessons?.length || p.plannedLessons || 1)} درس)</option>`).join('')
+        : '<option value="">لا يوجد منهج</option>';
+      dateInput.value = ctx.flow.date;
+
+      const rows = Array.isArray(flow.rows) ? flow.rows : [];
+      const dirtyCount = rows.filter((row) => row.dirty).length;
+      const avgLesson = rows.length ? (rows.reduce((sum, row) => sum + Number(row.currentLesson || 1), 0) / rows.length) : 0;
+      const attendanceCounts = rows.reduce((acc, row) => {
+        const key = adminCurriculumAttendanceKey(row.attendance);
+        if (!key) acc.unset += 1;
+        else acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, { unset: 0, present: 0, absent: 0, excused: 0, remote: 0, dropped: 0, late: 0 });
+
+      summaryEl.innerHTML = `
+        <div class="card"><div class="muted">عدد الطلاب</div><div style="font-size:26px; font-weight:900;">${rows.length}</div></div>
+        <div class="card"><div class="muted">متوسط الدرس الحالي</div><div style="font-size:26px; font-weight:900;">${avgLesson ? avgLesson.toFixed(1) : '0.0'}</div></div>
+        <div class="card"><div class="muted">الحضور في ${ctx.flow.date}</div><div style="font-size:20px; font-weight:900;">حاضر ${attendanceCounts.present + attendanceCounts.late} • غائب ${attendanceCounts.absent + attendanceCounts.dropped} • مستأذن ${attendanceCounts.excused}</div></div>
+        <div class="card"><div class="muted">تعديلات غير محفوظة</div><div style="font-size:26px; font-weight:900; color:${dirtyCount ? '#b45309' : '#166534'};">${dirtyCount}</div></div>
+      `;
+
+      if (flow.loading && !rows.length) {
+        rowsEl.innerHTML = '<tr><td colspan="8" class="muted">جار تحميل تقدم الطلاب من السحابة...</td></tr>';
+        return;
+      }
+      if (flow.error && !rows.length) {
+        rowsEl.innerHTML = `<tr><td colspan="8" class="muted" style="color:#b91c1c;">${escapeAttr(flow.error)}</td></tr>`;
+        return;
+      }
+      if (!ctx.halaqa || !ctx.plan) {
+        rowsEl.innerHTML = '<tr><td colspan="8" class="muted">اختر حلقة لديها منهج مسند لبدء المتابعة.</td></tr>';
+        return;
+      }
+      if (!rows.length) {
+        rowsEl.innerHTML = '<tr><td colspan="8" class="muted">لا توجد بيانات طلاب.</td></tr>';
+        return;
+      }
+
+      rowsEl.innerHTML = rows.map((row) => {
+        const percent = adminCurriculumProgressPercent(row.currentLesson, ctx.totalLessons);
+        const lesson = adminCurriculumLessonSummary(ctx.plan, row.currentLesson);
+        const saveStatus = row.saving
+          ? '<span class="badge badge-warn">جار الحفظ...</span>'
+          : (row.dirty ? '<span class="badge badge-gold">تعديل غير محفوظ</span>' : '<span class="badge badge-green">محفوظ</span>');
+        return `
+          <tr style="${row.dirty ? 'background:#fffbeb;' : ''}">
+            <td>
+              <b>${escapeAttr(row.studentName || '-')}</b>
+              <div class="muted" style="font-size:11px;">آخر تحديث: ${escapeAttr(adminCurriculumDateTimeLabel(row.updatedAt))}</div>
+            </td>
+            <td>
+              <input type="text" inputmode="numeric" dir="ltr" value="${Number(row.currentLesson || 1)}"
+                     onchange="adminCurriculumSetRowField('${escapeAttr(row.studentId)}','currentLesson',this.value)"
+                     style="max-width:90px;" />
+              <div class="muted" style="font-size:11px;">من ${Number(ctx.totalLessons || 1)}</div>
+            </td>
+            <td>
+              <div class="manhaj-mini-progress"><span style="width:${percent}%;"></span></div>
+              <div class="muted" style="font-size:11px; margin-top:4px;">${percent}%</div>
+            </td>
+            <td>
+              <b>${escapeAttr(lesson.title || '-')}</b>
+              <div class="muted" style="font-size:11px; margin-top:4px;">${escapeAttr(lesson.details || '-')}</div>
+            </td>
+            <td>
+              <select onchange="adminCurriculumSetRowField('${escapeAttr(row.studentId)}','attendance',this.value)">
+                ${adminAttendanceOptionsHtml(row.attendance || '')}
+              </select>
+              <div class="muted" style="font-size:11px; margin-top:4px;">${escapeAttr(adminCurriculumAttendanceLabel(row.attendance))}</div>
+            </td>
+            <td>
+              <input value="${escapeAttr(row.note || '')}" placeholder="ملاحظة اختيارية"
+                     onchange="adminCurriculumSetRowField('${escapeAttr(row.studentId)}','note',this.value)" />
+            </td>
+            <td>${saveStatus}</td>
+            <td class="no-print">
+              <button class="btn btn-light" ${row.saving || flow.saveBusy ? 'disabled' : ''} onclick="adminCurriculumSaveRow('${escapeAttr(row.studentId)}')">حفظ الطالب</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     function adminPrintPackAllowedSections() {
       const u = currentUser();
       if (!u) return [];
@@ -11645,6 +12404,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         supervision: { title: 'الإشراف', sub: 'توثيق ملاحظات المشرف على أداء المعلم ومتابعة التحسين.' },
         exams: { title: 'الاختبارات', sub: 'المعلم يرفع الدرجات، ثم يعتمدها المشرف/الإدارة.' },
         reports: { title: 'التقارير', sub: 'متابعة الأداء الأسبوعي والشهري على مستوى الطالب والحلقة والقسم.' },
+        curriculumadmin: { title: 'إدارة المنهج', sub: 'صفحة مركزية للإدارة: تقدم الدروس، تحضير الطلاب، التعديل المباشر، والطباعة.' },
         printpacks: { title: 'الطباعة والتصدير', sub: 'طباعة جميع حلقات البنين والبنات كل قسم على حدة مع تصدير Excel.' },
         board: { title: 'بوابة المجلس', sub: 'ملخص أسبوعي استراتيجي لرئيس المجلس والأعضاء.' },
         knights: { title: 'منصة الفرسان', sub: 'تكريم أفضل الطلاب أسبوعياً وشهرياً مع بطاقة نشر جاهزة.' },
@@ -11776,6 +12536,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      const supervisionTab = document.querySelector('[data-tab="supervision"]');
 	      const examsTab = document.querySelector('[data-tab="exams"]');
 	      const reportsTab = document.querySelector('[data-tab="reports"]');
+	      const curriculumAdminTab = document.querySelector('[data-tab="curriculumadmin"]');
 	      const printpacksTab = document.querySelector('[data-tab="printpacks"]');
 	      const dailyTab = document.querySelector('[data-tab="daily"]');
 	      const boardTab = document.querySelector('[data-tab="board"]');
@@ -11791,6 +12552,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      supervisionTab.style.display = (u.role === 'admin' || u.role === 'supervisor') ? 'inline-block' : 'none';
       examsTab.style.display = canAccessExams() ? 'inline-block' : 'none';
       reportsTab.style.display = isTeacher() ? 'none' : 'inline-block';
+      curriculumAdminTab.style.display = isAdmin() ? 'inline-block' : 'none';
       printpacksTab.style.display = isAdmin() ? 'inline-block' : 'none';
       boardTab.style.display = (u.role === 'admin' || u.role === 'supervisor' || u.role === 'board') ? 'inline-block' : 'none';
       knightsTab.style.display = isTeacher() ? 'none' : 'inline-block';
@@ -11804,6 +12566,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	        supervisionTab.style.display = 'none';
         examsTab.style.display = 'none';
 	        reportsTab.style.display = 'none';
+        curriculumAdminTab.style.display = 'none';
         printpacksTab.style.display = 'none';
         boardTab.style.display = 'none';
         knightsTab.style.display = 'none';
@@ -11813,9 +12576,10 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 	      if (!isAdmin() && (state.tab === 'staff' || state.tab === 'settings')) state.tab = 'halaqas';
 	      if (!(u.role === 'admin' || u.role === 'supervisor') && state.tab === 'daily') state.tab = 'halaqas';
 	      if (!(u.role === 'admin' || u.role === 'supervisor') && state.tab === 'supervision') state.tab = 'halaqas';
+	      if (!isAdmin() && state.tab === 'curriculumadmin') state.tab = 'halaqas';
 	      if (!isAdmin() && state.tab === 'printpacks') state.tab = 'halaqas';
 	      if (!canAccessExams() && state.tab === 'exams') state.tab = 'halaqas';
-      if (isTeacher() && (state.tab === 'reports' || state.tab === 'printpacks' || state.tab === 'board' || state.tab === 'knights')) state.tab = 'halaqas';
+      if (isTeacher() && (state.tab === 'reports' || state.tab === 'curriculumadmin' || state.tab === 'printpacks' || state.tab === 'board' || state.tab === 'knights')) state.tab = 'halaqas';
       if (!(u.role === 'admin' || u.role === 'supervisor' || u.role === 'board') && state.tab === 'board') state.tab = 'halaqas';
       if (u.role === 'board') {
         state.tab = 'board';
@@ -11829,7 +12593,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 
 	      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
 	      document.querySelectorAll('#sectionTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.section === state.section));
-	      ['halaqas','daily','students','staff','supervision','exams','reports','printpacks','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== state.tab));
+	      ['halaqas','daily','students','staff','supervision','exams','reports','curriculumadmin','printpacks','board','knights','settings'].forEach(v => $('view-'+v).classList.toggle('hidden', v !== state.tab));
 
       $('sessionLabel').textContent = `المستخدم: ${u.name} | الدور: ${u.role}`;
       renderWorkflowBanner();
@@ -11842,6 +12606,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       renderSupervision();
       renderExams();
       renderReports();
+      renderAdminCurriculum();
       renderPrintPacks();
       renderBoardReport();
       renderKnights();
@@ -12131,6 +12896,17 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     window.selectParentStudent = selectParentStudent;
     window.exportParentCertificate = exportParentCertificate;
     window.exportKnightCard = exportKnightCard;
+    window.adminCurriculumSetSection = adminCurriculumSetSection;
+    window.adminCurriculumSetHalaqa = adminCurriculumSetHalaqa;
+    window.adminCurriculumSetDate = adminCurriculumSetDate;
+    window.adminCurriculumShiftDate = adminCurriculumShiftDate;
+    window.adminCurriculumSetPlan = adminCurriculumSetPlan;
+    window.adminCurriculumRefresh = adminCurriculumRefresh;
+    window.adminCurriculumSetRowField = adminCurriculumSetRowField;
+    window.adminCurriculumSaveRow = adminCurriculumSaveRow;
+    window.adminCurriculumSaveAll = adminCurriculumSaveAll;
+    window.adminCurriculumPrint = adminCurriculumPrint;
+    window.adminCurriculumExportExcel = adminCurriculumExportExcel;
     window.adminPrintPackSection = adminPrintPackSection;
     window.adminExportPackSectionExcel = adminExportPackSectionExcel;
     window.syncPendingLogs = syncPendingLogs;
