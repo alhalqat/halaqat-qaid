@@ -554,7 +554,7 @@
     }).join(' + ');
   }
 
-  function saveSession(completed) {
+  async function saveSession(completed) {
     var flow = teacherCurriculumFlow();
     if (flow.saving) return;
     var pair = selectedPair();
@@ -628,39 +628,36 @@
     console.log('[TeacherCurriculumTab] updating progress path:', progressPath);
     console.log('[TeacherCurriculumTab] payload preview:', cleanPayload);
 
-    sessionRef.set(cleanPayload)
-      .then(function () {
-        return progressRef.update(progressUpdate);
-      })
-      .then(function () {
-        flow.progressByStudent[studentId] = {
-          currentLesson: Number(nextLesson),
-          updatedAt: isoNow()
-        };
+    try {
+      await sessionRef.set(cleanPayload);
+      await progressRef.update(progressUpdate);
 
-        if (idx >= students.length - 1) {
-          flow.view = 'overview';
-          flow.studentIndex = 0;
-        } else {
-          flow.studentIndex = idx + 1;
-        }
-        toast(completed ? 'تم حفظ الجلسة وإتمام الدرس' : 'تم حفظ الجلسة بدون ترقية الدرس');
-      })
-      .catch(function (err) {
-        var code = String(err && err.code ? err.code : 'unknown');
-        var message = String(err && err.message ? err.message : 'unknown');
-        console.error('[TeacherCurriculumTab] Firebase save error:', code, message, {
-          sessionPath: sessionPath,
-          progressPath: progressPath,
-          payload: cleanPayload,
-          progressUpdate: progressUpdate
-        });
-        toast('تعذر حفظ تقييم المنهج في Firebase (' + code + ')', 'err');
-      })
-      .finally(function () {
-        flow.saving = false;
-        rerenderTeacherWorkspace();
+      flow.progressByStudent[studentId] = {
+        currentLesson: Number(nextLesson),
+        updatedAt: isoNow()
+      };
+
+      if (idx >= students.length - 1) {
+        flow.view = 'overview';
+        flow.studentIndex = 0;
+      } else {
+        flow.studentIndex = idx + 1;
+      }
+      toast(completed ? 'تم حفظ الجلسة وإتمام الدرس' : 'تم حفظ الجلسة بدون ترقية الدرس');
+    } catch (err) {
+      var code = String(err && err.code ? err.code : 'unknown');
+      var message = String(err && err.message ? err.message : 'unknown');
+      console.error('[TeacherCurriculumTab] Firebase save error:', code, message, {
+        sessionPath: sessionPath,
+        progressPath: progressPath,
+        payload: cleanPayload,
+        progressUpdate: progressUpdate
       });
+      toast('تعذر حفظ تقييم المنهج في Firebase (' + code + ')', 'err');
+    } finally {
+      flow.saving = false;
+      rerenderTeacherWorkspace();
+    }
   }
 
   function renderListView(pairs, flow) {
@@ -880,6 +877,7 @@
 
   function selectHalaqa(halaqaId, curriculumId) {
     var flow = teacherCurriculumFlow();
+    if (flow.saving) return;
     flow.view = 'overview';
     flow.halaqaId = String(halaqaId || '');
     flow.curriculumId = String(curriculumId || '');
@@ -890,6 +888,7 @@
 
   function backToList() {
     var flow = teacherCurriculumFlow();
+    if (flow.saving) return;
     flow.view = 'list';
     flow.halaqaId = '';
     flow.curriculumId = '';
@@ -899,6 +898,7 @@
 
   function backToOverview() {
     var flow = teacherCurriculumFlow();
+    if (flow.saving) return;
     if (!flow.curriculumId) return backToList();
     flow.view = 'overview';
     flow.studentIndex = 0;
@@ -907,6 +907,7 @@
 
   function startEvaluation() {
     var flow = teacherCurriculumFlow();
+    if (flow.saving) return;
     flow.view = 'evaluate';
     flow.studentIndex = 0;
     rerenderTeacherWorkspace();
@@ -914,6 +915,7 @@
 
   function openStudent(studentId) {
     var flow = teacherCurriculumFlow();
+    if (flow.saving) return;
     var pair = selectedPair();
     if (!pair) return;
     var students = sortedStudentsForHalaqa(pair.halaqa.id);
