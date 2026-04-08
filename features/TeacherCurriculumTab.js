@@ -644,6 +644,30 @@
     return { cls: 'none', label: 'لم يحفظ' };
   }
 
+  function sectionComplete(requiredRows, draftRows) {
+    var required = listFromUnknown(requiredRows).map(normalizeEntry);
+    if (!required.length) return true;
+    var actual = listFromUnknown(draftRows).map(normalizeEntry);
+    for (var i = 0; i < required.length; i += 1) {
+      var req = required[i];
+      var row = actual[i];
+      if (!row) return false;
+      if (Number(row.surahIdx) !== Number(req.surahIdx)) return false;
+      if (Number(row.fromAya) > Number(req.fromAya)) return false;
+      if (Number(row.toAya) < Number(req.toAya)) return false;
+    }
+    return true;
+  }
+
+  function canCompleteLesson(lesson, draft, attendance) {
+    var att = normalizeAttendance(attendance);
+    if (!att) return false;
+    if (att === 'absent' || att === 'dropped') return false;
+    var hifdhOk = sectionComplete(lesson && lesson.hifdh, draft && draft.hifdh);
+    var revisionOk = sectionComplete(lesson && lesson.revision, draft && draft.revision);
+    return !!(hifdhOk && revisionOk);
+  }
+
   function entriesText(rows) {
     var list = listFromUnknown(rows).map(normalizeEntry);
     if (!list.length) return '—';
@@ -674,6 +698,11 @@
     if (!attendance) {
       toast('اختر حالة التحضير قبل الحفظ', 'err');
       return;
+    }
+    var allowedToComplete = canCompleteLesson(lesson, draft, attendance);
+    var effectiveCompleted = !!completed && allowedToComplete;
+    if (completed && !allowedToComplete) {
+      toast('المطلوب في الدرس غير مكتمل، تم حفظ التقييم كـ "لم يكمل"', 'err');
     }
 
     var hRows = listFromUnknown(draft.hifdh).map(normalizeEntry);
@@ -706,7 +735,7 @@
     }
 
     var totalLessons = Math.max(1, Number(pair.curriculum.lessons.length || 1));
-    var nextLesson = completed ? clamp(lessonNo + 1, 1, totalLessons) : lessonNo;
+    var nextLesson = effectiveCompleted ? clamp(lessonNo + 1, 1, totalLessons) : lessonNo;
 
     var payload = {
       date: sessionDate,
@@ -714,7 +743,7 @@
       halaqaId: halaqaId,
       studentId: studentId,
       lessonNumber: Number(lessonNo),
-      completed: !!completed,
+      completed: !!effectiveCompleted,
       attendance: attendance,
       hifdh: hRows,
       revision: rRows,
@@ -750,7 +779,7 @@
       } else {
         flow.studentIndex = idx + 1;
       }
-      toast(completed ? 'تم حفظ الجلسة وإتمام الدرس' : 'تم حفظ الجلسة بدون ترقية الدرس');
+      toast(effectiveCompleted ? 'تم حفظ الجلسة وإتمام الدرس' : 'تم حفظ الجلسة بدون ترقية الدرس');
     } catch (err) {
       var code = String(err && err.code ? err.code : 'unknown');
       var message = String(err && err.message ? err.message : 'unknown');
@@ -798,14 +827,15 @@
     var totalLessons = Math.max(1, Number(pair.curriculum.lessons.length || 1));
     var dateISO = todayISODate();
     var rowsHtml = students.map(function (student) {
-      var lessonNo = activeLessonNumberForStudent(pair.curriculum, student.id, dateISO);
+      var lessonNo = studentLessonNumber(pair.curriculum, student.id);
       var percent = clamp(Math.round((lessonNo / totalLessons) * 100), 0, 100);
       var session = getTodaySessionRecord(pair.curriculum.id, student.id, dateISO);
+      var todayLabel = session ? ('تقييم اليوم: درس ' + Number(session.lessonNumber)) : '';
       var statusLine = session ? '<div class="muted" style="font-size:12px; margin-top:4px;">تم حفظ تقييم اليوم ويمكن تعديله</div>' : '';
       return [
         '<tr onclick="teacherCurriculumOpenStudent(\'' + esc(student.id) + '\')" style="cursor:pointer;">',
         '  <td>' + esc(student.name || '-') + statusLine + '</td>',
-        '  <td>درس ' + Number(lessonNo) + '</td>',
+        '  <td>الدرس الحالي: ' + Number(lessonNo) + (todayLabel ? ('<div class="muted" style="font-size:12px; margin-top:4px;">' + esc(todayLabel) + '</div>') : '') + '</td>',
         '  <td><div class="manhaj-mini-progress"><span style="width:' + Number(percent) + '%"></span></div><div style="font-size:12px; margin-top:4px;">' + Number(percent) + '%</div></td>',
         '</tr>'
       ].join('');
@@ -888,8 +918,9 @@
     var draft = ensureDraft(student.id, lessonNo, lesson, todaySession || null);
     var attendance = normalizeAttendance(draft.attendance);
     var absentMode = attendance === 'absent';
+    var canComplete = canCompleteLesson(lesson, draft, attendance);
     var dotHtml = students.map(function (st, i) {
-      var currentNo = activeLessonNumberForStudent(pair.curriculum, st.id, dateISO);
+      var currentNo = studentLessonNumber(pair.curriculum, st.id);
       var saved = !!getTodaySessionRecord(pair.curriculum.id, st.id, dateISO);
       var label = String(st.name || '-').trim().split(' ')[0] || 'طالب';
       return '<button type="button" class="tw-dot ' + (saved ? 'done' : 'pending') + (i === idx ? ' active' : '') + '" title="' + esc(st.name || '-') + '" onclick="teacherCurriculumOpenStudent(\'' + esc(st.id) + '\')">' + esc(label) + '<small>' + esc('د' + currentNo) + '</small></button>';
@@ -913,6 +944,7 @@
       '  <div class="tw-student-name">' + esc(student.name || '-') + ' <span class="tw-pill" style="margin-inline-start:8px;">درس ' + Number(lessonNo) + '</span></div>',
       '  <div class="manhaj-student-banner"><b>المطلوب:</b> الحفظ: ' + esc(entriesText(lesson.hifdh)) + ' — المراجعة: ' + esc(entriesText(lesson.revision)) + '</div>',
       (todaySession ? '  <div class="manhaj-editable-note">تم حفظ تقييم هذا الطالب اليوم. يمكنك التعديل قبل بدء يوم جديد.</div>' : ''),
+      '  <div class="manhaj-lesson-check ' + (canComplete ? 'ok' : 'warn') + '">' + (canComplete ? 'مكتمل: يمكن اعتماد الدرس والانتقال للدرس التالي' : 'غير مكتمل: لن ينتقل للدرس التالي حتى إتمام المطلوب') + '</div>',
       '  <div class="tw-entry-section">',
       '    <div class="tw-entry-head"><h4>التحضير</h4></div>',
       '    <div class="tw-att-grid">',
@@ -954,6 +986,9 @@
       '.manhaj-mini-progress span{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);}',
       '.manhaj-student-banner{margin:8px 0;border:1px solid #86efac;background:#f0fdf4;border-radius:10px;padding:8px;color:#166534;font-size:13px;}',
       '.manhaj-editable-note{margin:8px 0;border:1px solid #bfdbfe;background:#eff6ff;border-radius:10px;padding:8px;color:#1d4ed8;font-size:13px;}',
+      '.manhaj-lesson-check{margin:8px 0;border:1px solid #e2e8f0;border-radius:10px;padding:8px;font-size:13px;font-weight:700;}',
+      '.manhaj-lesson-check.ok{border-color:#86efac;background:#f0fdf4;color:#166534;}',
+      '.manhaj-lesson-check.warn{border-color:#fde68a;background:#fffbeb;color:#854d0e;}',
       '.manhaj-lesson-row{border:1px dashed #cbd5e1;border-radius:10px;padding:8px;margin-bottom:8px;background:#fff;}',
       '.manhaj-lesson-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap;}',
       '.manhaj-lesson-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}',
