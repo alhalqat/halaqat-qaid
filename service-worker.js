@@ -1,8 +1,10 @@
-const CACHE_NAME = 'v3';
+const CACHE_NAME = 'v5';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './features/manhaj-addon.js',
+  './features/TeacherCurriculumTab.js'
 ];
 
 self.addEventListener('install', (event) => {

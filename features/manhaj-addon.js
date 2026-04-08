@@ -70,6 +70,18 @@
       .replace(/'/g, '&#39;');
   }
 
+  function teacherFirstWord(name) {
+    if (typeof window.teacherFirstWord === 'function') {
+      try {
+        return window.teacherFirstWord(name);
+      } catch (_e) {}
+    }
+    var text = String(name == null ? '' : name).trim();
+    if (!text) return 'طالب';
+    var token = text.split(/\s+/)[0] || text;
+    return token.slice(0, 18);
+  }
+
   function toEnglish(value) {
     if (typeof window.toEnglishDigits === 'function') return window.toEnglishDigits(String(value == null ? '' : value));
     return String(value == null ? '' : value)
@@ -2311,7 +2323,6 @@
       '.manhaj-req-item.none{background:#f1f5f9;color:#64748b;}',
       '.manhaj-action-row{display:flex;gap:8px;flex-wrap:wrap;flex:1 1 240px;}',
       '.manhaj-action-row .btn{flex:1 1 160px;}',
-      '#halaqaCards .tw-bottom-nav{display:none !important;}',
       '.manhaj-fixed-nav{z-index:70;grid-template-columns:repeat(4,minmax(0,1fr));}',
       '.manhaj-parent-head{display:flex;align-items:center;gap:12px;margin-top:10px;}',
       '.manhaj-parent-circle{--p:0;width:96px;height:96px;border-radius:999px;background:conic-gradient(#16a34a calc(var(--p) * 1%), #e2e8f0 0);display:grid;place-items:center;}',
@@ -2373,19 +2384,14 @@
     exposeApi();
 
     wrapFunction('renderSupervision', renderSupervisionAddon);
-    wrapFunction('renderHalaqas', renderTeacherAddon);
     wrapFunction('renderParentView', renderParentManhajSection);
-    wrapFunction('renderAll', ensurePersistentTeacherNav);
 
     try {
       if (typeof window.renderSupervision === 'function' && state.tab === 'supervision') renderSupervisionAddon();
     } catch (_e) {}
     try {
-      if (isTeacherUser()) renderTeacherAddon();
-    } catch (_e2) {}
-    try {
       if (state.session && state.session.type === 'parent') renderParentManhajSection();
-    } catch (_e3) {}
+    } catch (_e2) {}
   }
 
   init();

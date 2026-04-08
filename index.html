@@ -12029,7 +12029,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
   
 // === PATCH v38: إعادة بناء صفحة المعلم (نمط تشغيل يومي) ===
 (function teacherWorkspaceV38() {
-  const TEACHER_TABS = ['halaqas', 'alerts', 'exams'];
+  const TEACHER_TABS = ['halaqas', 'alerts', 'exams', 'manhaj'];
   const TEACHER_ATT = [
     { key: 'present', label: 'حاضر ✅' },
     { key: 'absent', label: 'غائب ❌' },
@@ -12117,7 +12117,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
 .tw-halaqa-report > summary { cursor:pointer; list-style:none; padding:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; background:#f8fff9; font-weight:800; color:#166534; }
 .tw-halaqa-report > summary::-webkit-details-marker { display:none; }
 .tw-halaqa-report .body { padding:8px 10px 10px; }
-.tw-bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:45; background:#ffffff; border-top:1px solid #dbe7db; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
+.tw-bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:45; background:#ffffff; border-top:1px solid #dbe7db; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
 .tw-nav-btn { border:1px solid #d1d5db; border-radius:11px; background:#fff; padding:8px 6px; font-size:13px; font-weight:800; cursor:pointer; color:#334155; position:relative; font-family:inherit; }
 .tw-nav-btn.active { border-color:#14532d; background:#dcfce7; color:#14532d; }
 .tw-nav-badge { position:absolute; top:-6px; left:8px; background:#ef4444; color:#fff; border-radius:999px; min-width:18px; height:18px; display:grid; place-items:center; font-size:11px; padding:0 4px; }
@@ -13246,6 +13246,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           ${unread ? `<span class="tw-nav-badge">${unread}</span>` : ''}
         </button>
         <button type="button" class="tw-nav-btn ${flow.tab === 'exams' ? 'active' : ''}" onclick="teacherSetBottomTab('exams')">الاختبارات</button>
+        <button type="button" class="tw-nav-btn ${flow.tab === 'manhaj' ? 'active' : ''}" onclick="teacherSetBottomTab('manhaj')">المنهج</button>
       </nav>
     `;
   }
@@ -13272,7 +13273,13 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     let content = '';
     if (flow.tab === 'alerts') content = teacherRenderAlertsTab();
     else if (flow.tab === 'exams') content = teacherRenderExamsTab();
-    else content = teacherRenderHalaqasTab(halaqas);
+    else if (flow.tab === 'manhaj') {
+      if (window.TeacherCurriculumTab && typeof window.TeacherCurriculumTab.render === 'function') {
+        content = window.TeacherCurriculumTab.render({ halaqas });
+      } else {
+        content = `<div class="tw-card"><h3>المنهج</h3><p class="muted" style="margin-top:8px;">تعذر تحميل تبويب المنهج. أعد تحميل الصفحة.</p></div>`;
+      }
+    } else content = teacherRenderHalaqasTab(halaqas);
     cards.innerHTML = `<div class="tw-shell">${content}</div>${teacherBottomNavHtml()}`;
   }
 
@@ -13307,12 +13314,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
   window.teacherSaveExamStudent = teacherSaveExamStudent;
 })();
   </script>
-  <nav id="manhajPersistentTeacherNav" class="tw-bottom-nav manhaj-fixed-nav no-print hidden">
-    <button type="button" class="tw-nav-btn" data-nav="halaqas">الحلقات</button>
-    <button type="button" class="tw-nav-btn" data-nav="alerts">التنبيهات<span class="tw-nav-badge" style="display:none;"></span></button>
-    <button type="button" class="tw-nav-btn" data-nav="exams">الاختبارات</button>
-    <button type="button" class="tw-nav-btn" data-nav="manhaj">المنهج</button>
-  </nav>
-  <script src="./features/manhaj-addon.js?v=20260407j"></script>
+  <script src="./features/manhaj-addon.js?v=20260408-1"></script>
+  <script src="./features/TeacherCurriculumTab.js?v=20260408-1"></script>
 </body>
 </html>
