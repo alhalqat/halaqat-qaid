@@ -560,12 +560,21 @@
   }
 
   function activeLessonNumberForStudent(curriculum, studentId, dateISO) {
+    var current = studentLessonNumber(curriculum, studentId);
     var session = getTodaySessionRecord(curriculum.id, studentId, dateISO);
     var total = Math.max(1, Number(curriculum.lessons.length || 1));
     if (session && Number(session.lessonNumber) >= 1) {
-      return clamp(Number(session.lessonNumber), 1, total);
+      var sessionNo = clamp(Number(session.lessonNumber), 1, total);
+      return Math.max(current, sessionNo);
     }
-    return studentLessonNumber(curriculum, studentId);
+    return current;
+  }
+
+  function sessionForLesson(session, lessonNo) {
+    if (!session || typeof session !== 'object') return null;
+    var sessionNo = Number(session.lessonNumber);
+    if (!Number.isFinite(sessionNo) || sessionNo < 1) return null;
+    return Number(sessionNo) === Number(lessonNo) ? session : null;
   }
 
   function overlapCount(aFrom, aTo, bFrom, bTo) {
@@ -630,7 +639,7 @@
     var lesson = lessonForCurriculum(pair.curriculum, lessonNo);
     var dateISO = todayISODate();
     var session = getTodaySessionRecord(pair.curriculum.id, studentId, dateISO) || null;
-    var draft = ensureDraft(studentId, lessonNo, lesson, session);
+    var draft = ensureDraft(studentId, lessonNo, lesson, sessionForLesson(session, lessonNo));
     draft.attendance = normalizeAttendance(attendanceKey);
     rerenderTeacherWorkspace();
   }
@@ -693,7 +702,7 @@
     var lessonNo = activeLessonNumberForStudent(pair.curriculum, student.id, sessionDate);
     var existingTodaySession = getTodaySessionRecord(curriculumId, studentId, sessionDate) || null;
     var lesson = flow.lessonCache[lessonCacheKey(pair.curriculum.id, lessonNo)] || lessonForCurriculum(pair.curriculum, lessonNo);
-    var draft = ensureDraft(student.id, lessonNo, lesson, existingTodaySession);
+    var draft = ensureDraft(student.id, lessonNo, lesson, sessionForLesson(existingTodaySession, lessonNo));
     var attendance = normalizeAttendance(draft.attendance);
     if (!attendance) {
       toast('اختر حالة التحضير قبل الحفظ', 'err');
@@ -915,7 +924,8 @@
 
     ensureLessonFromFirebase(pair.curriculum, lessonNo);
 
-    var draft = ensureDraft(student.id, lessonNo, lesson, todaySession || null);
+    var currentLessonSession = sessionForLesson(todaySession, lessonNo);
+    var draft = ensureDraft(student.id, lessonNo, lesson, currentLessonSession);
     var attendance = normalizeAttendance(draft.attendance);
     var absentMode = attendance === 'absent';
     var canComplete = canCompleteLesson(lesson, draft, attendance);
@@ -943,7 +953,7 @@
       '<div class="tw-card">',
       '  <div class="tw-student-name">' + esc(student.name || '-') + ' <span class="tw-pill" style="margin-inline-start:8px;">درس ' + Number(lessonNo) + '</span></div>',
       '  <div class="manhaj-student-banner"><b>المطلوب:</b> الحفظ: ' + esc(entriesText(lesson.hifdh)) + ' — المراجعة: ' + esc(entriesText(lesson.revision)) + '</div>',
-      (todaySession ? '  <div class="manhaj-editable-note">تم حفظ تقييم هذا الطالب اليوم. يمكنك التعديل قبل بدء يوم جديد.</div>' : ''),
+      (currentLessonSession ? '  <div class="manhaj-editable-note">تم حفظ تقييم هذا الدرس اليوم. يمكنك التعديل قبل بدء يوم جديد.</div>' : ''),
       '  <div class="manhaj-lesson-check ' + (canComplete ? 'ok' : 'warn') + '">' + (canComplete ? 'مكتمل: يمكن اعتماد الدرس والانتقال للدرس التالي' : 'غير مكتمل: لن ينتقل للدرس التالي حتى إتمام المطلوب') + '</div>',
       '  <div class="tw-entry-section">',
       '    <div class="tw-entry-head"><h4>التحضير</h4></div>',
