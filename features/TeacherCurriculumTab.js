@@ -1,6 +1,14 @@
 (function TeacherCurriculumTabModule() {
   'use strict';
 
+  var CURRICULUM_ATTENDANCE = [
+    { key: 'present', label: 'حاضر ✅' },
+    { key: 'absent', label: 'غائب ❌' },
+    { key: 'excused', label: 'مستأذن 🤝' },
+    { key: 'remote', label: 'عن بُعد 📱' },
+    { key: 'dropped', label: 'منقطع ⚠️' }
+  ];
+
   function hasRuntime() {
     return typeof window !== 'undefined' && typeof state === 'object' && !!state;
   }
@@ -48,6 +56,14 @@
 
   function isoNow() {
     return new Date().toISOString();
+  }
+
+  function normalizeAttendance(value) {
+    var key = String(value == null ? '' : value).trim();
+    for (var i = 0; i < CURRICULUM_ATTENDANCE.length; i += 1) {
+      if (CURRICULUM_ATTENDANCE[i].key === key) return key;
+    }
+    return '';
   }
 
   function listFromUnknown(raw) {
@@ -201,11 +217,15 @@
         curriculaLoaded: false,
         error: '',
         progressByStudent: {},
+        todaySessionsByStudent: {},
         draftsByStudentLesson: {},
         saving: false,
         progressLoadToken: '',
         lessonCache: {}
       };
+    }
+    if (!state.teacherCurriculumFlow.todaySessionsByStudent || typeof state.teacherCurriculumFlow.todaySessionsByStudent !== 'object') {
+      state.teacherCurriculumFlow.todaySessionsByStudent = {};
     }
     return state.teacherCurriculumFlow;
   }
@@ -396,6 +416,40 @@
     return String(curriculumId || '') + '__' + String(lessonNo || '1');
   }
 
+  function todaySessionKey(curriculumId, studentId, dateISO) {
+    return String(curriculumId || '') + '__' + String(studentId || '') + '__' + String(dateISO || '');
+  }
+
+  function normalizeTodaySession(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var base = raw;
+    var lessonRaw = Number(base.lessonNumber);
+    var lessonNumber = Number.isFinite(lessonRaw) && lessonRaw >= 1 ? Math.floor(lessonRaw) : 1;
+    return {
+      lessonNumber: lessonNumber,
+      completed: !!base.completed,
+      attendance: normalizeAttendance(base.attendance),
+      hifdh: listFromUnknown(base.hifdh).map(normalizeEntry),
+      revision: listFromUnknown(base.revision).map(normalizeEntry),
+      note: String(base.note || '')
+    };
+  }
+
+  function getTodaySessionRecord(curriculumId, studentId, dateISO) {
+    var flow = teacherCurriculumFlow();
+    var key = todaySessionKey(curriculumId, studentId, dateISO);
+    if (Object.prototype.hasOwnProperty.call(flow.todaySessionsByStudent, key)) {
+      return flow.todaySessionsByStudent[key];
+    }
+    return undefined;
+  }
+
+  function setTodaySessionRecord(curriculumId, studentId, dateISO, session) {
+    var flow = teacherCurriculumFlow();
+    var key = todaySessionKey(curriculumId, studentId, dateISO);
+    flow.todaySessionsByStudent[key] = session == null ? null : normalizeTodaySession(session);
+  }
+
   function lessonForCurriculum(curriculum, lessonNo) {
     var idx = clamp(Number(lessonNo || 1), 1, Math.max(1, curriculum.lessons.length || 1)) - 1;
     return curriculum.lessons[idx] || normalizeLesson({}, idx);
@@ -450,17 +504,34 @@
     }).catch(function () { return 1; });
   }
 
+  function readTodaySession(curriculumId, studentId, dateISO) {
+    var ref = getRealtimeDatabaseRef('curricula/' + curriculumId + '/studentProgress/' + studentId + '/sessions/' + dateISO);
+    if (!ref) return Promise.resolve(null);
+    return ref.once('value').then(function (snap) {
+      var raw = snap && typeof snap.val === 'function' ? snap.val() : null;
+      return normalizeTodaySession(raw);
+    }).catch(function () { return null; });
+  }
+
   function ensureProgressLoaded(pair) {
     var flow = teacherCurriculumFlow();
     if (!pair || !pair.curriculum || !pair.halaqa) return Promise.resolve();
     var students = sortedStudentsForHalaqa(pair.halaqa.id);
+    var dateISO = todayISODate();
     var token = String(pair.curriculum.id) + '__' + String(students.length) + '__' + String(Date.now());
     flow.progressLoadToken = token;
     flow.loadingProgress = true;
 
     return Promise.all(students.map(function (student) {
-      return readCurrentLesson(pair.curriculum.id, student.id).then(function (lessonNo) {
-        return { studentId: String(student.id), lessonNo: lessonNo };
+      return Promise.all([
+        readCurrentLesson(pair.curriculum.id, student.id),
+        readTodaySession(pair.curriculum.id, student.id, dateISO)
+      ]).then(function (parts) {
+        return {
+          studentId: String(student.id),
+          lessonNo: parts[0],
+          todaySession: parts[1]
+        };
       });
     })).then(function (rows) {
       if (flow.progressLoadToken !== token) return;
@@ -469,6 +540,7 @@
           currentLesson: row.lessonNo,
           updatedAt: isoNow()
         };
+        setTodaySessionRecord(pair.curriculum.id, row.studentId, dateISO, row.todaySession);
       });
     }).finally(function () {
       if (flow.progressLoadToken !== token) return;
@@ -487,6 +559,15 @@
     return n;
   }
 
+  function activeLessonNumberForStudent(curriculum, studentId, dateISO) {
+    var session = getTodaySessionRecord(curriculum.id, studentId, dateISO);
+    var total = Math.max(1, Number(curriculum.lessons.length || 1));
+    if (session && Number(session.lessonNumber) >= 1) {
+      return clamp(Number(session.lessonNumber), 1, total);
+    }
+    return studentLessonNumber(curriculum, studentId);
+  }
+
   function overlapCount(aFrom, aTo, bFrom, bTo) {
     var left = Math.max(Number(aFrom || 0), Number(bFrom || 0));
     var right = Math.min(Number(aTo || 0), Number(bTo || 0));
@@ -498,16 +579,23 @@
     return String(studentId || '') + '__' + String(lessonNo || 1);
   }
 
-  function ensureDraft(studentId, lessonNo, lesson) {
+  function ensureDraft(studentId, lessonNo, lesson, sessionRow) {
     var flow = teacherCurriculumFlow();
     var key = draftKey(studentId, lessonNo);
-    if (flow.draftsByStudentLesson[key]) return flow.draftsByStudentLesson[key];
-    var hRows = listFromUnknown(lesson && lesson.hifdh).map(normalizeEntry);
-    var rRows = listFromUnknown(lesson && lesson.revision).map(normalizeEntry);
+    if (flow.draftsByStudentLesson[key]) {
+      if (typeof flow.draftsByStudentLesson[key].attendance !== 'string') {
+        flow.draftsByStudentLesson[key].attendance = '';
+      }
+      return flow.draftsByStudentLesson[key];
+    }
+    var source = sessionRow && typeof sessionRow === 'object' ? sessionRow : null;
+    var hRows = source ? listFromUnknown(source.hifdh).map(normalizeEntry) : listFromUnknown(lesson && lesson.hifdh).map(normalizeEntry);
+    var rRows = source ? listFromUnknown(source.revision).map(normalizeEntry) : listFromUnknown(lesson && lesson.revision).map(normalizeEntry);
     flow.draftsByStudentLesson[key] = {
       hifdh: hRows,
       revision: rRows,
-      note: ''
+      note: source ? String(source.note || '') : '',
+      attendance: source ? normalizeAttendance(source.attendance) : ''
     };
     return flow.draftsByStudentLesson[key];
   }
@@ -534,6 +622,17 @@
     var lesson = lessonForCurriculum(pair.curriculum, lessonNo);
     var draft = ensureDraft(studentId, lessonNo, lesson);
     draft.note = String(text || '');
+  }
+
+  function setDraftAttendance(studentId, lessonNo, attendanceKey) {
+    var pair = selectedPair();
+    if (!pair) return;
+    var lesson = lessonForCurriculum(pair.curriculum, lessonNo);
+    var dateISO = todayISODate();
+    var session = getTodaySessionRecord(pair.curriculum.id, studentId, dateISO) || null;
+    var draft = ensureDraft(studentId, lessonNo, lesson, session);
+    draft.attendance = normalizeAttendance(attendanceKey);
+    rerenderTeacherWorkspace();
   }
 
   function statusFromEntry(required, actual) {
@@ -563,16 +662,22 @@
     if (!students.length) return;
     var idx = clamp(Number(flow.studentIndex || 0), 0, students.length - 1);
     var student = students[idx];
-    var lessonNo = studentLessonNumber(pair.curriculum, student.id);
-    var lesson = flow.lessonCache[lessonCacheKey(pair.curriculum.id, lessonNo)] || lessonForCurriculum(pair.curriculum, lessonNo);
-    var draft = ensureDraft(student.id, lessonNo, lesson);
-
-    var hRows = listFromUnknown(draft.hifdh).map(normalizeEntry);
-    var rRows = listFromUnknown(draft.revision).map(normalizeEntry);
     var curriculumId = String(pair.curriculum.id || '').trim();
     var studentId = String(student.id || '').trim();
     var halaqaId = String(pair.halaqa.id || '').trim();
     var sessionDate = todayISODate();
+    var lessonNo = activeLessonNumberForStudent(pair.curriculum, student.id, sessionDate);
+    var existingTodaySession = getTodaySessionRecord(curriculumId, studentId, sessionDate) || null;
+    var lesson = flow.lessonCache[lessonCacheKey(pair.curriculum.id, lessonNo)] || lessonForCurriculum(pair.curriculum, lessonNo);
+    var draft = ensureDraft(student.id, lessonNo, lesson, existingTodaySession);
+    var attendance = normalizeAttendance(draft.attendance);
+    if (!attendance) {
+      toast('اختر حالة التحضير قبل الحفظ', 'err');
+      return;
+    }
+
+    var hRows = listFromUnknown(draft.hifdh).map(normalizeEntry);
+    var rRows = listFromUnknown(draft.revision).map(normalizeEntry);
 
     if (hasInvalidPathSegment(curriculumId) || hasInvalidPathSegment(studentId) || hasInvalidPathSegment(sessionDate)) {
       console.error('[TeacherCurriculumTab] invalid Firebase path segment', {
@@ -610,6 +715,7 @@
       studentId: studentId,
       lessonNumber: Number(lessonNo),
       completed: !!completed,
+      attendance: attendance,
       hifdh: hRows,
       revision: rRows,
       note: String(draft.note || '')
@@ -636,6 +742,7 @@
         currentLesson: Number(nextLesson),
         updatedAt: isoNow()
       };
+      setTodaySessionRecord(curriculumId, studentId, sessionDate, payload);
 
       if (idx >= students.length - 1) {
         flow.view = 'overview';
@@ -689,12 +796,15 @@
   function renderOverviewView(pair, flow) {
     var students = sortedStudentsForHalaqa(pair.halaqa.id);
     var totalLessons = Math.max(1, Number(pair.curriculum.lessons.length || 1));
+    var dateISO = todayISODate();
     var rowsHtml = students.map(function (student) {
-      var lessonNo = studentLessonNumber(pair.curriculum, student.id);
+      var lessonNo = activeLessonNumberForStudent(pair.curriculum, student.id, dateISO);
       var percent = clamp(Math.round((lessonNo / totalLessons) * 100), 0, 100);
+      var session = getTodaySessionRecord(pair.curriculum.id, student.id, dateISO);
+      var statusLine = session ? '<div class="muted" style="font-size:12px; margin-top:4px;">تم حفظ تقييم اليوم ويمكن تعديله</div>' : '';
       return [
         '<tr onclick="teacherCurriculumOpenStudent(\'' + esc(student.id) + '\')" style="cursor:pointer;">',
-        '  <td>' + esc(student.name || '-') + '</td>',
+        '  <td>' + esc(student.name || '-') + statusLine + '</td>',
         '  <td>درس ' + Number(lessonNo) + '</td>',
         '  <td><div class="manhaj-mini-progress"><span style="width:' + Number(percent) + '%"></span></div><div style="font-size:12px; margin-top:4px;">' + Number(percent) + '%</div></td>',
         '</tr>'
@@ -760,18 +870,29 @@
 
     var idx = clamp(Number(flow.studentIndex || 0), 0, students.length - 1);
     flow.studentIndex = idx;
+    var dateISO = todayISODate();
     var student = students[idx];
-    var lessonNo = studentLessonNumber(pair.curriculum, student.id);
+    var lessonNo = activeLessonNumberForStudent(pair.curriculum, student.id, dateISO);
+    var todaySession = getTodaySessionRecord(pair.curriculum.id, student.id, dateISO);
+    if (typeof todaySession === 'undefined' && !flow.loadingProgress) {
+      ensureProgressLoaded(pair);
+    }
+    if (typeof todaySession === 'undefined') {
+      return '<div class="tw-card"><h3>تقييم المنهج</h3><p class="muted" style="margin-top:8px;">جار تحميل تقييم اليوم...</p></div>';
+    }
     var cacheKey = lessonCacheKey(pair.curriculum.id, lessonNo);
     var lesson = flow.lessonCache[cacheKey] || lessonForCurriculum(pair.curriculum, lessonNo);
 
     ensureLessonFromFirebase(pair.curriculum, lessonNo);
 
-    var draft = ensureDraft(student.id, lessonNo, lesson);
+    var draft = ensureDraft(student.id, lessonNo, lesson, todaySession || null);
+    var attendance = normalizeAttendance(draft.attendance);
+    var absentMode = attendance === 'absent';
     var dotHtml = students.map(function (st, i) {
-      var currentNo = studentLessonNumber(pair.curriculum, st.id);
+      var currentNo = activeLessonNumberForStudent(pair.curriculum, st.id, dateISO);
+      var saved = !!getTodaySessionRecord(pair.curriculum.id, st.id, dateISO);
       var label = String(st.name || '-').trim().split(' ')[0] || 'طالب';
-      return '<button type="button" class="tw-dot ' + (i === idx ? 'done active' : 'pending') + '" title="' + esc(st.name || '-') + '" onclick="teacherCurriculumOpenStudent(\'' + esc(st.id) + '\')">' + esc(label) + '<small>' + esc('د' + currentNo) + '</small></button>';
+      return '<button type="button" class="tw-dot ' + (saved ? 'done' : 'pending') + (i === idx ? ' active' : '') + '" title="' + esc(st.name || '-') + '" onclick="teacherCurriculumOpenStudent(\'' + esc(st.id) + '\')">' + esc(label) + '<small>' + esc('د' + currentNo) + '</small></button>';
     }).join('');
 
     return [
@@ -791,11 +912,20 @@
       '<div class="tw-card">',
       '  <div class="tw-student-name">' + esc(student.name || '-') + ' <span class="tw-pill" style="margin-inline-start:8px;">درس ' + Number(lessonNo) + '</span></div>',
       '  <div class="manhaj-student-banner"><b>المطلوب:</b> الحفظ: ' + esc(entriesText(lesson.hifdh)) + ' — المراجعة: ' + esc(entriesText(lesson.revision)) + '</div>',
+      (todaySession ? '  <div class="manhaj-editable-note">تم حفظ تقييم هذا الطالب اليوم. يمكنك التعديل قبل بدء يوم جديد.</div>' : ''),
       '  <div class="tw-entry-section">',
+      '    <div class="tw-entry-head"><h4>التحضير</h4></div>',
+      '    <div class="tw-att-grid">',
+      CURRICULUM_ATTENDANCE.map(function (att) {
+        return '<button type="button" class="tw-att-btn ' + esc(att.key) + ' ' + (attendance === att.key ? 'active' : '') + '" onclick="teacherCurriculumSetAttendance(\'' + esc(student.id) + '\',' + Number(lessonNo) + ',\'' + esc(att.key) + '\')">' + esc(att.label) + '</button>';
+      }).join(''),
+      '    </div>',
+      '  </div>',
+      '  <div class="tw-entry-section ' + (absentMode ? 'disabled' : '') + '">',
       '    <div class="tw-entry-head"><h4>قسم الحفظ</h4></div>',
       renderEntryRows(student, lessonNo, 'hifdh', lesson.hifdh, draft.hifdh),
       '  </div>',
-      '  <div class="tw-entry-section">',
+      '  <div class="tw-entry-section ' + (absentMode ? 'disabled' : '') + '">',
       '    <div class="tw-entry-head"><h4>قسم المراجعة</h4></div>',
       renderEntryRows(student, lessonNo, 'revision', lesson.revision, draft.revision),
       '  </div>',
@@ -823,6 +953,7 @@
       '.manhaj-mini-progress{height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;}',
       '.manhaj-mini-progress span{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);}',
       '.manhaj-student-banner{margin:8px 0;border:1px solid #86efac;background:#f0fdf4;border-radius:10px;padding:8px;color:#166534;font-size:13px;}',
+      '.manhaj-editable-note{margin:8px 0;border:1px solid #bfdbfe;background:#eff6ff;border-radius:10px;padding:8px;color:#1d4ed8;font-size:13px;}',
       '.manhaj-lesson-row{border:1px dashed #cbd5e1;border-radius:10px;padding:8px;margin-bottom:8px;background:#fff;}',
       '.manhaj-lesson-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap;}',
       '.manhaj-lesson-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}',
@@ -943,6 +1074,7 @@
     window.teacherCurriculumBackToOverview = backToOverview;
     window.teacherCurriculumStartEvaluation = startEvaluation;
     window.teacherCurriculumOpenStudent = openStudent;
+    window.teacherCurriculumSetAttendance = setDraftAttendance;
     window.teacherCurriculumSetField = setDraftField;
     window.teacherCurriculumSetNote = setDraftNote;
     window.teacherCurriculumSaveComplete = function () { saveSession(true); };
