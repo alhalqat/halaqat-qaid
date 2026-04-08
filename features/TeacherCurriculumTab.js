@@ -232,6 +232,49 @@
     return null;
   }
 
+  function firebaseAuthConfigured() {
+    try {
+      if (typeof auth !== 'undefined' && auth && typeof auth.signInWithEmailAndPassword === 'function') return true;
+    } catch (_e) {}
+    try {
+      if (window.auth && typeof window.auth.signInWithEmailAndPassword === 'function') return true;
+    } catch (_e2) {}
+    try {
+      if (window.firebase && typeof window.firebase.auth === 'function') {
+        var a = window.firebase.auth();
+        return !!a && typeof a.signInWithEmailAndPassword === 'function';
+      }
+    } catch (_e3) {}
+    return false;
+  }
+
+  function firebaseCurrentUser() {
+    try {
+      if (typeof auth !== 'undefined' && auth && auth.currentUser) return auth.currentUser;
+    } catch (_e) {}
+    try {
+      if (window.auth && window.auth.currentUser) return window.auth.currentUser;
+    } catch (_e2) {}
+    try {
+      if (window.firebase && typeof window.firebase.auth === 'function') {
+        var a = window.firebase.auth();
+        return a && a.currentUser ? a.currentUser : null;
+      }
+    } catch (_e3) {}
+    return null;
+  }
+
+  function firebaseCleanObject(value) {
+    return JSON.parse(JSON.stringify(value == null ? {} : value));
+  }
+
+  function hasInvalidPathSegment(value) {
+    var v = String(value == null ? '' : value).trim();
+    if (!v) return true;
+    var lower = v.toLowerCase();
+    return lower === 'undefined' || lower === 'null';
+  }
+
   function currentTeacherUser() {
     try {
       if (typeof window.currentUser === 'function') return window.currentUser();
@@ -526,9 +569,29 @@
 
     var hRows = listFromUnknown(draft.hifdh).map(normalizeEntry);
     var rRows = listFromUnknown(draft.revision).map(normalizeEntry);
+    var curriculumId = String(pair.curriculum.id || '').trim();
+    var studentId = String(student.id || '').trim();
+    var halaqaId = String(pair.halaqa.id || '').trim();
     var sessionDate = todayISODate();
-    var sessionPath = 'curricula/' + pair.curriculum.id + '/studentProgress/' + student.id + '/sessions/' + sessionDate;
-    var progressPath = 'curricula/' + pair.curriculum.id + '/studentProgress/' + student.id;
+
+    if (hasInvalidPathSegment(curriculumId) || hasInvalidPathSegment(studentId) || hasInvalidPathSegment(sessionDate)) {
+      console.error('[TeacherCurriculumTab] invalid Firebase path segment', {
+        curriculumId: curriculumId,
+        studentId: studentId,
+        sessionDate: sessionDate
+      });
+      toast('تعذر الحفظ: مسار بيانات غير صالح', 'err');
+      return;
+    }
+
+    if (firebaseAuthConfigured() && !firebaseCurrentUser()) {
+      console.error('[TeacherCurriculumTab] not authenticated before save');
+      toast('تعذر الحفظ: الحساب غير مسجل في Firebase', 'err');
+      return;
+    }
+
+    var sessionPath = 'curricula/' + curriculumId + '/studentProgress/' + studentId + '/sessions/' + sessionDate;
+    var progressPath = 'curricula/' + curriculumId + '/studentProgress/' + studentId;
     var sessionRef = getRealtimeDatabaseRef(sessionPath);
     var progressRef = getRealtimeDatabaseRef(progressPath);
 
@@ -543,28 +606,34 @@
     var payload = {
       date: sessionDate,
       at: isoNow(),
-      halaqaId: String(pair.halaqa.id || ''),
-      studentId: String(student.id || ''),
+      halaqaId: halaqaId,
+      studentId: studentId,
       lessonNumber: Number(lessonNo),
       completed: !!completed,
       hifdh: hRows,
       revision: rRows,
       note: String(draft.note || '')
     };
+    var cleanPayload = firebaseCleanObject(payload);
+    var progressUpdate = firebaseCleanObject({
+      currentLesson: Number(nextLesson),
+      updatedAt: isoNow(),
+      lastSessionDate: sessionDate
+    });
 
     flow.saving = true;
     rerenderTeacherWorkspace();
 
-    sessionRef.set(payload)
+    console.log('[TeacherCurriculumTab] saving to path:', sessionPath);
+    console.log('[TeacherCurriculumTab] updating progress path:', progressPath);
+    console.log('[TeacherCurriculumTab] payload preview:', cleanPayload);
+
+    sessionRef.set(cleanPayload)
       .then(function () {
-        return progressRef.update({
-          currentLesson: Number(nextLesson),
-          updatedAt: isoNow(),
-          lastSessionDate: sessionDate
-        });
+        return progressRef.update(progressUpdate);
       })
       .then(function () {
-        flow.progressByStudent[String(student.id)] = {
+        flow.progressByStudent[studentId] = {
           currentLesson: Number(nextLesson),
           updatedAt: isoNow()
         };
@@ -577,8 +646,16 @@
         }
         toast(completed ? 'تم حفظ الجلسة وإتمام الدرس' : 'تم حفظ الجلسة بدون ترقية الدرس');
       })
-      .catch(function () {
-        toast('تعذر حفظ تقييم المنهج في Firebase', 'err');
+      .catch(function (err) {
+        var code = String(err && err.code ? err.code : 'unknown');
+        var message = String(err && err.message ? err.message : 'unknown');
+        console.error('[TeacherCurriculumTab] Firebase save error:', code, message, {
+          sessionPath: sessionPath,
+          progressPath: progressPath,
+          payload: cleanPayload,
+          progressUpdate: progressUpdate
+        });
+        toast('تعذر حفظ تقييم المنهج في Firebase (' + code + ')', 'err');
       })
       .finally(function () {
         flow.saving = false;
