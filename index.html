@@ -2801,7 +2801,17 @@ localStorage.setItem = function(key, value) {
       <section id="view-printpacks" class="hidden grid">
         <div class="card">
           <h2 style="margin-bottom:8px;">طباعة وتصدير الحلقات</h2>
-          <p class="muted">قسم مخصص لطباعة حلقات البنين والبنات كل قسم على حدة، وتصدير الملف بصيغة Excel.</p>
+          <p class="muted">تقرير أسبوعي شامل: الحفظ والمراجعة (السورة + من/إلى آية + مقدار الآيات) مع دعم طباعة الأسابيع السابقة.</p>
+          <div class="row" style="gap:8px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
+            <div class="field-block" style="min-width:220px;">
+              <div class="field-label">التاريخ المرجعي للأسبوع</div>
+              <input id="printPackWeekDate" type="date" onchange="adminPrintPackSetRefDate(this.value)" />
+            </div>
+            <button class="btn btn-light" onclick="adminPrintPackShiftWeek(-1)">الأسبوع السابق</button>
+            <button class="btn btn-light" onclick="adminPrintPackSetRefDate('')">هذا الأسبوع</button>
+            <button class="btn btn-light" onclick="adminPrintPackShiftWeek(1)">الأسبوع التالي</button>
+          </div>
+          <p id="printPackRangeLabel" class="muted" style="margin-top:8px;"></p>
           <div class="row" style="gap:8px; flex-wrap:wrap; margin-top:10px;">
             <button class="btn btn-light" onclick="adminPrintPackSection('mens')">طباعة حلقات البنين</button>
             <button class="btn btn-light" onclick="adminPrintPackSection('womens')">طباعة حلقات البنات</button>
@@ -3163,6 +3173,7 @@ localStorage.setItem = function(key, value) {
 	      reportPeriod: 'weekly',
 	      reportScope: 'current',
 	      reportHalaqaId: '__all__',
+	      printPackRefDate: '',
 	      currentDailyHalaqaId: null,
 	      smartPickers: {},
 	      prefillByStudent: {},
@@ -11483,10 +11494,58 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       return rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
     }
 
-    function adminPrintPackBuildData(section) {
+    function adminPrintPackRefDateISO() {
+      const base = state.printPackRefDate || todayISO();
+      const normalized = normalizeISODate(base, todayISO());
+      return normalized || todayISO();
+    }
+
+    function adminPrintPackSetRefDate(dateISO) {
+      const normalized = normalizeISODate(dateISO || todayISO(), todayISO());
+      state.printPackRefDate = normalized;
+      const input = $('printPackWeekDate');
+      if (input && input.value !== normalized) input.value = normalized;
+      renderPrintPacks();
+    }
+
+    function adminPrintPackShiftWeek(weeks) {
+      const step = Number(weeks || 0);
+      const base = adminPrintPackRefDateISO();
+      adminPrintPackSetRefDate(addDaysISO(base, step * 7));
+    }
+
+    function adminPrintPackSortedLogs(logs) {
+      return (Array.isArray(logs) ? logs.slice() : []).sort((a, b) => {
+        const dateDiff = String(a.date || '').localeCompare(String(b.date || ''));
+        if (dateDiff !== 0) return dateDiff;
+        return String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+      });
+    }
+
+    function adminPrintPackLogDetailsText(logs) {
+      const rows = adminPrintPackSortedLogs(logs);
+      if (!rows.length) return '—';
+      return rows.map((l) => {
+        const surahName = l.surahName || (Number.isFinite(Number(l.surahIdx)) && SURAH_DATA[Number(l.surahIdx)] ? SURAH_DATA[Number(l.surahIdx)].name : '');
+        const surah = String(surahName || '-');
+        const fromAya = Number(l.fromAya || 0) || '-';
+        const toAya = Number(l.toAya || 0) || '-';
+        const count = Number(l.ayaCount || ayaCount(fromAya, toAya) || 0) || 0;
+        return `${l.date || '-'}: ${surah} (${fromAya}-${toAya}) [${count} آية]`;
+      }).join('\n');
+    }
+
+    function adminPrintPackBuildData(section, referenceDateISO = null) {
       const normalized = normalizeSection(section);
       const allowed = adminPrintPackAllowedSections();
       if (!allowed.includes(normalized)) return null;
+      const referenceDate = normalizeISODate(referenceDateISO || adminPrintPackRefDateISO(), todayISO());
+      const range = weekRangeFromDate(referenceDate);
+      const logsAll = (state.db.logs || []).filter((l) =>
+        normalizeSection(l.section || '') === normalized
+        && String(l.date || '') >= range.startISO
+        && String(l.date || '') <= range.endISO
+      );
 
       const halaqas = (state.db.halaqas || [])
         .filter((h) => normalizeSection(h.section) === normalized)
@@ -11496,6 +11555,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const rows = [];
       let serial = 1;
       let studentsTotal = 0;
+      let hifdhAyaTotal = 0;
+      let revisionAyaTotal = 0;
       halaqas.forEach((halaqa) => {
         const students = adminPrintPackStudentsForHalaqa(halaqa.id);
         const studentsCount = students.length;
@@ -11503,6 +11564,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         if (!students.length) {
           rows.push({
             serial: serial++,
+            halaqaId: halaqa.id,
             halaqaName: halaqa.circleName || '-',
             teacherName: halaqa.teacherName || '-',
             timeLabel: halaqaTimeLabel(halaqa),
@@ -11512,12 +11574,27 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             grade: '—',
             nationalId: '—',
             guardianPhone: '—',
+            hifdhAya: 0,
+            hifdhDetails: '—',
+            revisionAya: 0,
+            revisionDetails: '—',
           });
           return;
         }
         students.forEach((student) => {
+          const studentLogs = logsAll.filter((l) =>
+            String(l.halaqaId || '') === String(halaqa.id)
+            && String(l.studentId || '') === String(student.id)
+          );
+          const hifdhLogs = studentLogs.filter((l) => String(l.type || '') === 'hifdh');
+          const revisionLogs = studentLogs.filter((l) => String(l.type || '') === 'revision');
+          const hifdhAya = hifdhLogs.reduce((sum, l) => sum + Number(l.ayaCount || ayaCount(l.fromAya, l.toAya) || 0), 0);
+          const revisionAya = revisionLogs.reduce((sum, l) => sum + Number(l.ayaCount || ayaCount(l.fromAya, l.toAya) || 0), 0);
+          hifdhAyaTotal += hifdhAya;
+          revisionAyaTotal += revisionAya;
           rows.push({
             serial: serial++,
+            halaqaId: halaqa.id,
             halaqaName: halaqa.circleName || '-',
             teacherName: halaqa.teacherName || '-',
             timeLabel: halaqaTimeLabel(halaqa),
@@ -11527,6 +11604,10 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             grade: student.grade || '-',
             nationalId: student.nationalId || '-',
             guardianPhone: student.guardianPhone || '-',
+            hifdhAya,
+            hifdhDetails: adminPrintPackLogDetailsText(hifdhLogs),
+            revisionAya,
+            revisionDetails: adminPrintPackLogDetailsText(revisionLogs),
           });
         });
       });
@@ -11534,11 +11615,15 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       return {
         section: normalized,
         sectionLabel: adminSectionLabel(normalized),
+        referenceDate,
+        range,
         halaqas,
         rows,
         totals: {
           halaqas: halaqas.length,
           students: studentsTotal,
+          hifdhAya: hifdhAyaTotal,
+          revisionAya: revisionAyaTotal,
         },
       };
     }
@@ -11556,6 +11641,10 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
           <td>${escapeAttr(row.grade || '-')}</td>
           <td>${escapeAttr(row.nationalId || '-')}</td>
           <td>${escapeAttr(row.guardianPhone || '-')}</td>
+          <td>${Number(row.hifdhAya || 0)}</td>
+          <td><div style="white-space:pre-wrap; min-width:260px;">${escapeAttr(row.hifdhDetails || '—')}</div></td>
+          <td>${Number(row.revisionAya || 0)}</td>
+          <td><div style="white-space:pre-wrap; min-width:260px;">${escapeAttr(row.revisionDetails || '—')}</div></td>
         </tr>
       `).join('');
       return `
@@ -11572,10 +11661,14 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
               <th>المرحلة</th>
               <th>الهوية</th>
               <th>جوال ولي الأمر</th>
+              <th>مجموع آيات الحفظ</th>
+              <th>تفصيل الحفظ (السورة + من/إلى)</th>
+              <th>مجموع آيات المراجعة</th>
+              <th>تفصيل المراجعة (السورة + من/إلى)</th>
             </tr>
           </thead>
           <tbody>
-            ${rowsHtml || '<tr><td colspan="10" class="muted">لا توجد بيانات</td></tr>'}
+            ${rowsHtml || '<tr><td colspan="14" class="muted">لا توجد بيانات</td></tr>'}
           </tbody>
         </table>
       `;
@@ -11589,6 +11682,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
         <div class="row" style="gap:8px; margin-bottom:8px;">
           <span class="badge badge-green">الحلقات: ${report.totals.halaqas}</span>
           <span class="badge">الطلاب: ${report.totals.students}</span>
+          <span class="badge">الحفظ (آيات): ${report.totals.hifdhAya}</span>
+          <span class="badge">المراجعة (آيات): ${report.totals.revisionAya}</span>
+          <span class="badge">الفترة: ${report.range.startISO} → ${report.range.endISO}</span>
         </div>
         <div class="report-table-wrap">
           <table>
@@ -11600,11 +11696,16 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
                 <th>الوقت</th>
                 <th>الأيام</th>
                 <th>عدد الطلاب</th>
+                <th>آيات الحفظ (الأسبوع)</th>
+                <th>آيات المراجعة (الأسبوع)</th>
               </tr>
             </thead>
             <tbody>
               ${report.halaqas.map((halaqa, idx) => {
                 const count = adminPrintPackStudentsForHalaqa(halaqa.id).length;
+                const halaqaRows = (report.rows || []).filter((r) => String(r.halaqaId || '') === String(halaqa.id));
+                const halaqaHifdh = halaqaRows.reduce((sum, r) => sum + Number(r.hifdhAya || 0), 0);
+                const halaqaRevision = halaqaRows.reduce((sum, r) => sum + Number(r.revisionAya || 0), 0);
                 return `
                   <tr>
                     <td>${idx + 1}</td>
@@ -11613,6 +11714,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
                     <td>${escapeAttr(halaqaTimeLabel(halaqa))}</td>
                     <td>${escapeAttr(scheduleTypeLabel(halaqa))}</td>
                     <td>${count}</td>
+                    <td>${halaqaHifdh}</td>
+                    <td>${halaqaRevision}</td>
                   </tr>
                 `;
               }).join('')}
@@ -11643,8 +11746,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             </style>
           </head>
           <body>
-            <h2>تقرير حلقات ${escapeAttr(report.sectionLabel)}</h2>
-            <div class="meta">إجمالي الحلقات: ${report.totals.halaqas} • إجمالي الطلاب: ${report.totals.students} • التاريخ: ${todayISO()}</div>
+            <h2>تقرير حلقات ${escapeAttr(report.sectionLabel)} (أسبوعي)</h2>
+            <div class="meta">الفترة: ${report.range.startISO} → ${report.range.endISO} • التاريخ المرجعي: ${report.referenceDate}</div>
+            <div class="meta">إجمالي الحلقات: ${report.totals.halaqas} • إجمالي الطلاب: ${report.totals.students} • الحفظ: ${report.totals.hifdhAya} آية • المراجعة: ${report.totals.revisionAya} آية</div>
             ${tableHtml}
           </body>
         </html>
@@ -11669,8 +11773,9 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
             </style>
           </head>
           <body>
-            <h2>تقرير حلقات ${escapeAttr(report.sectionLabel)}</h2>
-            <div>إجمالي الحلقات: ${report.totals.halaqas} - إجمالي الطلاب: ${report.totals.students} - التاريخ: ${todayISO()}</div>
+            <h2>تقرير حلقات ${escapeAttr(report.sectionLabel)} (أسبوعي)</h2>
+            <div>الفترة: ${report.range.startISO} → ${report.range.endISO} - التاريخ المرجعي: ${report.referenceDate}</div>
+            <div>إجمالي الحلقات: ${report.totals.halaqas} - إجمالي الطلاب: ${report.totals.students} - الحفظ: ${report.totals.hifdhAya} آية - المراجعة: ${report.totals.revisionAya} آية</div>
             ${tableHtml}
           </body>
         </html>
@@ -11678,7 +11783,7 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `حلقات_${safeFilePart(report.sectionLabel)}_${todayISO()}.xls`;
+      a.download = `حلقات_${safeFilePart(report.sectionLabel)}_${report.range.startISO}_الى_${report.range.endISO}.xls`;
       a.click();
       const url = a.href;
       setTimeout(() => URL.revokeObjectURL(url), 1200);
@@ -11690,11 +11795,18 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       if (!u) return;
       const mensPreview = $('printPackMensPreview');
       const womensPreview = $('printPackWomensPreview');
+      const dateInput = $('printPackWeekDate');
+      const rangeLabel = $('printPackRangeLabel');
       if (u.role !== 'admin') {
         if (mensPreview) mensPreview.innerHTML = '<p class="muted">غير مسموح بعرض هذا القسم.</p>';
         if (womensPreview) womensPreview.innerHTML = '<p class="muted">غير مسموح بعرض هذا القسم.</p>';
+        if (rangeLabel) rangeLabel.textContent = '';
         return;
       }
+      const referenceDate = adminPrintPackRefDateISO();
+      const range = weekRangeFromDate(referenceDate);
+      if (dateInput && dateInput.value !== referenceDate) dateInput.value = referenceDate;
+      if (rangeLabel) rangeLabel.textContent = `الفترة الأسبوعية الحالية: ${range.startISO} → ${range.endISO}`;
       if (mensPreview) mensPreview.innerHTML = adminPrintPackPreviewHtml('mens');
       if (womensPreview) womensPreview.innerHTML = adminPrintPackPreviewHtml('womens');
     }
@@ -13725,10 +13837,8 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
     teacherSyncAbsentCount(student.id);
     const persisted = saveDB();
     if (!persisted) return null;
-    if (cloudAuthReadyForWrite()) {
-      await pushCloudFromState({ notify: false, force: true });
-    }
-    rebuildIndexes();
+    // لا ننتظر الرفع السحابي هنا حتى لا يتأخر زر "حفظ والتالي".
+    // saveDB() يشغّل مزامنة السحابة بالخلفية تلقائياً.
     return { halaqa, students, student, dateISO };
   }
 
