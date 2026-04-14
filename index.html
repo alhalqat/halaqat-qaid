@@ -7189,17 +7189,23 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      );
 	      const perStudent = {};
 	      dayLogs.forEach((log) => {
-	        if (!perStudent[log.studentId]) perStudent[log.studentId] = { hifdh: null, revision: null };
-	        if (log.type === 'hifdh' && !perStudent[log.studentId].hifdh) perStudent[log.studentId].hifdh = log;
-	        if (log.type === 'revision' && !perStudent[log.studentId].revision) perStudent[log.studentId].revision = log;
+	        if (!perStudent[log.studentId]) perStudent[log.studentId] = { hifdh: [], revision: [] };
+	        if (log.type === 'hifdh') perStudent[log.studentId].hifdh.push(log);
+	        if (log.type === 'revision') perStudent[log.studentId].revision.push(log);
 	      });
 	      const rows = students.map((student) => {
-	        const entry = perStudent[student.id] || { hifdh: null, revision: null };
-	        return { student, hifdh: entry.hifdh, revision: entry.revision };
+	        const entry = perStudent[student.id] || { hifdh: [], revision: [] };
+	        return {
+	          student,
+	          hifdhLogs: entry.hifdh,
+	          revisionLogs: entry.revision,
+	          hifdh: entry.hifdh[0] || null,
+	          revision: entry.revision[0] || null,
+	        };
 	      });
-	      const loggedStudents = rows.filter((r) => r.hifdh || r.revision).length;
-	      const hifdhStudents = rows.filter((r) => r.hifdh).length;
-	      const revisionStudents = rows.filter((r) => r.revision).length;
+	      const loggedStudents = rows.filter((r) => (r.hifdhLogs?.length || 0) > 0 || (r.revisionLogs?.length || 0) > 0).length;
+	      const hifdhStudents = rows.filter((r) => (r.hifdhLogs?.length || 0) > 0).length;
+	      const revisionStudents = rows.filter((r) => (r.revisionLogs?.length || 0) > 0).length;
 	      const dayNote = getHalaqaDayNote(halaqa.id, dateISO);
 	      const noteMeta = halaqaDayStatusMeta(dayNote?.status || 'normal');
 	      const rawMissingStudents = Math.max(0, students.length - loggedStudents);
@@ -7316,8 +7322,16 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	        return;
 	      }
 
-	      const fmtSurah = (log) => log ? (log.surahName || '-') : '<span class="daily-empty">—</span>';
-	      const fmtRange = (log) => log ? `${log.fromAya || '-'} - ${log.toAya || '-'}` : '<span class="daily-empty">—</span>';
+	      const fmtSurah = (logs) => {
+	        const rows = Array.isArray(logs) ? logs : [];
+	        if (!rows.length) return '<span class="daily-empty">—</span>';
+	        return rows.map((log) => `<div>${escapeAttr(log?.surahName || '-')}</div>`).join('');
+	      };
+	      const fmtRange = (logs) => {
+	        const rows = Array.isArray(logs) ? logs : [];
+	        if (!rows.length) return '<span class="daily-empty">—</span>';
+	        return rows.map((log) => `<div>${Number(log?.fromAya || 0) || '-'} - ${Number(log?.toAya || 0) || '-'}</div>`).join('');
+	      };
 	      const selectedNoteLine = selected.noteSummary
 	        ? `<p class="muted" style="font-size:12px; margin-top:4px;">حالة اليوم: ${escapeAttr(selected.noteSummary)}</p>`
 	        : '';
@@ -7355,13 +7369,13 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	            </thead>
 	            <tbody>
 	              ${selected.rows.map((row, idx) => `
-	                <tr class="${(!row.hifdh && !row.revision && !selected.noteJustified) ? 'row-danger' : ''}">
+	                <tr class="${((row.hifdhLogs?.length || 0) === 0 && (row.revisionLogs?.length || 0) === 0 && !selected.noteJustified) ? 'row-danger' : ''}">
 	                  <td>${idx + 1}</td>
 	                  <td>${row.student.name || '-'}</td>
-	                  <td>${fmtSurah(row.hifdh)}</td>
-	                  <td>${fmtRange(row.hifdh)}</td>
-	                  <td>${fmtSurah(row.revision)}</td>
-	                  <td>${fmtRange(row.revision)}</td>
+	                  <td>${fmtSurah(row.hifdhLogs)}</td>
+	                  <td>${fmtRange(row.hifdhLogs)}</td>
+	                  <td>${fmtSurah(row.revisionLogs)}</td>
+	                  <td>${fmtRange(row.revisionLogs)}</td>
 	                </tr>
 	              `).join('') || '<tr><td colspan="6" class="muted">لا يوجد طلاب في هذه الحلقة.</td></tr>'}
 	            </tbody>
@@ -7385,10 +7399,12 @@ function getConsecutiveAbsences(studentId, halaqaId) {
 	      const sectionLabel = halaqa.section === 'womens' ? 'قسم البنات' : 'قسم البنين';
 	      const noteLine = snap.noteSummary || '';
 	      const rowsHtml = snap.rows.map((row, idx) => {
-	        const hifdhSurah = row.hifdh ? escapeAttr(row.hifdh.surahName || '-') : '-';
-	        const hifdhRange = row.hifdh ? `${row.hifdh.fromAya || '-'} - ${row.hifdh.toAya || '-'}` : '-';
-	        const revSurah = row.revision ? escapeAttr(row.revision.surahName || '-') : '-';
-	        const revRange = row.revision ? `${row.revision.fromAya || '-'} - ${row.revision.toAya || '-'}` : '-';
+	        const hifdhRows = Array.isArray(row.hifdhLogs) ? row.hifdhLogs : [];
+	        const revRows = Array.isArray(row.revisionLogs) ? row.revisionLogs : [];
+	        const hifdhSurah = hifdhRows.length ? hifdhRows.map((l) => escapeAttr(l.surahName || '-')).join('<br/>') : '-';
+	        const hifdhRange = hifdhRows.length ? hifdhRows.map((l) => `${l.fromAya || '-'} - ${l.toAya || '-'}`).join('<br/>') : '-';
+	        const revSurah = revRows.length ? revRows.map((l) => escapeAttr(l.surahName || '-')).join('<br/>') : '-';
+	        const revRange = revRows.length ? revRows.map((l) => `${l.fromAya || '-'} - ${l.toAya || '-'}`).join('<br/>') : '-';
 	        return `
 	          <tr>
 	            <td>${idx + 1}</td>
@@ -9432,10 +9448,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       const rows = students.map((student) => {
         const logs = perStudentLogs[student.id] || [];
         const attendance = rollByStudent[student.id]?.status || logs[0]?.attendance || '';
-        const hifdh = logs.find((l) => l.type === 'hifdh') || null;
-        const revision = logs.find((l) => l.type === 'revision') || null;
+        const hifdhLogs = logs.filter((l) => l.type === 'hifdh');
+        const revisionLogs = logs.filter((l) => l.type === 'revision');
+        const hifdh = hifdhLogs[0] || null;
+        const revision = revisionLogs[0] || null;
         const notes = [...new Set(logs.map((l) => String(l.notes || '').trim()).filter(Boolean))];
-        return { student, logs, attendance, hifdh, revision, notesText: notes.join(' | ') || '—' };
+        return { student, logs, attendance, hifdh, revision, hifdhLogs, revisionLogs, notesText: notes.join(' | ') || '—' };
       });
       const presentCount = rows.filter((r) => ['present', 'late', 'remote'].includes(r.attendance)).length;
       const absentCount = rows.filter((r) => ['absent', 'dropped'].includes(r.attendance)).length;
@@ -10144,6 +10162,21 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
       if (flow.tab === 'students') return adminHalaqaStudentsTabHtml(halaqa);
       if (flow.tab === 'settings') return adminHalaqaSettingsTabHtml(halaqa);
       const rows = snapshot.rows || [];
+      const fmtLogSurahList = (logs) => {
+        const list = Array.isArray(logs) ? logs : [];
+        if (!list.length) return '—';
+        return list.map((log) => `<div>${escapeAttr(log.surahName || '-')}</div>`).join('');
+      };
+      const fmtLogNumberList = (logs, key) => {
+        const list = Array.isArray(logs) ? logs : [];
+        if (!list.length) return '—';
+        return list.map((log) => `<div>${Number(log?.[key] || 0) || '-'}</div>`).join('');
+      };
+      const fmtLogGradeList = (logs) => {
+        const list = Array.isArray(logs) ? logs : [];
+        if (!list.length) return '—';
+        return list.map((log) => `<div>${adminGradeDot(log?.grade || '')}</div>`).join('');
+      };
       return `
         <div class="ops-v2-actions no-print" style="margin-bottom:8px;">
           <button class="btn btn-light" onclick="adminHalaqaOpenReasonModal('${halaqa.id}')">⚠ سجّل سبب لليوم المحدد</button>
@@ -10174,12 +10207,12 @@ function getStudentAlertHTML(s) { const issues = studentIssues(s, state.db.stude
                     </div>
                   </td>
                   <td>${adminHalaqaAttendancePill(row.attendance)}</td>
-                  <td>${row.hifdh ? escapeAttr(row.hifdh.surahName || '-') : '—'}</td>
-                  <td>${row.hifdh ? Number(row.hifdh.fromAya || 1) : '—'}</td>
-                  <td>${row.hifdh ? Number(row.hifdh.toAya || 1) : '—'}</td>
-                  <td>${adminGradeDot(row.hifdh?.grade || '')}</td>
-                  <td>${row.revision ? escapeAttr(row.revision.surahName || '-') : '—'}</td>
-                  <td>${adminGradeDot(row.revision?.grade || '')}</td>
+                  <td>${fmtLogSurahList(row.hifdhLogs)}</td>
+                  <td>${fmtLogNumberList(row.hifdhLogs, 'fromAya')}</td>
+                  <td>${fmtLogNumberList(row.hifdhLogs, 'toAya')}</td>
+                  <td>${fmtLogGradeList(row.hifdhLogs)}</td>
+                  <td>${fmtLogSurahList(row.revisionLogs)}</td>
+                  <td>${fmtLogGradeList(row.revisionLogs)}</td>
                   <td>${escapeAttr(row.notesText || '—')}</td>
                   <td class="no-print">
                     <div class="ops-mini-actions">
