@@ -2225,7 +2225,7 @@ tbody tr:hover td { background: #fef9e7; }
 <!-- PATCH v40: Firebase SDK Integration -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script> <script src="js/firebase-config.js"></script>
 <script>
 // Firebase Configuration
 const firebaseConfig = {
@@ -2245,7 +2245,7 @@ let auth = null;
 const hasFirebaseSDK = typeof window !== 'undefined' && window.firebase && typeof window.firebase.initializeApp === 'function';
 if (hasFirebaseSDK) {
   try {
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);      // حماية XSS: تهريب أي نص قبل إدراجه في HTML     const esc = (v) => {       const d = document.createElement('div');       d.textContent = v != null ? String(v) : '';       return d.innerHTML;     };
     database = firebase.database();
     if (typeof firebase.auth === 'function') auth = firebase.auth();
   } catch (err) {
